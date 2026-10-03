@@ -20,7 +20,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 - `/wig routes`: list routes. `/wig routes <route>`: list that route's waypoints.
 - `/wig start <route>`: run the route from waypoint 1 to the last. `/wig start <route> loop` goes back to waypoint 1 and never ends.
 - `/wig stop`: stop a run.
-- `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines). Remembered between sessions.
+- `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). Remembered between sessions.
 - `/wig clear`: remove every waypoint from the selected route.
 - `/wig delete <route>`: delete a route (run it twice within 10 seconds).
 

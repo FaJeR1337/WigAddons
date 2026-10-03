@@ -40,7 +40,7 @@ public final class WaypointRenderer {
 			net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(w.x(), w.y(), w.z());
 			Gizmos.cuboid(pos, GizmoStyle.stroke(BOX_COLOR, 3.0F));
 			Vec3 top = new Vec3(w.x() + 0.5, w.y() + 1.6, w.z() + 0.5);
-			Gizmos.billboardText(String.valueOf(i + 1), top, TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(1.5F));
+			Gizmos.billboardText(String.valueOf(i + 1), top, TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(1.5F)).setAlwaysOnTop();
 			Vec3 center = new Vec3(w.x() + 0.5, w.y() + 0.5, w.z() + 0.5);
 			if (previous != null) {
 				Gizmos.line(previous, center, LINE_COLOR, 2.0F);
