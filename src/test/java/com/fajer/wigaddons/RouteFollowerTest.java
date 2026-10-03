@@ -5,14 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class RouteFollowerTest {
 	/** Sprint speed in blocks per tick. */
 	private static final double SPEED = 0.28;
 
+	/** Exact block centres unless a test asks for the random offset. */
 	private static WigConfig config() {
-		return new WigConfig();
+		WigConfig cfg = new WigConfig();
+		cfg.humanizeOffset = 0;
+		return cfg;
 	}
 
 	private static RouteFollower follower(List<Waypoint> route, boolean loop, double radius) {
@@ -193,6 +197,72 @@ class RouteFollowerTest {
 		for (double radius : new double[] {0, 1, 2}) {
 			int ticks = simulate(route, radius, 0.5, 0.5, 0, 600);
 			assertTrue(ticks > 0 && ticks < 250, "radius " + radius + " took " + ticks);
+		}
+	}
+
+	@Test
+	void eachWaypointIsAimedAtARandomSpotInsideItsBlock() {
+		WigConfig cfg = new WigConfig(); // default offset 0.4
+		List<Waypoint> route = List.of(new Waypoint(0, 64, 10), new Waypoint(5, 64, 20), new Waypoint(9, 64, 30), new Waypoint(2, 64, 40));
+		RouteFollower f = new RouteFollower(route, false, 1, cfg, new Random(7));
+		boolean anyOffCentre = false;
+		for (int i = 0; i < route.size(); i++) {
+			double dx = f.aimX(i) - route.get(i).centerX();
+			double dz = f.aimZ(i) - route.get(i).centerZ();
+			assertTrue(Math.abs(dx) <= cfg.humanizeOffset && Math.abs(dz) <= cfg.humanizeOffset);
+			anyOffCentre |= dx != 0 || dz != 0;
+		}
+		assertTrue(anyOffCentre);
+	}
+
+	@Test
+	void radiusZeroAndOffsetZeroAimAtTheExactMiddle() {
+		List<Waypoint> route = List.of(new Waypoint(3, 64, 10), new Waypoint(5, 64, 20));
+		RouteFollower noRadius = new RouteFollower(route, false, 0, new WigConfig(), new Random(1));
+		RouteFollower noOffset = new RouteFollower(route, false, 2, config(), new Random(1));
+		for (RouteFollower f : List.of(noRadius, noOffset)) {
+			for (int i = 0; i < route.size(); i++) {
+				assertEquals(route.get(i).centerX(), f.aimX(i), 1e-12);
+				assertEquals(route.get(i).centerZ(), f.aimZ(i), 1e-12);
+			}
+		}
+	}
+
+	@Test
+	void aPassedWaypointGetsANewSpotForTheNextLap() {
+		List<Waypoint> route = List.of(new Waypoint(0, 64, 10), new Waypoint(0, 64, 20));
+		RouteFollower f = new RouteFollower(route, true, 1, new WigConfig(), new Random(3));
+		double before = f.aimX(0);
+		f.tick(0.5, 0.5, true, false);
+		// walk up to waypoint 0 and through it
+		f.tick(f.aimX(0), f.aimZ(0), true, false);
+		assertEquals(1, f.targetIndex());
+		assertTrue(f.aimX(0) != before);
+	}
+
+	@Test
+	void stillFinishesRoutesWithTheRandomOffset() {
+		WigConfig cfg = new WigConfig();
+		List<Waypoint> square = List.of(new Waypoint(10, 64, 0), new Waypoint(10, 64, 10), new Waypoint(0, 64, 10), new Waypoint(0, 64, 0));
+		for (long seed = 0; seed < 25; seed++) {
+			for (double radius : new double[] {0.5, 1, 2}) {
+				RouteFollower f = new RouteFollower(square, false, radius, cfg, new Random(seed));
+				double x = 0.5;
+				double z = 0.5;
+				double yaw = -90;
+				int ticks = -1;
+				for (int t = 0; t < 600; t++) {
+					RouteFollower.Output out = f.tick(x, z, true, false);
+					if (out.status() == RouteFollower.Status.FINISHED) {
+						ticks = t;
+						break;
+					}
+					yaw = RouteFollower.stepYaw(yaw, out.aimYaw(), cfg.turnSpeedDegPerTick);
+					x += -Math.sin(Math.toRadians(yaw)) * SPEED;
+					z += Math.cos(Math.toRadians(yaw)) * SPEED;
+				}
+				assertTrue(ticks > 0 && ticks < 300, "seed " + seed + " radius " + radius + " took " + ticks);
+			}
 		}
 	}
 }

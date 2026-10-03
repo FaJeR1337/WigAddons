@@ -28,7 +28,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 
 ## Running
 
-The player sprints forward and jumps when blocked. The view turns toward the aim point at up to 10 degrees per tick, updated every rendered frame so it stays smooth at any frame rate. The aim point is the next waypoint; once you are within the route's radius of it (see `/wig radius`) it slides toward the waypoint after that, so the path bends round corners instead of making a hard turn. The player never stops at waypoints. A run ends when the last waypoint is reached.
+The player sprints forward and jumps when blocked. The view turns toward the aim point at up to 10 degrees per tick, updated every rendered frame so it stays smooth at any frame rate. The aim point is the next waypoint, but not its exact middle: each waypoint is aimed at a random spot up to `humanizeOffset` (0.4) blocks from the middle in each direction, picked again every run and every lap. A radius of `0` means the exact middle, so it turns the offset off for that route. Once you are within the route's radius of that spot (see `/wig radius`), the aim point slides toward the next waypoint's spot, so the path bends round corners instead of making a hard turn. The player never stops at waypoints. A run ends when the last waypoint is reached.
 
 While a route runs **the mouse is locked** (mouse movement is thrown away, not saved up).
 
@@ -50,4 +50,4 @@ Movement is a straight line between waypoints: no pathfinding around walls, gaps
 
 ## Files
 
-Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `rotationStopDegrees` (20), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.
+Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `rotationStopDegrees` (20), `humanizeOffset` (0.4), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.

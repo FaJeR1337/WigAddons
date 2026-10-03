@@ -17,6 +17,11 @@ public final class WigConfig {
 	public double turnSpeedDegPerTick = 10.0;
 	/** The run stops if the view is turned this far in a tick by anything but the mod (a server rotation check, say). */
 	public double rotationStopDegrees = 20.0;
+	/**
+	 * Each waypoint is aimed at a random spot up to this many blocks from the middle of its block (along each axis),
+	 * picked again every run and every lap, so the path isn't a perfect line through block centres. 0 turns it off.
+	 */
+	public double humanizeOffset = 0.4;
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 
@@ -49,6 +54,9 @@ public final class WigConfig {
 		}
 		if (!(rotationStopDegrees > 0)) {
 			rotationStopDegrees = d.rotationStopDegrees;
+		}
+		if (!(humanizeOffset >= 0)) {
+			humanizeOffset = d.humanizeOffset;
 		}
 		if (!(stuckTimeoutSeconds > 0)) {
 			stuckTimeoutSeconds = d.stuckTimeoutSeconds;

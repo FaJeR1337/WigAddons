@@ -1,12 +1,14 @@
 package com.fajer.wigaddons;
 
 import java.util.List;
+import java.util.Random;
 
 /**
  * Works out, one tick at a time, where the player should be heading along a route. It never stops at a waypoint.
  * Once the player is within the route's radius of a waypoint, the point it aims at slides from that waypoint toward
  * the next one, so the path bends smoothly instead of having a corner. It has no Minecraft types so it can be unit
- * tested. Turning the view toward the aim is up to the caller.
+ * tested. Turning the view toward the aim is up to the caller. Each waypoint is aimed at a slightly random spot
+ * within its block (unless the radius is 0, which means the exact middle).
  */
 public final class RouteFollower {
 	public enum Status {
@@ -40,6 +42,11 @@ public final class RouteFollower {
 	private final boolean loop;
 	private final double radius;
 	private final int stuckWindowTicks;
+	private final double humanize;
+	private final Random random;
+	/** Where in each waypoint's block the player aims, as an offset from the middle. */
+	private final double[] offsetX;
+	private final double[] offsetZ;
 
 	private int target;
 	private boolean started;
@@ -52,6 +59,10 @@ public final class RouteFollower {
 	private double closest = Double.MAX_VALUE;
 
 	public RouteFollower(List<Waypoint> points, boolean loop, double radius, WigConfig config) {
+		this(points, loop, radius, config, new Random());
+	}
+
+	public RouteFollower(List<Waypoint> points, boolean loop, double radius, WigConfig config, Random random) {
 		if (points.isEmpty()) {
 			throw new IllegalArgumentException("a route needs at least one waypoint");
 		}
@@ -59,6 +70,27 @@ public final class RouteFollower {
 		this.loop = loop;
 		this.radius = Math.max(radius, MIN_ARRIVE_RADIUS);
 		this.stuckWindowTicks = Math.max(1, (int) Math.round(config.stuckTimeoutSeconds * 20));
+		// a radius of 0 asks for the very middle of the block, so there is nothing to vary
+		this.humanize = radius <= 0 ? 0 : config.humanizeOffset;
+		this.random = random;
+		this.offsetX = new double[points.size()];
+		this.offsetZ = new double[points.size()];
+		for (int i = 0; i < points.size(); i++) {
+			roll(i);
+		}
+	}
+
+	private void roll(int i) {
+		offsetX[i] = (random.nextDouble() * 2 - 1) * humanize;
+		offsetZ[i] = (random.nextDouble() * 2 - 1) * humanize;
+	}
+
+	double aimX(int i) {
+		return points.get(i).centerX() + offsetX[i];
+	}
+
+	double aimZ(int i) {
+		return points.get(i).centerZ() + offsetZ[i];
 	}
 
 	/** Index of the waypoint being run to, 0-based. */
@@ -79,16 +111,15 @@ public final class RouteFollower {
 			return new Output(0, false, Status.FINISHED, target, 0, 0);
 		}
 
-		Waypoint t = points.get(target);
-		double dist = Math.hypot(t.centerX() - px, t.centerZ() - pz);
-		double aimX = t.centerX();
-		double aimZ = t.centerZ();
+		double dist = Math.hypot(aimX(target) - px, aimZ(target) - pz);
+		double aimX = aimX(target);
+		double aimZ = aimZ(target);
 		double blend = 0;
 		Integer next = nextIndex();
 		if (next != null && dist < radius) {
 			blend = 1 - dist / radius;
-			aimX += (points.get(next).centerX() - aimX) * blend;
-			aimZ += (points.get(next).centerZ() - aimZ) * blend;
+			aimX += (aimX(next) - aimX) * blend;
+			aimZ += (aimZ(next) - aimZ) * blend;
 		}
 		double aimYaw = yawTo(aimX - px, aimZ - pz);
 
@@ -111,8 +142,9 @@ public final class RouteFollower {
 	 * waypoint of a route that doesn't loop is reached within the radius.
 	 */
 	private boolean reachedTarget(double px, double pz) {
-		Waypoint t = points.get(target);
-		double dist = Math.hypot(t.centerX() - px, t.centerZ() - pz);
+		double tx = aimX(target);
+		double tz = aimZ(target);
+		double dist = Math.hypot(tx - px, tz - pz);
 		closest = Math.min(closest, dist);
 		Integer next = nextIndex();
 		if (next == null) {
@@ -122,9 +154,9 @@ public final class RouteFollower {
 			return true;
 		}
 		if (dist <= radius) {
-			double inX = t.centerX() - prevX;
-			double inZ = t.centerZ() - prevZ;
-			if (Math.hypot(inX, inZ) > 1e-6 && (px - t.centerX()) * inX + (pz - t.centerZ()) * inZ >= 0) {
+			double inX = tx - prevX;
+			double inZ = tz - prevZ;
+			if (Math.hypot(inX, inZ) > 1e-6 && (px - tx) * inX + (pz - tz) * inZ >= 0) {
 				return true;
 			}
 		}
@@ -137,9 +169,11 @@ public final class RouteFollower {
 		if (next == null) {
 			return false;
 		}
-		prevX = points.get(target).centerX();
-		prevZ = points.get(target).centerZ();
+		prevX = aimX(target);
+		prevZ = aimZ(target);
+		int passed = target;
 		target = next;
+		roll(passed); // the next lap goes through a different spot
 		closest = Double.MAX_VALUE;
 		ticksInWindow = 0;
 		refX = px;
