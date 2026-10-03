@@ -13,7 +13,10 @@ import java.nio.file.Path;
 public final class WigConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+	/** The most the view turns per tick (20 ticks a second) while running. */
 	public double turnSpeedDegPerTick = 10.0;
+	/** The run stops if the view is turned this far in a tick by anything but the mod (a server rotation check, say). */
+	public double rotationStopDegrees = 20.0;
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 
@@ -43,6 +46,9 @@ public final class WigConfig {
 		WigConfig d = new WigConfig();
 		if (!(turnSpeedDegPerTick > 0)) {
 			turnSpeedDegPerTick = d.turnSpeedDegPerTick;
+		}
+		if (!(rotationStopDegrees > 0)) {
+			rotationStopDegrees = d.rotationStopDegrees;
 		}
 		if (!(stuckTimeoutSeconds > 0)) {
 			stuckTimeoutSeconds = d.stuckTimeoutSeconds;

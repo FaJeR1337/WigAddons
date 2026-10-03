@@ -3,7 +3,9 @@
 	"package": "com.fajer.wigaddons.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"KeyboardInputMixin"
+		"GameRendererMixin",
+		"KeyboardInputMixin",
+		"MouseHandlerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

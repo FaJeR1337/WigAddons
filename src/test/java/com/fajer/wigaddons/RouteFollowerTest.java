@@ -28,56 +28,62 @@ class RouteFollowerTest {
 	}
 
 	@Test
-	void turnsTheShortWayAndNoFasterThanTheLimit() {
-		RouteFollower f = follower(List.of(new Waypoint(-20, 64, 0)), false, 1);
-		// target is west (yaw 90); starting at 0 turns 10 degrees per tick
-		assertEquals(10, f.tick(0.5, 0.5, 0, true, false).yaw(), 1e-9);
+	void stepYawTurnsTheShortWayAndNoFasterThanTheLimit() {
+		assertEquals(10, RouteFollower.stepYaw(0, 90, 10), 1e-9);
+		assertEquals(5, RouteFollower.stepYaw(0, 5, 10), 1e-9);
 		// from 350 the short way to 90 is +100, so it wraps up through 360 rather than back down
-		RouteFollower g = follower(List.of(new Waypoint(-20, 64, 0)), false, 1);
-		assertEquals(360, g.tick(0.5, 0.5, 350, true, false).yaw(), 1e-9);
+		assertEquals(360, RouteFollower.stepYaw(350, 90, 10), 1e-9);
+		assertEquals(-10, RouteFollower.stepYaw(0, -90, 10), 1e-9);
 	}
 
 	@Test
-	void keepsFacingTheCurrentWaypointUntilWithinTheRadius() {
+	void aimsStraightAtTheWaypointUntilWithinTheRadius() {
 		// waypoint 0 is straight ahead (south), waypoint 1 is far to the west of it
 		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10), new Waypoint(-30, 64, 10)), false, 2);
-		assertEquals(0, f.tick(0.5, 0.5, 0, true, false).yaw(), 1e-9);
-		// 3 blocks away is outside the radius of 2: still heading for waypoint 0
-		assertEquals(0, f.tick(0.5, 7.5, 0, true, false).yaw(), 1e-9);
+		assertEquals(0, f.tick(0.5, 0.5, true, false).aimYaw(), 1e-9);
+		// 2.5 blocks away is outside the radius of 2: still aiming at waypoint 0
+		RouteFollower.Output out = f.tick(0.5, 8.0, true, false);
+		assertEquals(0, out.aimYaw(), 1e-9);
+		assertEquals(0, out.blend(), 1e-9);
+	}
+
+	@Test
+	void theAimSlidesTowardTheNextWaypointInsideTheRadius() {
+		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10), new Waypoint(-30, 64, 10)), false, 2);
+		// 1.5 blocks short of waypoint 0: a quarter of the way along
+		RouteFollower.Output a = f.tick(0.5, 9.0, true, false);
+		assertEquals(0.25, a.blend(), 1e-9);
+		// 0.5 blocks short: three quarters of the way along, so aiming further toward the west
+		RouteFollower.Output b = f.tick(0.5, 10.0, true, false);
+		assertEquals(0.75, b.blend(), 1e-9);
+		assertTrue(a.aimYaw() > 0 && b.aimYaw() > a.aimYaw() && b.aimYaw() < 90);
+	}
+
+	@Test
+	void radiusZeroSwitchesOnlyAtTheMiddleOfTheBlock() {
+		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10), new Waypoint(30, 64, 10)), false, 0);
+		f.tick(0.5, 9.0, true, false); // 1.5 blocks away
 		assertEquals(0, f.targetIndex());
-		// within 2 blocks: waypoint 0 is reached and it turns toward waypoint 1 (west, positive yaw)
-		assertTrue(f.tick(0.5, 8.5, 0, true, false).yaw() > 0);
+		f.tick(0.5, 9.4, true, false); // 1.1 blocks away
+		assertEquals(0, f.targetIndex());
+		f.tick(0.5, 10.4, true, false); // 0.1 blocks away
 		assertEquals(1, f.targetIndex());
 	}
 
 	@Test
-	void aLargerRadiusStartsTheTurnEarlier() {
-		List<Waypoint> route = List.of(new Waypoint(0, 64, 10), new Waypoint(-30, 64, 10));
-		RouteFollower wide = follower(route, false, 5);
-		RouteFollower tight = follower(route, false, 1);
-		// 4 blocks from waypoint 0
-		wide.tick(0.5, 6.5, 0, true, false);
-		tight.tick(0.5, 6.5, 0, true, false);
-		assertEquals(1, wide.targetIndex());
-		assertEquals(0, tight.targetIndex());
-	}
-
-	@Test
-	void radiusZeroWaitsUntilNearTheMiddleOfTheBlock() {
-		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10), new Waypoint(30, 64, 10)), false, 0);
-		f.tick(0.5, 9.0, 0, true, false); // 1.5 blocks away
-		assertEquals(0, f.targetIndex());
-		f.tick(0.5, 9.4, 0, true, false); // 1.1 blocks away
-		assertEquals(0, f.targetIndex());
-		f.tick(0.5, 10.4, 0, true, false); // 0.1 blocks away
+	void movesOnOncePastTheWaypointEvenIfNotAtItsMiddle() {
+		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10), new Waypoint(20, 64, 10)), false, 2);
+		f.tick(0.5, 0.5, true, false);
+		// 1.5 blocks to the side of the waypoint, but already level with it along the way it was approached
+		f.tick(2.0, 10.6, true, false);
 		assertEquals(1, f.targetIndex());
 	}
 
 	@Test
 	void keepsRunningThroughAWaypointWithoutStopping() {
 		RouteFollower f = follower(List.of(new Waypoint(0, 64, 5), new Waypoint(0, 64, 20)), false, 1);
-		f.tick(0.5, 0.5, 0, true, false);
-		RouteFollower.Output out = f.tick(0.5, 5.0, 0, true, false);
+		f.tick(0.5, 0.5, true, false);
+		RouteFollower.Output out = f.tick(0.5, 5.4, true, false);
 		assertEquals(RouteFollower.Status.RUNNING, out.status());
 		assertEquals(1, f.targetIndex());
 	}
@@ -85,25 +91,25 @@ class RouteFollowerTest {
 	@Test
 	void finishesAtTheLastWaypointWhenNotLooping() {
 		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10)), false, 1);
-		f.tick(0.5, 0.5, 0, true, false);
-		assertEquals(RouteFollower.Status.FINISHED, f.tick(0.5, 9.5, 0, true, false).status());
+		f.tick(0.5, 0.5, true, false);
+		assertEquals(RouteFollower.Status.FINISHED, f.tick(0.5, 9.5, true, false).status());
 	}
 
 	@Test
 	void loopGoesBackToTheFirstWaypoint() {
 		RouteFollower f = follower(List.of(new Waypoint(0, 64, 10), new Waypoint(0, 64, 20)), true, 1);
-		f.tick(0.5, 0.5, 0, true, false);
-		f.tick(0.5, 9.5, 0, true, false);
-		assertEquals(RouteFollower.Status.RUNNING, f.tick(0.5, 19.5, 0, true, false).status());
+		f.tick(0.5, 0.5, true, false);
+		f.tick(0.5, 10.4, true, false);
+		assertEquals(RouteFollower.Status.RUNNING, f.tick(0.5, 20.4, true, false).status());
 		assertEquals(0, f.targetIndex());
 	}
 
 	@Test
 	void jumpsOnlyWhenBlockedOnTheGround() {
 		RouteFollower f = follower(List.of(new Waypoint(0, 64, 30)), false, 1);
-		assertTrue(f.tick(0.5, 0.5, 0, true, true).jump());
-		assertEquals(false, f.tick(0.5, 0.5, 0, false, true).jump());
-		assertEquals(false, f.tick(0.5, 0.5, 0, true, false).jump());
+		assertTrue(f.tick(0.5, 0.5, true, true).jump());
+		assertEquals(false, f.tick(0.5, 0.5, false, true).jump());
+		assertEquals(false, f.tick(0.5, 0.5, true, false).jump());
 	}
 
 	@Test
@@ -113,7 +119,7 @@ class RouteFollowerTest {
 		RouteFollower f = new RouteFollower(List.of(new Waypoint(0, 64, 30)), false, 1, cfg);
 		RouteFollower.Output out = null;
 		for (int i = 0; i < 25; i++) {
-			out = f.tick(0.5, 0.5, 0, true, false);
+			out = f.tick(0.5, 0.5, true, false);
 			if (out.status() == RouteFollower.Status.STUCK) {
 				break;
 			}
@@ -127,7 +133,7 @@ class RouteFollowerTest {
 		cfg.stuckTimeoutSeconds = 1;
 		RouteFollower f = new RouteFollower(List.of(new Waypoint(0, 64, 100)), false, 1, cfg);
 		for (int i = 0; i < 100; i++) {
-			assertEquals(RouteFollower.Status.RUNNING, f.tick(0.5, 0.5 + i * 0.3, 0, true, false).status());
+			assertEquals(RouteFollower.Status.RUNNING, f.tick(0.5, 0.5 + i * 0.3, true, false).status());
 		}
 	}
 
@@ -143,11 +149,11 @@ class RouteFollowerTest {
 		double z = startZ;
 		double yaw = startYaw;
 		for (int tick = 0; tick < maxTicks; tick++) {
-			RouteFollower.Output out = f.tick(x, z, yaw, true, false);
+			RouteFollower.Output out = f.tick(x, z, true, false);
 			if (out.status() == RouteFollower.Status.FINISHED) {
 				return tick;
 			}
-			yaw = out.yaw();
+			yaw = RouteFollower.stepYaw(yaw, out.aimYaw(), config().turnSpeedDegPerTick);
 			x += -Math.sin(Math.toRadians(yaw)) * SPEED;
 			z += Math.cos(Math.toRadians(yaw)) * SPEED;
 		}

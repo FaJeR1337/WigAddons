@@ -67,6 +67,7 @@ public final class WigCommands {
 						.executes(c -> radius(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "blocks"))))))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
+			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
 			.then(ClientCommands.literal("clear").executes(c -> clear()))
 			.then(ClientCommands.literal("delete")
 				.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
@@ -189,7 +190,7 @@ public final class WigCommands {
 		}
 		WigState.select(route.name());
 		Runner.start(route, loop);
-		Chat.info("Running " + route.name() + (loop ? " on a loop" : "") + ". /wig stop, a movement key or any screen stops it.");
+		Chat.info("Running " + route.name() + (loop ? " on a loop" : "") + ". The mouse is locked. /wig stop, a movement key or any screen stops it.");
 		return 1;
 	}
 
@@ -230,6 +231,12 @@ public final class WigCommands {
 		WigState.config.showWaypoints = !WigState.config.showWaypoints;
 		WigState.saveConfig();
 		Chat.info("Waypoints " + (WigState.config.showWaypoints ? "shown" : "hidden") + " for the selected route.");
+		return 1;
+	}
+
+	private static int toggleDebug() {
+		WigState.debug = !WigState.debug;
+		Chat.info("Debug " + (WigState.debug ? "on: turn information shows above the hotbar while a route runs." : "off."));
 		return 1;
 	}
 

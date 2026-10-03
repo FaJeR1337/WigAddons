@@ -20,6 +20,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 - `/wig routes`: list routes. `/wig routes <route>`: list that route's waypoints.
 - `/wig start <route>`: run the route from waypoint 1 to the last. `/wig start <route> loop` goes back to waypoint 1 and never ends.
 - `/wig radius <route> <blocks>`: how close the player must get to each waypoint of that route before turning toward the next one. `0` means the middle of the block, `1` means within one block, and so on (up to 32; new routes start at 2). It is saved with the route and drawn as an orange circle on top of each block while waypoints are shown.
+- `/wig debug`: show or hide the turn readout.
 - `/wig stop`: stop a run.
 - `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). Remembered between sessions.
 - `/wig clear`: remove every waypoint from the selected route.
@@ -27,16 +28,26 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 
 ## Running
 
-The player sprints forward, turns smoothly toward the next waypoint and jumps when blocked. It does not stop at waypoints: once within the route's radius of one (see `/wig radius`) it turns toward the next. A run ends when the last waypoint is reached, or stops at once when:
+The player sprints forward and jumps when blocked. The view turns toward the aim point at up to 10 degrees per tick, updated every rendered frame so it stays smooth at any frame rate. The aim point is the next waypoint; once you are within the route's radius of it (see `/wig radius`) it slides toward the waypoint after that, so the path bends round corners instead of making a hard turn. The player never stops at waypoints. A run ends when the last waypoint is reached.
+
+While a route runs **the mouse is locked** (mouse movement is thrown away, not saved up).
+
+A run stops at once when:
 
 - any screen opens (chat, inventory, escape, modded screens)
 - you press a movement key (forward, back, left, right, jump, sneak)
+- the selected hotbar slot changes (scrolling, number keys, or the server)
+- the view is turned by 20 degrees or more, in yaw or pitch, by anything but this mod (a server rotation check, for example). The limit is `rotationStopDegrees` in `config.json`.
 - you take damage
 - you disconnect
 - the player barely moves for 3 seconds (stuck)
+
+Minecraft has no sideways tilt (roll) for the player, so only yaw (left/right) and pitch (up/down) are checked.
+
+`/wig debug` toggles a readout above the hotbar while a route runs: the current and wanted yaw, how far the view turned this frame, the turn per tick, FPS, and the waypoint, its distance and the blend toward the next one.
 
 Movement is a straight line between waypoints: no pathfinding around walls, gaps or water. Automated movement is against the rules on many servers; use it where it is allowed.
 
 ## Files
 
-Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.
+Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `rotationStopDegrees` (20), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.

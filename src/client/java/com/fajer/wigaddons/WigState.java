@@ -14,6 +14,9 @@ public final class WigState {
 	/** The route being edited, or null when not in edit mode. */
 	public static Route editing;
 
+	/** Shows turn information on screen while a route runs. Not remembered between sessions. */
+	public static boolean debug;
+
 	private WigState() {
 	}
 
