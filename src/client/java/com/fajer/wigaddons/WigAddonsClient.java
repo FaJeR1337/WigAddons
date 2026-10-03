@@ -12,7 +12,8 @@ public class WigAddonsClient implements ClientModInitializer {
 		EditMode.register();
 		WaypointRenderer.register();
 
-		ClientTickEvents.START_CLIENT_TICK.register(Runner::tick);
+		// at the end of the tick, after the game has stored the previous rotation, so the camera blends between the two
+		ClientTickEvents.END_CLIENT_TICK.register(Runner::tick);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			Runner.stop("you disconnected");
 			WigState.editing = null;

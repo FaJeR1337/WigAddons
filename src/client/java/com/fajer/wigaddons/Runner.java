@@ -51,7 +51,7 @@ public final class Runner {
 		Chat.info("Stopped: " + reason + ".");
 	}
 
-	/** Called at the start of every client tick, before the player's input is read. */
+	/** Called at the end of every client tick. The new view direction is used from the next tick and blended in by the camera. */
 	public static void tick(Minecraft mc) {
 		if (follower == null) {
 			return;
