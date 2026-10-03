@@ -13,10 +13,6 @@ import java.nio.file.Path;
 public final class WigConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-	/** Within this many blocks of a waypoint, start turning toward the next one. */
-	public double turnAheadDistance = 2.0;
-	/** A waypoint counts as reached within this many blocks. */
-	public double arriveRadius = 1.0;
 	public double turnSpeedDegPerTick = 10.0;
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
@@ -45,12 +41,6 @@ public final class WigConfig {
 	/** Puts hand-edited nonsense back to the defaults so the follower can't divide by zero or spin. */
 	private WigConfig sanitised() {
 		WigConfig d = new WigConfig();
-		if (!(turnAheadDistance >= 0)) {
-			turnAheadDistance = d.turnAheadDistance;
-		}
-		if (!(arriveRadius > 0)) {
-			arriveRadius = d.arriveRadius;
-		}
 		if (!(turnSpeedDegPerTick > 0)) {
 			turnSpeedDegPerTick = d.turnSpeedDegPerTick;
 		}

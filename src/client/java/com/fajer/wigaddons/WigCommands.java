@@ -1,5 +1,6 @@
 package com.fajer.wigaddons;
 
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -60,6 +61,10 @@ public final class WigCommands {
 					.executes(c -> start(StringArgumentType.getString(c, "route"), false))
 					.then(ClientCommands.literal("loop")
 						.executes(c -> start(StringArgumentType.getString(c, "route"), true)))))
+			.then(ClientCommands.literal("radius")
+				.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
+					.then(ClientCommands.argument("blocks", DoubleArgumentType.doubleArg(0, Route.MAX_RADIUS))
+						.executes(c -> radius(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "blocks"))))))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("clear").executes(c -> clear()))
@@ -186,6 +191,30 @@ public final class WigCommands {
 		Runner.start(route, loop);
 		Chat.info("Running " + route.name() + (loop ? " on a loop" : "") + ". /wig stop, a movement key or any screen stops it.");
 		return 1;
+	}
+
+	private static int radius(String typed, double blocks) {
+		Route route = findRoute(typed);
+		if (route == null) {
+			return 0;
+		}
+		route.setRadius(blocks);
+		try {
+			WigState.STORE.save(route);
+		} catch (IOException e) {
+			Chat.error("Could not save the route file.");
+			return 0;
+		}
+		// the copy being edited is the one saved on the next waypoint, so it has to hear about this too
+		if (WigState.editing != null && WigState.editing.name().equals(route.name())) {
+			WigState.editing.setRadius(blocks);
+		}
+		Chat.info(route.name() + " now turns " + (blocks == 0 ? "at the middle of each block" : "within " + trim(route.radius()) + " blocks of each waypoint") + ".");
+		return 1;
+	}
+
+	private static String trim(double v) {
+		return v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
 	}
 
 	private static int stop() {

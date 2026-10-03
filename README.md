@@ -19,6 +19,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 - `/wig select <route>`: select a route without editing.
 - `/wig routes`: list routes. `/wig routes <route>`: list that route's waypoints.
 - `/wig start <route>`: run the route from waypoint 1 to the last. `/wig start <route> loop` goes back to waypoint 1 and never ends.
+- `/wig radius <route> <blocks>`: how close the player must get to each waypoint of that route before turning toward the next one. `0` means the middle of the block, `1` means within one block, and so on (up to 32; new routes start at 2). It is saved with the route and drawn as an orange circle on top of each block while waypoints are shown.
 - `/wig stop`: stop a run.
 - `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). Remembered between sessions.
 - `/wig clear`: remove every waypoint from the selected route.
@@ -26,7 +27,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 
 ## Running
 
-The player sprints forward, turns smoothly toward the next waypoint and jumps when blocked. It does not stop at waypoints: once within 2 blocks of one it starts turning toward the next. A run ends when the last waypoint is reached, or stops at once when:
+The player sprints forward, turns smoothly toward the next waypoint and jumps when blocked. It does not stop at waypoints: once within the route's radius of one (see `/wig radius`) it turns toward the next. A run ends when the last waypoint is reached, or stops at once when:
 
 - any screen opens (chat, inventory, escape, modded screens)
 - you press a movement key (forward, back, left, right, jump, sneak)
@@ -38,4 +39,4 @@ Movement is a straight line between waypoints: no pathfinding around walls, gaps
 
 ## Files
 
-Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world) and `config.json` with the settings: `turnAheadDistance` (2.0), `arriveRadius` (1.0), `turnSpeedDegPerTick` (10), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.
+Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.

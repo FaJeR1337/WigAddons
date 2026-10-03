@@ -36,7 +36,7 @@ public final class Runner {
 		if (mc.player == null) {
 			return;
 		}
-		follower = new RouteFollower(route.waypoints(), loop, WigState.config);
+		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config);
 		jump = false;
 		ticks = 0;
 		lastHealth = mc.player.getHealth();

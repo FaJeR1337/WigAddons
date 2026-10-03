@@ -81,7 +81,11 @@ public final class RouteStore {
 					points.add(new Waypoint(p.get(0).getAsInt(), p.get(1).getAsInt(), p.get(2).getAsInt()));
 				}
 			}
-			return new Route(name, points);
+			Route route = new Route(name, points);
+			if (root != null && root.has("radius")) {
+				route.setRadius(root.get("radius").getAsDouble());
+			}
+			return route;
 		} catch (IOException | RuntimeException e) {
 			return null;
 		}
@@ -98,6 +102,7 @@ public final class RouteStore {
 			points.add(p);
 		}
 		JsonObject root = new JsonObject();
+		root.addProperty("radius", route.radius());
 		root.add("waypoints", points);
 		try (Writer out = Files.newBufferedWriter(fileOf(route.name()), StandardCharsets.UTF_8)) {
 			GSON.toJson(root, out);

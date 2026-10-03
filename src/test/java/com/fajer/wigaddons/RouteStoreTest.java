@@ -45,6 +45,26 @@ class RouteStoreTest {
 	}
 
 	@Test
+	void radiusIsSavedWithTheRouteAndDefaultsWhenMissing() throws IOException {
+		RouteStore store = new RouteStore(dir);
+		Route route = new Route("r", List.of(new Waypoint(0, 0, 0)));
+		route.setRadius(0.5);
+		store.save(route);
+		assertEquals(0.5, store.load("r").radius());
+		java.nio.file.Files.writeString(dir.resolve("old.json"), "{\"waypoints\": [[1,2,3]]}");
+		assertEquals(Route.DEFAULT_RADIUS, store.load("old").radius());
+	}
+
+	@Test
+	void radiusIsKeptInRange() {
+		Route route = new Route("r");
+		route.setRadius(-3);
+		assertEquals(0, route.radius());
+		route.setRadius(1000);
+		assertEquals(Route.MAX_RADIUS, route.radius());
+	}
+
+	@Test
 	void missingOrBrokenRoutesLoadAsNull() throws IOException {
 		RouteStore store = new RouteStore(dir);
 		assertNull(store.load("nope"));
@@ -72,10 +92,10 @@ class RouteStoreTest {
 	@Test
 	void configKeepsSettingsAndRepairsNonsense() throws IOException {
 		Path file = dir.resolve("config.json");
-		java.nio.file.Files.writeString(file, "{\"arriveRadius\": -5, \"turnSpeedDegPerTick\": 3, \"showWaypoints\": true}");
+		java.nio.file.Files.writeString(file, "{\"turnSpeedDegPerTick\": -5, \"stuckTimeoutSeconds\": 7, \"showWaypoints\": true}");
 		WigConfig cfg = WigConfig.load(file);
-		assertEquals(1.0, cfg.arriveRadius);
-		assertEquals(3.0, cfg.turnSpeedDegPerTick);
+		assertEquals(10.0, cfg.turnSpeedDegPerTick);
+		assertEquals(7.0, cfg.stuckTimeoutSeconds);
 		assertTrue(cfg.showWaypoints);
 	}
 }
