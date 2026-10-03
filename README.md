@@ -26,7 +26,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 
 ## Running
 
-The player sprints forward, turns smoothly toward the next waypoint and jumps when blocked. It does not stop at waypoints: once within 4 blocks of one it starts turning toward the next. A run ends when the last waypoint is reached, or stops at once when:
+The player sprints forward, turns smoothly toward the next waypoint and jumps when blocked. It does not stop at waypoints: once within 2 blocks of one it starts turning toward the next. A run ends when the last waypoint is reached, or stops at once when:
 
 - any screen opens (chat, inventory, escape, modded screens)
 - you press a movement key (forward, back, left, right, jump, sneak)
@@ -38,4 +38,4 @@ Movement is a straight line between waypoints: no pathfinding around walls, gaps
 
 ## Files
 
-Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world) and `config.json` with the settings: `turnAheadDistance` (4.0), `arriveRadius` (1.0), `turnSpeedDegPerTick` (10), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.
+Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world) and `config.json` with the settings: `turnAheadDistance` (2.0), `arriveRadius` (1.0), `turnSpeedDegPerTick` (10), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.

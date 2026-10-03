@@ -12,6 +12,12 @@ class RouteFollowerTest {
 		return new WigConfig();
 	}
 
+	private static WigConfig configWithTurnAhead(double blocks) {
+		WigConfig cfg = new WigConfig();
+		cfg.turnAheadDistance = blocks;
+		return cfg;
+	}
+
 	@Test
 	void yawConventionMatchesMinecraft() {
 		assertEquals(0, RouteFollower.yawTo(0, 1), 1e-9);
@@ -34,7 +40,7 @@ class RouteFollowerTest {
 	@Test
 	void startsTurningTowardTheNextWaypointWhenNearTheCurrentOne() {
 		// waypoint 0 is straight ahead (south), waypoint 1 is far to the west of it
-		RouteFollower f = new RouteFollower(List.of(new Waypoint(0, 64, 10), new Waypoint(-30, 64, 10)), false, config());
+		RouteFollower f = new RouteFollower(List.of(new Waypoint(0, 64, 10), new Waypoint(-30, 64, 10)), false, configWithTurnAhead(4));
 		// far from waypoint 0: keeps facing it
 		assertEquals(0, f.tick(0.5, 0.5, 0, true, false).yaw(), 1e-9);
 		// within 4 blocks of waypoint 0: turns toward waypoint 1 (west, positive yaw)
@@ -52,7 +58,7 @@ class RouteFollowerTest {
 
 	@Test
 	void advancesWhenPassedEvenIfTurningEarlyMissedTheRadius() {
-		RouteFollower f = new RouteFollower(List.of(new Waypoint(0, 64, 10), new Waypoint(30, 64, 10)), false, config());
+		RouteFollower f = new RouteFollower(List.of(new Waypoint(0, 64, 10), new Waypoint(30, 64, 10)), false, configWithTurnAhead(4));
 		f.tick(0.5, 0.5, 0, true, false);
 		// 3 blocks to the side of the waypoint but already beyond it along the segment
 		f.tick(3.5, 11.5, 0, true, false);
@@ -111,5 +117,54 @@ class RouteFollowerTest {
 	@Test
 	void anEmptyRouteIsRejected() {
 		assertThrows(IllegalArgumentException.class, () -> new RouteFollower(List.of(), false, config()));
+	}
+
+	/** Sprint speed in blocks per tick. */
+	private static final double SPEED = 0.28;
+
+	/** Runs the follower against simple kinematics (constant speed, limited turning). Returns ticks used, or -1 if it never finished. */
+	private static int simulate(List<Waypoint> route, WigConfig cfg, double startX, double startZ, double startYaw, int maxTicks) {
+		RouteFollower f = new RouteFollower(route, false, cfg);
+		double x = startX;
+		double z = startZ;
+		double yaw = startYaw;
+		for (int tick = 0; tick < maxTicks; tick++) {
+			RouteFollower.Output out = f.tick(x, z, yaw, true, false);
+			if (out.status() == RouteFollower.Status.FINISHED) {
+				return tick;
+			}
+			yaw = out.yaw();
+			x += -Math.sin(Math.toRadians(yaw)) * SPEED;
+			z += Math.cos(Math.toRadians(yaw)) * SPEED;
+		}
+		return -1;
+	}
+
+	@Test
+	void doesNotOrbitAWaypointThatIsBesideThePlayer() {
+		// the waypoint is 1.5 blocks to the side: inside the turning circle, so it can't be hit by turning toward it
+		List<Waypoint> route = List.of(new Waypoint(-2, 64, 0), new Waypoint(-2, 64, 30));
+		assertTrue(simulate(route, config(), 0.5, 0.5, 0, 400) > 0);
+	}
+
+	@Test
+	void doesNotOrbitWhenTheNextWaypointIsBehind() {
+		List<Waypoint> route = List.of(new Waypoint(0, 64, 10), new Waypoint(0, 64, -10), new Waypoint(15, 64, -10));
+		assertTrue(simulate(route, config(), 0.5, 0.5, 0, 800) > 0);
+	}
+
+	@Test
+	void runsASquareWithTightCornersWithoutCircling() {
+		List<Waypoint> route = List.of(new Waypoint(10, 64, 0), new Waypoint(10, 64, 10), new Waypoint(0, 64, 10), new Waypoint(0, 64, 0));
+		int ticks = simulate(route, config(), 0.5, 0.5, -90, 600);
+		// the square is 40 blocks of walking, about 145 ticks; circling would blow far past this
+		assertTrue(ticks > 0 && ticks < 300, "took " + ticks);
+	}
+
+	@Test
+	void closeTogetherWaypointsAreStillRunInOrder() {
+		List<Waypoint> route = List.of(new Waypoint(0, 64, 4), new Waypoint(2, 64, 8), new Waypoint(0, 64, 12), new Waypoint(2, 64, 16));
+		int ticks = simulate(route, config(), 0.5, 0.5, 0, 600);
+		assertTrue(ticks > 0 && ticks < 200, "took " + ticks);
 	}
 }

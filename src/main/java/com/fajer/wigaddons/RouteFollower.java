@@ -19,6 +19,14 @@ public final class RouteFollower {
 	public record Output(double yaw, boolean jump, Status status) {
 	}
 
+	/**
+	 * A waypoint inside the turning circle can't be hit by turning toward it, so the player would orbit it. Once the
+	 * player has come this close (or within the turn-ahead distance, if larger) and is moving away again, the
+	 * waypoint counts as passed.
+	 */
+	private static final double MISS_WINDOW_MIN = 3.0;
+	private static final double MOVING_AWAY = 0.5;
+
 	private final List<Waypoint> points;
 	private final boolean loop;
 	private final WigConfig config;
@@ -31,6 +39,7 @@ public final class RouteFollower {
 	private double refX;
 	private double refZ;
 	private int ticksInWindow;
+	private double closest = Double.MAX_VALUE;
 
 	public RouteFollower(List<Waypoint> points, boolean loop, WigConfig config) {
 		if (points.isEmpty()) {
@@ -88,7 +97,11 @@ public final class RouteFollower {
 		double dx = t.centerX() - px;
 		double dz = t.centerZ() - pz;
 		double dist = Math.hypot(dx, dz);
+		closest = Math.min(closest, dist);
 		if (dist <= config.arriveRadius) {
+			return true;
+		}
+		if (closest <= Math.max(config.turnAheadDistance, MISS_WINDOW_MIN) && dist > closest + MOVING_AWAY) {
 			return true;
 		}
 		if (dist > config.turnAheadDistance) {
@@ -112,6 +125,7 @@ public final class RouteFollower {
 			return false;
 		}
 		target = next;
+		closest = Double.MAX_VALUE;
 		ticksInWindow = 0;
 		refX = px;
 		refZ = pz;
