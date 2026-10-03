@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "wigaddons",
+	"version": "${version}",
+	"name": "WigAddons",
+	"description": "Record routes of waypoints and have the player run them automatically.",
+	"authors": [
+		"FaJeR1337"
+	],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.fajer.wigaddons.WigAddonsClient"
+		]
+	},
+	"mixins": [
+		{
+			"config": "wigaddons.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

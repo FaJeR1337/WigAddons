@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "com.fajer.wigaddons.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"KeyboardInputMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
