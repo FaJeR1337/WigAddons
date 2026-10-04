@@ -46,6 +46,7 @@ public final class WigGui {
 	private static final java.util.Map<String, String> ROUTE_TABS = new java.util.HashMap<>();
 
 	private static MoulConfigEditor<WigGuiConfig> shown;
+	private static List<DynCategory> categories;
 	/** What is typed in the "new route" box. */
 	private static String newRouteName = "";
 	private static String pendingDelete;
@@ -56,13 +57,13 @@ public final class WigGui {
 
 	/** Opens the settings screen. */
 	public static void open() {
-		show(null);
+		show();
 	}
 
 	/** Development only (see SmokeTest): switches a route to one of its tabs. */
 	public static void smokeTab(String route, String tab) {
 		ROUTE_TABS.put(route, tab);
-		refresh("routes.route." + route + ".tabs");
+		refresh(null);
 	}
 
 	/** Development only (see SmokeTest): shows a tab with every section open, scrolled to the option at the given path. */
@@ -89,30 +90,29 @@ public final class WigGui {
 		}
 	}
 
-	/** Builds the screen again (keeping the selected tab and open sections) and brings the option with this path into view. */
+	/**
+	 * Fills the rows in again in the screen that is already open, keeping the selected tab, the open sections and the
+	 * scroll position, so a change looks like a change and not like the screen being closed and opened again. The
+	 * option with this path (if any) is scrolled into view.
+	 */
 	private static void refresh(String focusPath) {
-		show(focusPath);
-	}
-
-	private static void show(String focusPath) {
+		if (shown == null || categories == null) {
+			show();
+			return;
+		}
 		Set<String> openSections = new HashSet<>();
-		String selected = null;
-		if (shown != null) {
-			selected = shown.getSelectedCategory();
-			for (ProcessedCategory category : shown.getAllCategories().values()) {
-				for (ProcessedOption option : category.getOptions()) {
-					if (option.getEditor() instanceof GuiOptionEditorAccordion accordion && accordion.getToggled()) {
-						openSections.add(option.getPath());
-					}
+		for (DynCategory category : categories) {
+			for (DynOption option : category.options) {
+				if (option.editor instanceof GuiOptionEditorAccordion accordion && accordion.getToggled()) {
+					openSections.add(option.getPath());
 				}
 			}
 		}
-
-		LinkedHashMap<String, DynCategory> categories = ProcessedCategory.collect(List.of(about(), routes(), safety()));
-		MoulConfigEditor<WigGuiConfig> editor = new MoulConfigEditor<>(categories, CONFIG);
-		ProcessedOption focus = null;
-		for (DynCategory category : categories.values()) {
+		fillAll();
+		DynOption focus = null;
+		for (DynCategory category : categories) {
 			for (DynOption option : category.options) {
+				option.editor.activeConfigGUI = shown;
 				if (option.editor instanceof GuiOptionEditorAccordion accordion && (expandAll || openSections.contains(option.getPath()))) {
 					accordion.setToggled(true);
 				}
@@ -121,32 +121,59 @@ public final class WigGui {
 				}
 			}
 		}
-		if (selected != null && categories.containsKey(selected)) {
-			editor.setSelectedCategory(categories.get(selected));
-		}
+		shown.updateSearchResults(true);
 		if (focus != null) {
-			editor.scrollOptionIntoView(focus, 0);
+			shown.scrollOptionIntoView(focus, 0);
 		}
-		shown = editor;
-		IMinecraft.INSTANCE.openWrappedScreen(editor);
+	}
+
+	/** Opens a new settings screen. */
+	private static void show() {
+		categories = List.of(
+			new DynCategory("about", "About", "What WigAddons is."),
+			new DynCategory("routes", "Routes", "Your routes and how they run."),
+			new DynCategory("safety", "Safety", "Macro checks and party changes."));
+		fillAll();
+		if (expandAll) {
+			for (DynCategory category : categories) {
+				for (DynOption option : category.options) {
+					if (option.editor instanceof GuiOptionEditorAccordion accordion) {
+						accordion.setToggled(true);
+					}
+				}
+			}
+		}
+		LinkedHashMap<String, DynCategory> byId = ProcessedCategory.collect(categories);
+		shown = new MoulConfigEditor<>(byId, CONFIG);
+		IMinecraft.INSTANCE.openWrappedScreen(shown);
+	}
+
+	private static void fillAll() {
+		fillAbout(categories.get(0));
+		fillRoutes(categories.get(1));
+		fillSafety(categories.get(2));
+	}
+
+	private static void reset(DynCategory category) {
+		category.options.clear();
+		category.accordionAnchors.clear();
 	}
 
 	// ---- About ----
 
-	private static DynCategory about() {
-		DynCategory category = new DynCategory("about", "About", "What WigAddons is.");
+	private static void fillAbout(DynCategory category) {
+		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		b.info("what", "WigAddons", "Record routes of waypoints, then have the player run them.");
 		b.info("routes", "Routes", "Make and edit routes under Routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
 		b.info("safety", "Safety", "What happens when a macro check or a party change is noticed is under Safety.");
 		b.info("commands", "Commands", "Everything here also works as a command: /wig new, edit, done, start, stop, and more.");
-		return category;
 	}
 
 	// ---- Routes ----
 
-	private static DynCategory routes() {
-		DynCategory category = new DynCategory("routes", "Routes", "Your routes and how they run.");
+	private static void fillRoutes(DynCategory category) {
+		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
 
@@ -180,7 +207,6 @@ public final class WigGui {
 		for (String name : WigState.routeNames()) {
 			routeSection(b, WigState.route(name));
 		}
-		return category;
 	}
 
 	private static void routeSection(OptionBuilder b, Route route) {
@@ -193,7 +219,7 @@ public final class WigGui {
 		b.custom(key + ".tabs", "Section", "", String.class, () -> tab, v -> true,
 			(option, config) -> new TabBarEditor(option, TAB_LABELS, selected, i -> {
 				ROUTE_TABS.put(route.name(), TAB_IDS[i]);
-				refresh("routes." + key + ".tabs");
+				refresh(null);
 			}));
 
 		switch (tab) {
@@ -223,7 +249,7 @@ public final class WigGui {
 						if (r.best() != null) {
 							route.setIcon(r.best());
 							WigState.save(route);
-							refresh(icon);
+							refresh(null);
 						}
 					}));
 
@@ -251,7 +277,7 @@ public final class WigGui {
 						WigState.select("");
 					}
 					Chat.info("Deleted " + route.name() + ".");
-					refresh("routes");
+					refresh(null);
 				} else {
 					Chat.error("Could not delete the route file.");
 				}
@@ -287,19 +313,19 @@ public final class WigGui {
 					() -> {
 						if (route.moveWaypoint(index, -1)) {
 							WigState.save(route);
-							refresh("routes." + rowKey);
+							refresh(null);
 						}
 					},
 					() -> {
 						if (route.moveWaypoint(index, 1)) {
 							WigState.save(route);
-							refresh("routes." + rowKey);
+							refresh(null);
 						}
 					},
 					() -> {
 						points.remove(index);
 						WigState.save(route);
-						refresh(sectionPath);
+						refresh(null);
 					}));
 		}
 		b.button(key + ".addLooking", "Add where I'm looking", "Adds the block you were looking at when you opened this screen as the last waypoint.", "Add",
@@ -326,7 +352,7 @@ public final class WigGui {
 		}
 		route.waypoints().add(new Waypoint(pos.getX(), pos.getY(), pos.getZ()));
 		if (WigState.save(route)) {
-			refresh(focus);
+			refresh(null);
 		} else {
 			route.waypoints().removeLast();
 			Chat.error("Could not save the route, so that waypoint was not added.");
@@ -422,8 +448,8 @@ public final class WigGui {
 
 	// ---- Safety ----
 
-	private static DynCategory safety() {
-		DynCategory category = new DynCategory("safety", "Safety", "Macro checks and party changes.");
+	private static void fillSafety(DynCategory category) {
+		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
 
@@ -470,10 +496,9 @@ public final class WigGui {
 		b.button("partyDefaults", "Reset chat lines", "Puts the chat lines back to the built-in ones.", "Reset", () -> {
 			config.partyLeavePatterns = new ArrayList<>(PartyLeave.DEFAULT_PATTERNS);
 			WigState.saveConfig();
-			refresh("safety.partyPatterns");
+			refresh(null);
 		});
 		b.endSection();
-		return category;
 	}
 
 	// ---- helpers ----

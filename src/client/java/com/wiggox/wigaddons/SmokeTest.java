@@ -226,7 +226,9 @@ final class SmokeTest {
 			}
 			if (step < TOUR.length) {
 				if (!TOUR[step][2].isEmpty()) {
+					int before = System.identityHashCode(mc.screen);
 					WigGui.smokeTab("farm", TOUR[step][2]);
+					log("tab " + TOUR[step][2] + ": screen " + (before == System.identityHashCode(mc.screen) ? "stayed the same" : "was REPLACED"));
 				}
 				WigGui.smokeStep(TOUR[step][0], TOUR[step][1]);
 			} else {
