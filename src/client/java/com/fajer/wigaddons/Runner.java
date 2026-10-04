@@ -23,6 +23,10 @@ public final class Runner {
 	private static final ObstacleAvoider AVOIDER = new ObstacleAvoider(new WorldTerrain(), new Random());
 
 	private static RouteFollower follower;
+	private static java.util.List<Waypoint> points;
+	/** Standing height of the previous waypoint (or where the run began), to tell level stretches from climbs. */
+	private static int previousLevel;
+	private static int lastTarget;
 	private static RouteFollower.Output lastOutput;
 	private static boolean jump;
 	/** +1 holds A, -1 holds D, 0 neither: set while going round an obstacle. */
@@ -68,6 +72,9 @@ public final class Runner {
 			return;
 		}
 		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config);
+		points = java.util.List.copyOf(route.waypoints());
+		previousLevel = (int) Math.floor(player.getY() + 1e-4);
+		lastTarget = 0;
 		lastOutput = null;
 		jump = false;
 		strafe = 0;
@@ -146,8 +153,13 @@ public final class Runner {
 			}
 		}
 		lastOutput = out;
+		if (out.target() != lastTarget) {
+			previousLevel = standingLevel(lastTarget);
+			lastTarget = out.target();
+		}
+		boolean levelLeg = standingLevel(out.target()) == previousLevel;
 		ObstacleAvoider.Output around = AVOIDER.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
-			out.aimX(), out.aimZ(), player.onGround() && player.horizontalCollision);
+			out.aimX(), out.aimZ(), player.onGround() && player.horizontalCollision, levelLeg);
 		if (around.gaveUp()) {
 			stop("no way round an obstacle was found");
 			return;
@@ -159,6 +171,11 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	/** The height the player stands at on a waypoint: the block above the one that was clicked. */
+	private static int standingLevel(int index) {
+		return points.get(index).y() + 1;
 	}
 
 	/** Called once per rendered frame, before the camera is set up: turns the view toward the aim by the time that has passed. */

@@ -49,10 +49,10 @@ class ObstacleAvoiderTest {
 
 	/** Walks the route against the given solid cells, with the avoider steering. */
 	private static Result walk(Predicate<Cell> solid, List<Waypoint> route, double startX, double startZ, long seed) {
-		return walk(solid, route, startX, startZ, seed, true);
+		return walk(solid, route, startX, startZ, seed, true, false);
 	}
 
-	private static Result walk(Predicate<Cell> solid, List<Waypoint> route, double startX, double startZ, long seed, boolean avoid) {
+	private static Result walk(Predicate<Cell> solid, List<Waypoint> route, double startX, double startZ, long seed, boolean avoid, boolean levelLeg) {
 		WigConfig cfg = new WigConfig();
 		cfg.humanizeOffset = 0;
 		cfg.stuckTimeoutSeconds = 60; // this test is about the avoider, not the stuck stop
@@ -75,7 +75,7 @@ class ObstacleAvoiderTest {
 			double lx = Math.cos(Math.toRadians(yaw));
 			double lz = Math.sin(Math.toRadians(yaw));
 			ObstacleAvoider.Output around = avoid
-				? avoider.tick(x, FEET, z, yaw, out.aimX(), out.aimZ(), pressed(solid, x, z, fx, fz))
+				? avoider.tick(x, FEET, z, yaw, out.aimX(), out.aimZ(), pressed(solid, x, z, fx, fz), levelLeg)
 				: new ObstacleAvoider.Output(0, false);
 			if (around.gaveUp()) {
 				return new Result(false, true, strafed, firstStrafe, maxSideways, tick);
@@ -120,7 +120,7 @@ class ObstacleAvoiderTest {
 
 	@Test
 	void withoutTheAvoiderThePillarStopsTheWalkerDead() {
-		Result r = walk(wall(0, 0, 8, FEET, FEET + 1), AHEAD, 0.5, 0.5, 1, false);
+		Result r = walk(wall(0, 0, 8, FEET, FEET + 1), AHEAD, 0.5, 0.5, 1, false, false);
 		assertFalse(r.finished());
 	}
 
@@ -144,6 +144,34 @@ class ObstacleAvoiderTest {
 		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3);
 		assertTrue(r.finished());
 		assertFalse(r.everStrafed());
+	}
+
+	@Test
+	void onALevelStretchAOneBlockStepIsWalkedRoundNotJumped() {
+		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true);
+		assertTrue(r.finished());
+		assertTrue(r.everStrafed());
+		assertTrue(r.maxSideways() < 2.5, "went " + r.maxSideways() + " blocks sideways");
+	}
+
+	@Test
+	void whenTheRouteClimbsAOneBlockStepIsStillJumped() {
+		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, false);
+		assertTrue(r.finished());
+		assertFalse(r.everStrafed());
+	}
+
+	@Test
+	void aStepWallTooWideToWalkRoundIsJumpedInsteadOfStoppingTheRun() {
+		Result r = walk(wall(-40, 40, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true);
+		assertFalse(r.gaveUp());
+		assertTrue(r.finished());
+	}
+
+	@Test
+	void aTallWallTooWideStillStopsTheRunOnALevelStretch() {
+		Result r = walk(wall(-40, 40, 8, FEET, FEET + 2), AHEAD, 0.5, 0.5, 3, true, true);
+		assertTrue(r.gaveUp());
 	}
 
 	@Test

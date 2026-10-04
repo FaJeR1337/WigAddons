@@ -3,7 +3,8 @@ package com.fajer.wigaddons;
 import java.util.Random;
 
 /**
- * Sidesteps obstacles the player can't jump over. It looks ahead along the way the player is facing; when a wall
+ * Sidesteps obstacles the player can't jump over, and, on a level stretch of the route, one-block steps too (there is
+ * no reason to climb when the route doesn't go up). It looks ahead along the way the player is facing; when a wall
  * (or a step with a low ceiling) is in the way it holds A or D to go round it, and lets go once the line ahead is
  * clear again, so a one-block obstacle costs only a one-block step to the side. It has no Minecraft types so it can
  * be unit tested.
@@ -48,9 +49,16 @@ public final class ObstacleAvoider {
 		BLOCK
 	}
 
+	/** Whether a one-block step counts as an obstacle on this tick. */
+	private boolean stepsBlock;
+
 	private final Terrain terrain;
 	private final Random random;
 
+	/** After giving up on going round a step that can simply be jumped, steps are left alone for this many ticks. */
+	static final int STEP_SUPPRESS_TICKS = 60;
+
+	private int stepSuppress;
 	private int side; // 0 none, +1 left, -1 right
 	private int delay;
 	private int extraHold = -1;
@@ -72,12 +80,17 @@ public final class ObstacleAvoider {
 	 * @param aimX where the route is heading
 	 * @param aimZ where the route is heading
 	 * @param pressedAgainst the player is on the ground and pushing into something
+	 * @param levelLeg the route stays at the same height here, so one-block steps are walked round, not jumped
 	 */
-	public Output tick(double px, double py, double pz, double yaw, double aimX, double aimZ, boolean pressedAgainst) {
+	public Output tick(double px, double py, double pz, double yaw, double aimX, double aimZ, boolean pressedAgainst, boolean levelLeg) {
 		pressedTicks = pressedAgainst ? pressedTicks + 1 : 0;
 		if (cooldown > 0) {
 			cooldown--;
 		}
+		if (stepSuppress > 0) {
+			stepSuppress--;
+		}
+		stepsBlock = levelLeg && stepSuppress == 0;
 		double fx = -Math.sin(Math.toRadians(yaw));
 		double fz = Math.cos(Math.toRadians(yaw));
 		double lx = Math.cos(Math.toRadians(yaw));
@@ -105,14 +118,14 @@ public final class ObstacleAvoider {
 
 		double sideways = ((px - startX) * lx + (pz - startZ) * lz) * side;
 		if (sideways > MAX_SIDESTEP) {
-			return gaveUp();
+			return gaveUp(px, py, pz, yaw);
 		}
 		if (sideways > bestSideways + 0.01) {
 			bestSideways = sideways;
 			noProgress = 0;
 		} else if (++noProgress >= NO_PROGRESS_TICKS) {
 			if (flipped) {
-				return gaveUp();
+				return gaveUp(px, py, pz, yaw);
 			}
 			// boxed in on this side: try the other one, once
 			flipped = true;
@@ -146,8 +159,21 @@ public final class ObstacleAvoider {
 		bestSideways = 0;
 	}
 
-	private Output gaveUp() {
+	private Output gaveUp(double px, double py, double pz, double yaw) {
+		double fx = -Math.sin(Math.toRadians(yaw));
+		double fz = Math.cos(Math.toRadians(yaw));
+		double lx = Math.cos(Math.toRadians(yaw));
+		double lz = Math.sin(Math.toRadians(yaw));
+		boolean wasOnlySteps = stepsBlock;
+		stepsBlock = false;
+		boolean realObstacle = firstBlock(px, py, pz, fx, fz, lx, lz, 0, CLEAR_AHEAD) >= 0;
 		reset();
+		if (wasOnlySteps && !realObstacle) {
+			// nothing here that jumping can't deal with: stop trying to walk round it
+			stepSuppress = STEP_SUPPRESS_TICKS;
+			cooldown = COOLDOWN_TICKS;
+			return Output.NONE;
+		}
 		return new Output(0, true);
 	}
 
@@ -235,7 +261,7 @@ public final class ObstacleAvoider {
 			return Cell.FREE;
 		}
 		if (feet && !head && !terrain.solid(x, y + 2, z)) {
-			return Cell.STEP;
+			return stepsBlock ? Cell.BLOCK : Cell.STEP;
 		}
 		return Cell.BLOCK;
 	}
