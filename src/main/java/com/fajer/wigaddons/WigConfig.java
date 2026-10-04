@@ -35,10 +35,15 @@ public final class WigConfig {
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 
-	/** Whether the selected route's waypoints are drawn. Remembered between sessions. */
-	public boolean showWaypoints = false;
 	/** The selected route, remembered between sessions. */
 	public String selectedRoute = "";
+
+	/** A copy of these settings with a different aim offset, for a route that has its own. */
+	public WigConfig withHumanizeOffset(double blocks) {
+		WigConfig copy = GSON.fromJson(GSON.toJson(this), WigConfig.class);
+		copy.humanizeOffset = blocks;
+		return copy;
+	}
 
 	public static WigConfig load(Path file) {
 		try (Reader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {

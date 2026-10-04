@@ -35,6 +35,8 @@ public final class Runner {
 	private static int previousLevel;
 	private static int lastTarget;
 	private static RouteFollower.Output lastOutput;
+	/** The turn speed of the route being run: its own, or the global one. */
+	private static double runTurnSpeed;
 	private static boolean jump;
 	/** +1 holds A, -1 holds D, 0 neither: set while going round an obstacle. */
 	private static int strafe;
@@ -87,7 +89,8 @@ public final class Runner {
 		if (player == null) {
 			return;
 		}
-		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config);
+		runTurnSpeed = route.effectiveTurnSpeed(WigState.config);
+		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config.withHumanizeOffset(route.effectiveHumanizeOffset(WigState.config)));
 		points = java.util.List.copyOf(route.waypoints());
 		runRoute = route;
 		pickPitch();
@@ -260,7 +263,7 @@ public final class Runner {
 		checkView(player);
 		if (haveAim) {
 			double before = player.getYRot();
-			float yaw = (float) RouteFollower.stepYaw(before, aimYaw, WigState.config.turnSpeedDegPerTick * frameTicks);
+			float yaw = (float) RouteFollower.stepYaw(before, aimYaw, runTurnSpeed * frameTicks);
 			player.setYRot(yaw);
 			// no blending between ticks: the view is set exactly, every frame
 			player.yRotO = yaw;
@@ -268,7 +271,7 @@ public final class Runner {
 			lastFrameTicks = frameTicks;
 		}
 		if (!Double.isNaN(pitchTarget)) {
-			float pitch = (float) RouteFollower.stepToward(player.getXRot(), pitchTarget, WigState.config.turnSpeedDegPerTick * frameTicks);
+			float pitch = (float) RouteFollower.stepToward(player.getXRot(), pitchTarget, runTurnSpeed * frameTicks);
 			player.setXRot(pitch);
 			player.xRotO = pitch;
 		}
@@ -349,7 +352,7 @@ public final class Runner {
 		RouteFollower.Output o = lastOutput;
 		String text = String.format("yaw %.1f aim %.1f | frame %.2f deg (%.3f ticks) | turn %.1f deg/tick (max %.1f) | fps %d%s",
 			RouteFollower.wrapDegrees(player.getYRot()), haveAim ? RouteFollower.wrapDegrees(aimYaw) : Double.NaN,
-			lastFrameStep, lastFrameTicks, turnPerTick, WigState.config.turnSpeedDegPerTick, mc.getFps(),
+			lastFrameStep, lastFrameTicks, turnPerTick, runTurnSpeed, mc.getFps(),
 			o == null ? "" : String.format(" | wp %d dist %.1f blend %.2f", o.target() + 1, o.distance(), o.blend()));
 		mc.gui.setOverlayMessage(Component.literal(text), false);
 	}

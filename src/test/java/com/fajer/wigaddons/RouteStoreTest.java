@@ -95,6 +95,74 @@ class RouteStoreTest {
 	}
 
 	@Test
+	void displayIconAndOverridesAreSavedPerRoute() throws IOException {
+		RouteStore store = new RouteStore(dir);
+		Route route = new Route("d", List.of(new Waypoint(0, 0, 0)));
+		route.setIcon(" diamond_pickaxe ");
+		route.setTurnSpeed(6.0);
+		route.setHumanizeOffset(0.0);
+		route.setShowWaypoints(true);
+		route.setBoxColor(0xFF8800);
+		route.setShowRadius(false);
+		route.setShowNumbers(false);
+		route.setShowLines(false);
+		store.save(route);
+		Route loaded = store.load("d");
+		assertEquals("diamond_pickaxe", loaded.icon());
+		assertEquals(6.0, loaded.turnSpeed());
+		assertEquals(0.0, loaded.humanizeOffset());
+		assertTrue(loaded.showWaypoints());
+		assertEquals(0xFF8800, loaded.boxColor());
+		assertFalse(loaded.showRadius());
+		assertFalse(loaded.showNumbers());
+		assertFalse(loaded.showLines());
+	}
+
+	@Test
+	void aRouteSavedBeforeTheseExistedGetsTheDefaults() throws IOException {
+		java.nio.file.Files.writeString(dir.resolve("old.json"), "{\"radius\": 3, \"waypoints\": [[1,2,3]]}");
+		Route old = new RouteStore(dir).load("old");
+		assertEquals("", old.icon());
+		assertNull(old.turnSpeed());
+		assertNull(old.humanizeOffset());
+		assertFalse(old.showWaypoints());
+		assertEquals(Route.DEFAULT_BOX_COLOR, old.boxColor());
+		assertTrue(old.showRadius() && old.showNumbers() && old.showLines());
+	}
+
+	@Test
+	void overridesFallBackToTheGlobalSettings() {
+		WigConfig cfg = new WigConfig();
+		Route route = new Route("r");
+		assertEquals(cfg.turnSpeedDegPerTick, route.effectiveTurnSpeed(cfg));
+		assertEquals(cfg.humanizeOffset, route.effectiveHumanizeOffset(cfg));
+		route.setTurnSpeed(4.0);
+		route.setHumanizeOffset(0.0);
+		assertEquals(4.0, route.effectiveTurnSpeed(cfg));
+		assertEquals(0.0, route.effectiveHumanizeOffset(cfg));
+		route.setTurnSpeed(0.0); // not above zero: back to the global one
+		route.setHumanizeOffset(-1.0);
+		assertNull(route.turnSpeed());
+		assertNull(route.humanizeOffset());
+	}
+
+	@Test
+	void waypointsCanBeMovedAndTextParsed() {
+		Route route = new Route("m", List.of(new Waypoint(1, 1, 1), new Waypoint(2, 2, 2), new Waypoint(3, 3, 3)));
+		assertTrue(route.moveWaypoint(0, 1));
+		assertEquals(new Waypoint(2, 2, 2), route.waypoints().get(0));
+		assertEquals(new Waypoint(1, 1, 1), route.waypoints().get(1));
+		assertFalse(route.moveWaypoint(0, -1));
+		assertFalse(route.moveWaypoint(2, 1));
+		assertFalse(route.moveWaypoint(5, -1));
+		assertEquals(new Waypoint(10, -64, 300), Waypoint.parse(" 10  -64, 300 "));
+		assertNull(Waypoint.parse("10 20"));
+		assertNull(Waypoint.parse("a b c"));
+		assertNull(Waypoint.parse("1 2 3 4"));
+		assertEquals("10 -64 300", new Waypoint(10, -64, 300).format());
+	}
+
+	@Test
 	void pitchIsKeptInRange() {
 		Route route = new Route("r");
 		route.setPitch(500.0, false);
@@ -140,10 +208,10 @@ class RouteStoreTest {
 	@Test
 	void configKeepsSettingsAndRepairsNonsense() throws IOException {
 		Path file = dir.resolve("config.json");
-		java.nio.file.Files.writeString(file, "{\"turnSpeedDegPerTick\": -5, \"stuckTimeoutSeconds\": 7, \"showWaypoints\": true}");
+		java.nio.file.Files.writeString(file, "{\"turnSpeedDegPerTick\": -5, \"stuckTimeoutSeconds\": 7, \"selectedRoute\": \"abc\"}");
 		WigConfig cfg = WigConfig.load(file);
 		assertEquals(10.0, cfg.turnSpeedDegPerTick);
 		assertEquals(7.0, cfg.stuckTimeoutSeconds);
-		assertTrue(cfg.showWaypoints);
+		assertEquals("abc", cfg.selectedRoute);
 	}
 }

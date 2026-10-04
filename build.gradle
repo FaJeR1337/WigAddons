@@ -13,10 +13,26 @@ loom {
 	}
 }
 
+repositories {
+	maven {
+		name = 'NotEnoughUpdates'
+		url = 'https://maven.notenoughupdates.org/releases'
+		content {
+			includeGroup 'org.notenoughupdates.moulconfig'
+		}
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// The settings screen: MoulConfig (LGPL-3.0), and the Kotlin runtime it needs, both bundled into the mod jar.
+	implementation "org.notenoughupdates.moulconfig:modern-26.1:${project.moulconfig_version}"
+	include "org.notenoughupdates.moulconfig:modern-26.1:${project.moulconfig_version}"
+	implementation "org.jetbrains.kotlin:kotlin-stdlib:${project.kotlin_version}"
+	include "org.jetbrains.kotlin:kotlin-stdlib:${project.kotlin_version}"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"

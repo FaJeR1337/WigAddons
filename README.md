@@ -9,6 +9,21 @@ A client-side Fabric mod for Minecraft 26.1.2. Record routes of waypoints with r
 
 Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 
+## The settings screen
+
+`/wig` (or `/wig gui`) opens a settings screen built with [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) (LGPL-3.0, bundled inside the mod jar together with the Kotlin runtime it needs). There is also an **Open GUI** key (unbound until you set it) in Controls under a **WigAddons** heading.
+
+- **About**: what the mod is.
+- **Routes**: *Defaults for all routes* (turn speed and aim offset, used by routes that don't set their own), *New route* (type a name and press Create), then one section per route. A route's section has its icon (type part of an item's name, see the match, press **Use**; the icon is drawn at the end of the route's header), buttons to run it once, run it on a loop or place waypoints with right-click, and these sub-sections:
+  - **Waypoints**: each waypoint's "x y z" is a text field with Up, Down and Del buttons, plus buttons to add the block you were looking at or standing on.
+  - **Movement**: radius, turn speed (empty = default), pitch to hold, hold left / right click.
+  - **Humanize**: aim offset (empty = default) and whether the held pitch varies.
+  - **Display**: show the waypoints, their numbers, radius circles and lines, and the box colour. Several routes can be shown at once.
+  - A **Delete route** button (press twice within 10 seconds).
+- **Safety**: macro-check limits, the warning time, the stuck timeout, and what to do when a party member leaves (delay, command and the chat lines that count).
+
+Everything saves as you change it. Opening any screen stops a running route, so a route can't be running while the screen is open; the Run buttons close the screen first. Everything in the screen is also a command.
+
 ## Commands
 
 `/wig` is a short form of `/wigaddons`.
@@ -24,7 +39,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 - `/wig left <route> on|off` and `/wig right <route> on|off`: hold the left (attack / break blocks) or right (use / place) mouse button for as long as that route runs, and let go when it ends for any reason. Saved with the route; both can be on at once. Holding a button breaks blocks or uses items over and over; it does not click once per swing at an entity.
 - `/wig debug`: show or hide the turn readout.
 - `/wig stop`: stop a run.
-- `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). Remembered between sessions.
+- `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). This is the route's "Show waypoints" setting and is saved with it.
 - `/wig clear`: remove every waypoint from the selected route.
 - `/wig delete <route>`: delete a route (run it twice within 10 seconds).
 

@@ -89,6 +89,24 @@ public final class RouteStore {
 				route.setHoldLeft(root.has("holdLeft") && root.get("holdLeft").getAsBoolean());
 				route.setHoldRight(root.has("holdRight") && root.get("holdRight").getAsBoolean());
 			}
+			if (root != null) {
+				if (root.has("icon")) {
+					route.setIcon(root.get("icon").getAsString());
+				}
+				if (root.has("turnSpeed")) {
+					route.setTurnSpeed(root.get("turnSpeed").getAsDouble());
+				}
+				if (root.has("humanizeOffset")) {
+					route.setHumanizeOffset(root.get("humanizeOffset").getAsDouble());
+				}
+				route.setShowWaypoints(root.has("showWaypoints") && root.get("showWaypoints").getAsBoolean());
+				if (root.has("boxColor")) {
+					route.setBoxColor(root.get("boxColor").getAsInt());
+				}
+				route.setShowRadius(!root.has("showRadius") || root.get("showRadius").getAsBoolean());
+				route.setShowNumbers(!root.has("showNumbers") || root.get("showNumbers").getAsBoolean());
+				route.setShowLines(!root.has("showLines") || root.get("showLines").getAsBoolean());
+			}
 			if (root != null && root.has("pitch")) {
 				route.setPitch(root.get("pitch").getAsDouble(), root.has("randomizePitch") && root.get("randomizePitch").getAsBoolean());
 			}
@@ -110,6 +128,18 @@ public final class RouteStore {
 		}
 		JsonObject root = new JsonObject();
 		root.addProperty("radius", route.radius());
+		root.addProperty("icon", route.icon());
+		if (route.turnSpeed() != null) {
+			root.addProperty("turnSpeed", route.turnSpeed());
+		}
+		if (route.humanizeOffset() != null) {
+			root.addProperty("humanizeOffset", route.humanizeOffset());
+		}
+		root.addProperty("showWaypoints", route.showWaypoints());
+		root.addProperty("boxColor", route.boxColor());
+		root.addProperty("showRadius", route.showRadius());
+		root.addProperty("showNumbers", route.showNumbers());
+		root.addProperty("showLines", route.showLines());
 		root.addProperty("holdLeft", route.holdLeft());
 		root.addProperty("holdRight", route.holdRight());
 		if (route.pitch() != null) {

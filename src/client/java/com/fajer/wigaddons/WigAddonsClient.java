@@ -11,6 +11,8 @@ public class WigAddonsClient implements ClientModInitializer {
 		WigState.load();
 		WigCommands.register();
 		EditMode.register();
+		OpenGuiKey.register();
+		SmokeTest.register();
 		WaypointRenderer.register();
 
 		// at the end of the tick, after the game has stored the previous rotation, so the camera blends between the two

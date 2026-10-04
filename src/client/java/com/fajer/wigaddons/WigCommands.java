@@ -5,7 +5,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -18,7 +17,7 @@ public final class WigCommands {
 
 	private static final SuggestionProvider<FabricClientCommandSource> ROUTE_NAMES = (c, b) -> {
 		String prefix = b.getRemaining().toLowerCase(Locale.ROOT);
-		for (String name : WigState.STORE.names()) {
+		for (String name : WigState.routeNames()) {
 			if (name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
 				b.suggest(name);
 			}
@@ -42,6 +41,8 @@ public final class WigCommands {
 
 	private static LiteralArgumentBuilder<FabricClientCommandSource> build(LiteralArgumentBuilder<FabricClientCommandSource> root) {
 		return root
+			.executes(c -> openGui())
+			.then(ClientCommands.literal("gui").executes(c -> openGui()))
 			.then(ClientCommands.literal("new")
 				.then(ClientCommands.argument("route", StringArgumentType.word())
 					.executes(c -> create(StringArgumentType.getString(c, "route")))))
@@ -85,34 +86,46 @@ public final class WigCommands {
 
 	/** Resolves a typed name to a saved route, telling the player when it doesn't exist. */
 	private static Route findRoute(String typed) {
-		String name = WigState.STORE.canonicalName(typed);
-		Route route = name == null ? null : WigState.STORE.load(name);
+		Route route = WigState.routeIgnoringCase(typed);
 		if (route == null) {
 			Chat.error("There is no route called \"" + typed + "\". /wig routes lists them.");
 		}
 		return route;
 	}
 
+	private static int openGui() {
+		// the chat screen the command was typed in is closed after the command runs, so open the screen a moment later
+		OpenGuiKey.requestOpen();
+		return 1;
+	}
+
 	private static int create(String name) {
+		return createRoute(name, true) == null ? 0 : 1;
+	}
+
+	/** Makes and saves a new, empty route. Null (with a chat message) when the name is no good. */
+	public static Route createRoute(String name, boolean startEditing) {
 		if (!RouteStore.isValidName(name)) {
 			Chat.error("Route names use only letters, numbers, _ and -, up to 32 characters, and can't be \"config\".");
-			return 0;
+			return null;
 		}
-		if (WigState.STORE.canonicalName(name) != null) {
+		if (WigState.routeIgnoringCase(name) != null) {
 			Chat.error("A route called " + name + " already exists. Use /wig edit " + name + " to add to it.");
-			return 0;
+			return null;
 		}
 		Route route = new Route(name);
-		try {
-			WigState.STORE.save(route);
-		} catch (IOException e) {
+		if (!WigState.save(route)) {
 			Chat.error("Could not save the route file.");
-			return 0;
+			return null;
 		}
 		WigState.select(name);
-		EditMode.enter(route);
-		Chat.info("Created " + name + ". Right click blocks with an empty hand to place waypoints, then /wig done.");
-		return 1;
+		if (startEditing) {
+			EditMode.enter(route);
+			Chat.info("Created " + name + ". Right click blocks with an empty hand to place waypoints, then /wig done.");
+		} else {
+			Chat.info("Created " + name + ".");
+		}
+		return route;
 	}
 
 	private static int edit(String typed) {
@@ -120,10 +133,15 @@ public final class WigCommands {
 		if (route == null) {
 			return 0;
 		}
+		editRoute(route);
+		return 1;
+	}
+
+	/** Selects the route and switches on right-click placement of waypoints. */
+	public static void editRoute(Route route) {
 		WigState.select(route.name());
 		EditMode.enter(route);
 		Chat.info("Editing " + route.name() + " (" + route.waypoints().size() + " waypoints). /wig done when finished.");
-		return 1;
 	}
 
 	private static int done() {
@@ -151,7 +169,7 @@ public final class WigCommands {
 	}
 
 	private static int routes() {
-		List<String> names = WigState.STORE.names();
+		List<String> names = WigState.routeNames();
 		if (names.isEmpty()) {
 			Chat.info("No routes yet. /wig new <route> makes one.");
 			return 1;
@@ -187,12 +205,14 @@ public final class WigCommands {
 
 	private static int start(String typed, boolean loop) {
 		Route route = findRoute(typed);
-		if (route == null) {
-			return 0;
-		}
+		return route != null && startRoute(route, loop) ? 1 : 0;
+	}
+
+	/** Starts running the route. False (with a chat message) when it can't be run. */
+	public static boolean startRoute(Route route, boolean loop) {
 		if (route.waypoints().isEmpty()) {
 			Chat.error(route.name() + " has no waypoints.");
-			return 0;
+			return false;
 		}
 		if (WigState.editing != null) {
 			EditMode.leave();
@@ -200,7 +220,7 @@ public final class WigCommands {
 		WigState.select(route.name());
 		Runner.start(route, loop);
 		Chat.info("Running " + route.name() + (loop ? " on a loop" : "") + ". The mouse is locked. /wig stop, a movement key or any screen stops it.");
-		return 1;
+		return true;
 	}
 
 	private static int radius(String typed, double blocks) {
@@ -209,9 +229,7 @@ public final class WigCommands {
 			return 0;
 		}
 		route.setRadius(blocks);
-		try {
-			WigState.STORE.save(route);
-		} catch (IOException e) {
+		if (!WigState.save(route)) {
 			Chat.error("Could not save the route file.");
 			return 0;
 		}
@@ -241,9 +259,7 @@ public final class WigCommands {
 		} else {
 			route.setHoldRight(on);
 		}
-		try {
-			WigState.STORE.save(route);
-		} catch (IOException e) {
+		if (!WigState.save(route)) {
 			Chat.error("Could not save the route file.");
 			return 0;
 		}
@@ -264,9 +280,7 @@ public final class WigCommands {
 			return 0;
 		}
 		route.setPitch(pitch, randomize);
-		try {
-			WigState.STORE.save(route);
-		} catch (IOException e) {
+		if (!WigState.save(route)) {
 			Chat.error("Could not save the route file.");
 			return 0;
 		}
@@ -296,9 +310,17 @@ public final class WigCommands {
 	}
 
 	private static int toggleWaypoints() {
-		WigState.config.showWaypoints = !WigState.config.showWaypoints;
-		WigState.saveConfig();
-		Chat.info("Waypoints " + (WigState.config.showWaypoints ? "shown" : "hidden") + " for the selected route.");
+		Route route = WigState.editing != null ? WigState.editing : WigState.selectedRoute();
+		if (route == null) {
+			Chat.error("No route is selected. /wig select <route> picks one.");
+			return 0;
+		}
+		route.setShowWaypoints(!route.showWaypoints());
+		if (!WigState.save(route)) {
+			Chat.error("Could not save the route file.");
+			return 0;
+		}
+		Chat.info("Waypoints " + (route.showWaypoints() ? "shown" : "hidden") + " for " + route.name() + ".");
 		return 1;
 	}
 
@@ -315,9 +337,7 @@ public final class WigCommands {
 			return 0;
 		}
 		route.waypoints().clear();
-		try {
-			WigState.STORE.save(route);
-		} catch (IOException e) {
+		if (!WigState.save(route)) {
 			Chat.error("Could not save the route file.");
 			return 0;
 		}
@@ -338,9 +358,7 @@ public final class WigCommands {
 			return 1;
 		}
 		pendingDelete = null;
-		try {
-			WigState.STORE.delete(route.name());
-		} catch (IOException e) {
+		if (!WigState.delete(route)) {
 			Chat.error("Could not delete the route file.");
 			return 0;
 		}

@@ -1,6 +1,5 @@
 package com.fajer.wigaddons;
 
-import java.io.IOException;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.Minecraft;
@@ -46,10 +45,9 @@ public final class EditMode {
 	private static void addWaypoint(BlockPos pos) {
 		Route route = WigState.editing;
 		route.waypoints().add(new Waypoint(pos.getX(), pos.getY(), pos.getZ()));
-		try {
-			WigState.STORE.save(route);
+		if (WigState.save(route)) {
 			Chat.info("Waypoint " + route.waypoints().size() + " placed at " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " in " + route.name() + ".");
-		} catch (IOException e) {
+		} else {
 			route.waypoints().removeLast();
 			Chat.error("Could not save the route, so that waypoint was not placed.");
 		}
