@@ -23,8 +23,10 @@ public final class RouteFollower {
 	 * @param aimYaw the direction to face, in Minecraft yaw degrees
 	 * @param distance blocks to the waypoint being run to
 	 * @param blend 0 when aiming straight at that waypoint, up to 1 when aiming at the one after it
+	 * @param aimX the spot being aimed at
+	 * @param aimZ the spot being aimed at
 	 */
-	public record Output(double aimYaw, boolean jump, Status status, int target, double distance, double blend) {
+	public record Output(double aimYaw, boolean jump, Status status, int target, double distance, double blend, double aimX, double aimZ) {
 	}
 
 	/** A radius of 0 means "the middle of the block", which can't be hit exactly, so this is the least that counts. */
@@ -108,7 +110,7 @@ public final class RouteFollower {
 		}
 
 		if (reachedTarget(px, pz) && !advance(px, pz)) {
-			return new Output(0, false, Status.FINISHED, target, 0, 0);
+			return new Output(0, false, Status.FINISHED, target, 0, 0, px, pz);
 		}
 
 		double dist = Math.hypot(aimX(target) - px, aimZ(target) - pz);
@@ -133,7 +135,7 @@ public final class RouteFollower {
 				ticksInWindow = 0;
 			}
 		}
-		return new Output(aimYaw, status == Status.RUNNING && onGround && horizontalCollision, status, target, dist, blend);
+		return new Output(aimYaw, status == Status.RUNNING && onGround && horizontalCollision, status, target, dist, blend, aimX, aimZ);
 	}
 
 	/**

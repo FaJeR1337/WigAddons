@@ -45,7 +45,11 @@ Minecraft has no sideways tilt (roll) for the player, so only yaw (left/right) a
 
 `/wig debug` toggles a readout above the hotbar while a route runs: the current and wanted yaw, how far the view turned this frame, the turn per tick, FPS, and the waypoint, its distance and the blend toward the next one.
 
-Movement is a straight line between waypoints: no pathfinding around walls, gaps or water. Automated movement is against the rules on many servers; use it where it is allowed.
+### Going round obstacles
+
+The player looks about 3.5 blocks ahead. A one-block step is simply jumped. A wall two or more blocks high, or a step with a low ceiling, can't be jumped, so the player holds **A or D** (with forward and sprint still held and the view still on the waypoint) to go round it. It picks the side toward the waypoint when that side is open (otherwise the other side, or the shorter way round when the waypoint is dead ahead), and lets go as soon as the line ahead has been clear for 2 blocks, so a one-block obstacle costs only a short step sideways. Presses start after a small random delay and end after a slightly varying hold. Being pushed against something for about half a second counts as an obstacle too (a fence you can't jump, say). If it has gone about 6 blocks sideways, or both sides are boxed in, the run stops with a message. It does not look for hazards such as lava, drops or water.
+
+Movement is otherwise a straight line between waypoints: no full pathfinding around gaps or water. Automated movement is against the rules on many servers; use it where it is allowed.
 
 ## Files
 

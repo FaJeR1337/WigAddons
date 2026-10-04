@@ -12,12 +12,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(KeyboardInput.class)
 public abstract class KeyboardInputMixin extends ClientInput {
-	/** After the real keys are read, replaces them with "forward + sprint (+ jump)" while a route is running. */
+	/** After the real keys are read, replaces them with "forward + sprint (+ A or D, + jump)" while a route is running. */
 	@Inject(method = "tick", at = @At("TAIL"))
 	private void wigaddons$runRoute(CallbackInfo ci) {
 		if (Runner.wantsInput()) {
-			this.keyPresses = new Input(true, false, false, false, Runner.wantsJump(), false, true);
-			this.moveVector = new Vec2(0.0F, 1.0F);
+			int strafe = Runner.strafe();
+			this.keyPresses = new Input(true, false, strafe > 0, strafe < 0, Runner.wantsJump(), false, true);
+			this.moveVector = new Vec2(strafe, 1.0F).normalized();
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package com.fajer.wigaddons;
 
+import java.util.Random;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -19,9 +20,13 @@ public final class Runner {
 	/** A frame never turns the view by more than this many ticks' worth, so a long hitch can't whip it round. */
 	private static final double MAX_FRAME_TICKS = 2.0;
 
+	private static final ObstacleAvoider AVOIDER = new ObstacleAvoider(new WorldTerrain(), new Random());
+
 	private static RouteFollower follower;
 	private static RouteFollower.Output lastOutput;
 	private static boolean jump;
+	/** +1 holds A, -1 holds D, 0 neither: set while going round an obstacle. */
+	private static int strafe;
 	private static int ticks;
 	private static int startSlot;
 	/** Where the view was left by the last frame: any other change is somebody else's. */
@@ -52,6 +57,10 @@ public final class Runner {
 		return jump;
 	}
 
+	public static int strafe() {
+		return strafe;
+	}
+
 	public static void start(Route route, boolean loop) {
 		Minecraft mc = Minecraft.getInstance();
 		LocalPlayer player = mc.player;
@@ -61,6 +70,8 @@ public final class Runner {
 		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config);
 		lastOutput = null;
 		jump = false;
+		strafe = 0;
+		AVOIDER.reset();
 		ticks = 0;
 		startSlot = player.getInventory().getSelectedSlot();
 		expectedYaw = player.getYRot();
@@ -83,6 +94,8 @@ public final class Runner {
 		follower = null;
 		lastOutput = null;
 		jump = false;
+		strafe = 0;
+		AVOIDER.reset();
 		if (WigState.debug) {
 			Minecraft.getInstance().gui.setOverlayMessage(Component.empty(), false);
 		}
@@ -133,7 +146,15 @@ public final class Runner {
 			}
 		}
 		lastOutput = out;
-		jump = out.jump();
+		ObstacleAvoider.Output around = AVOIDER.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
+			out.aimX(), out.aimZ(), player.onGround() && player.horizontalCollision);
+		if (around.gaveUp()) {
+			stop("no way round an obstacle was found");
+			return;
+		}
+		strafe = around.strafe();
+		// no hopping against the obstacle while sidestepping it
+		jump = out.jump() && strafe == 0;
 		aimYaw = out.aimYaw();
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
