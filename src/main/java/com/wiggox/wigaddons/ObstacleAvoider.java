@@ -51,6 +51,7 @@ public final class ObstacleAvoider {
 
 	/** Whether a one-block step counts as an obstacle on this tick. */
 	private boolean stepsBlock;
+	private boolean neverJump;
 
 	private final Terrain terrain;
 	private final Random random;
@@ -81,8 +82,11 @@ public final class ObstacleAvoider {
 	 * @param aimZ where the route is heading
 	 * @param pressedAgainst the player is on the ground and pushing into something
 	 * @param levelLeg the route stays at the same height here, so one-block steps are walked round, not jumped
+	 * @param neverJump the route never jumps, so one-block steps are always walked round and there is no falling back
+	 *                  on jumping when there is no way round
 	 */
-	public Output tick(double px, double py, double pz, double yaw, double aimX, double aimZ, boolean pressedAgainst, boolean levelLeg) {
+	public Output tick(double px, double py, double pz, double yaw, double aimX, double aimZ, boolean pressedAgainst, boolean levelLeg, boolean neverJump) {
+		this.neverJump = neverJump;
 		pressedTicks = pressedAgainst ? pressedTicks + 1 : 0;
 		if (cooldown > 0) {
 			cooldown--;
@@ -90,7 +94,7 @@ public final class ObstacleAvoider {
 		if (stepSuppress > 0) {
 			stepSuppress--;
 		}
-		stepsBlock = levelLeg && stepSuppress == 0;
+		stepsBlock = neverJump || (levelLeg && stepSuppress == 0);
 		double fx = -Math.sin(Math.toRadians(yaw));
 		double fz = Math.cos(Math.toRadians(yaw));
 		double lx = Math.cos(Math.toRadians(yaw));
@@ -168,7 +172,7 @@ public final class ObstacleAvoider {
 		stepsBlock = false;
 		boolean realObstacle = firstBlock(px, py, pz, fx, fz, lx, lz, 0, CLEAR_AHEAD) >= 0;
 		reset();
-		if (wasOnlySteps && !realObstacle) {
+		if (wasOnlySteps && !realObstacle && !neverJump) {
 			// nothing here that jumping can't deal with: stop trying to walk round it
 			stepSuppress = STEP_SUPPRESS_TICKS;
 			cooldown = COOLDOWN_TICKS;

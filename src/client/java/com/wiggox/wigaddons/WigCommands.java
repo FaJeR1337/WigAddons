@@ -73,6 +73,10 @@ public final class WigCommands {
 						.executes(c -> facing(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "pitch"), false))
 						.then(ClientCommands.literal("randomize")
 							.executes(c -> facing(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "pitch"), true))))))
+			.then(ClientCommands.literal("nojump")
+				.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
+					.then(ClientCommands.literal("on").executes(c -> noJump(StringArgumentType.getString(c, "route"), true)))
+					.then(ClientCommands.literal("off").executes(c -> noJump(StringArgumentType.getString(c, "route"), false)))))
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
@@ -327,6 +331,20 @@ public final class WigCommands {
 			return 0;
 		}
 		Chat.info("Waypoints " + (route.showWaypoints() ? "shown" : "hidden") + " for " + route.name() + ".");
+		return 1;
+	}
+
+	private static int noJump(String typed, boolean on) {
+		Route route = findRoute(typed);
+		if (route == null) {
+			return 0;
+		}
+		route.setNoJump(on);
+		if (!WigState.save(route)) {
+			Chat.error("Could not save the route file.");
+			return 0;
+		}
+		Chat.info(route.name() + (on ? " will never jump." : " may jump again when it has to."));
 		return 1;
 	}
 

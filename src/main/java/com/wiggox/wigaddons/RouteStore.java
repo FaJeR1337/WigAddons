@@ -86,6 +86,7 @@ public final class RouteStore {
 				route.setRadius(root.get("radius").getAsDouble());
 			}
 			if (root != null) {
+				route.setNoJump(root.has("noJump") && root.get("noJump").getAsBoolean());
 				route.setHoldLeft(root.has("holdLeft") && root.get("holdLeft").getAsBoolean());
 				route.setHoldRight(root.has("holdRight") && root.get("holdRight").getAsBoolean());
 			}
@@ -140,6 +141,7 @@ public final class RouteStore {
 		root.addProperty("showRadius", route.showRadius());
 		root.addProperty("showNumbers", route.showNumbers());
 		root.addProperty("showLines", route.showLines());
+		root.addProperty("noJump", route.noJump());
 		root.addProperty("holdLeft", route.holdLeft());
 		root.addProperty("holdRight", route.holdRight());
 		if (route.pitch() != null) {

@@ -253,14 +253,14 @@ public final class Runner {
 		}
 		boolean levelLeg = standingLevel(out.target()) == previousLevel;
 		ObstacleAvoider.Output around = AVOIDER.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
-			out.aimX(), out.aimZ(), player.onGround() && player.horizontalCollision, levelLeg);
+			out.aimX(), out.aimZ(), player.onGround() && player.horizontalCollision, levelLeg, runRouteForHud.noJump());
 		if (around.gaveUp()) {
-			stop("no way round an obstacle was found");
+			stop(runRouteForHud.noJump() ? "no way round an obstacle was found, and this route never jumps" : "no way round an obstacle was found");
 			return;
 		}
 		strafe = around.strafe();
-		// no hopping against the obstacle while sidestepping it
-		jump = out.jump() && strafe == 0;
+		// no hopping against the obstacle while sidestepping it, and none at all on a route set never to jump
+		jump = out.jump() && strafe == 0 && !runRouteForHud.noJump();
 		aimYaw = out.aimYaw();
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);

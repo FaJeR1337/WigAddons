@@ -474,6 +474,11 @@ public final class WigGui {
 					WigState.save(route);
 				}
 			});
+		b.toggle(key + ".noJump", "Never jump", "Forces this route never to jump. One-block steps are walked round with A or D, whatever the heights, and the run stops if there is no way round. Leave it off for routes that climb or need to jump.",
+			route::noJump, v -> {
+				route.setNoJump(v);
+				WigState.save(route);
+			});
 		b.toggle(key + ".holdLeft", "Hold left click", "Holds the left mouse button (attack, break blocks) while the route runs.",
 			route::holdLeft, v -> {
 				route.setHoldLeft(v);

@@ -175,6 +175,18 @@ class RouteStoreTest {
 	}
 
 	@Test
+	void neverJumpIsSavedPerRouteAndOffByDefault() throws IOException {
+		RouteStore store = new RouteStore(dir);
+		Route route = new Route("nj", List.of(new Waypoint(0, 0, 0)));
+		assertFalse(route.noJump());
+		route.setNoJump(true);
+		store.save(route);
+		assertTrue(store.load("nj").noJump());
+		java.nio.file.Files.writeString(dir.resolve("old.json"), "{\"waypoints\": []}");
+		assertFalse(store.load("old").noJump());
+	}
+
+	@Test
 	void pitchIsKeptInRange() {
 		Route route = new Route("r");
 		route.setPitch(500.0, false);

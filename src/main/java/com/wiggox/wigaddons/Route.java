@@ -23,6 +23,8 @@ public final class Route {
 	private boolean holdLeft;
 	/** Hold the right mouse button (use / place) while the route runs. */
 	private boolean holdRight;
+	/** Never jump on this route: one-block steps are walked round, and the run stops if there is no way round. */
+	private boolean noJump;
 	/** An item id (like "diamond_pickaxe") shown beside the route in the GUI, or empty for none. */
 	private String icon = "";
 	/** This route's own turn speed in degrees per tick, or null to use the global one. */
@@ -142,6 +144,14 @@ public final class Route {
 		Waypoint moved = waypoints.remove(index);
 		waypoints.add(to, moved);
 		return true;
+	}
+
+	public boolean noJump() {
+		return noJump;
+	}
+
+	public void setNoJump(boolean noJump) {
+		this.noJump = noJump;
 	}
 
 	public boolean holdLeft() {

@@ -98,8 +98,10 @@ final class SmokeTest {
 			case 10 -> commandOpensGui(mc);
 			case 11 -> macroCheck(mc);
 			case 12 -> partyLeave(mc);
-			case 13 -> hudPosition(mc);
-			case 14 -> {
+			case 13 -> jumpCheck(mc, false, 14);
+			case 14 -> jumpCheck(mc, true, 15);
+			case 15 -> hudPosition(mc);
+			case 16 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -172,6 +174,43 @@ final class SmokeTest {
 			log("party leave did not stop the run");
 			Runner.stop("smoke test timeout");
 			next();
+		}
+	}
+
+	private static double maxY;
+
+	/**
+	 * A route that climbs (its waypoint is a block higher) over a one-block step: with "never jump" off the player
+	 * should hop onto the step, with it on the player should stay on the ground and walk round.
+	 */
+	private static void jumpCheck(Minecraft mc, boolean neverJump, int nextPhase) {
+		if (phaseTick == 1) {
+			Route up = route("up", "ladder", 1, false, new Waypoint(0, GROUND + 1, 20));
+			up.setNoJump(neverJump);
+			WigState.save(up);
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "setblock 0 -60 8 stone");
+			maxY = -60;
+			strafeSeen = false;
+		}
+		if (phaseTick == 30) {
+			log("start up (never jump " + (neverJump ? "on" : "off") + ")");
+			WigCommands.startRoute(WigState.route("up"), false);
+		}
+		if (phaseTick > 30) {
+			maxY = Math.max(maxY, mc.player.getY());
+			if (Runner.strafe() != 0) {
+				strafeSeen = true;
+			}
+			if (!Runner.isRunning() && phaseTick > 32) {
+				log("never jump " + (neverJump ? "on" : "off") + ": highest point " + String.format("%.2f", maxY) + " (ground is -60.00), strafed=" + strafeSeen
+					+ ", ended at " + fmt(mc));
+				phase = nextPhase;
+				phaseTick = 0;
+			} else if (phaseTick > 700) {
+				log("never jump " + (neverJump ? "on" : "off") + ": TIMEOUT");
+				Runner.stop("smoke test timeout");
+			}
 		}
 	}
 

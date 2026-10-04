@@ -26,7 +26,7 @@ class ObstacleAvoiderTest {
 		return c -> parts.stream().anyMatch(p -> p.test(c));
 	}
 
-	private static boolean walkable(Predicate<Cell> solid, double x, double z) {
+	private static boolean walkable(Predicate<Cell> solid, double x, double z, boolean canJump) {
 		for (double dx : new double[] {-HALF, HALF}) {
 			for (double dz : new double[] {-HALF, HALF}) {
 				int cx = (int) Math.floor(x + dx);
@@ -35,7 +35,7 @@ class ObstacleAvoiderTest {
 				boolean head = solid.test(new Cell(cx, FEET + 1, cz));
 				boolean ceiling = solid.test(new Cell(cx, FEET + 2, cz));
 				boolean free = !feet && !head;
-				boolean step = feet && !head && !ceiling; // jumped onto
+				boolean step = canJump && feet && !head && !ceiling; // jumped onto, unless jumping is off
 				if (!free && !step) {
 					return false;
 				}
@@ -49,10 +49,10 @@ class ObstacleAvoiderTest {
 
 	/** Walks the route against the given solid cells, with the avoider steering. */
 	private static Result walk(Predicate<Cell> solid, List<Waypoint> route, double startX, double startZ, long seed) {
-		return walk(solid, route, startX, startZ, seed, true, false);
+		return walk(solid, route, startX, startZ, seed, true, false, false);
 	}
 
-	private static Result walk(Predicate<Cell> solid, List<Waypoint> route, double startX, double startZ, long seed, boolean avoid, boolean levelLeg) {
+	private static Result walk(Predicate<Cell> solid, List<Waypoint> route, double startX, double startZ, long seed, boolean avoid, boolean levelLeg, boolean neverJump) {
 		WigConfig cfg = new WigConfig();
 		cfg.humanizeOffset = 0;
 		cfg.stuckTimeoutSeconds = 60; // this test is about the avoider, not the stuck stop
@@ -75,7 +75,7 @@ class ObstacleAvoiderTest {
 			double lx = Math.cos(Math.toRadians(yaw));
 			double lz = Math.sin(Math.toRadians(yaw));
 			ObstacleAvoider.Output around = avoid
-				? avoider.tick(x, FEET, z, yaw, out.aimX(), out.aimZ(), pressed(solid, x, z, fx, fz), levelLeg)
+				? avoider.tick(x, FEET, z, yaw, out.aimX(), out.aimZ(), pressed(solid, x, z, fx, fz, !neverJump), levelLeg, neverJump)
 				: new ObstacleAvoider.Output(0, false);
 			if (around.gaveUp()) {
 				return new Result(false, true, strafed, firstStrafe, maxSideways, tick);
@@ -91,10 +91,10 @@ class ObstacleAvoiderTest {
 			double len = Math.hypot(mx, mz);
 			double stepX = mx / len * SPEED;
 			double stepZ = mz / len * SPEED;
-			if (walkable(solid, x + stepX, z)) {
+			if (walkable(solid, x + stepX, z, !neverJump)) {
 				x += stepX;
 			}
-			if (walkable(solid, x, z + stepZ)) {
+			if (walkable(solid, x, z + stepZ, !neverJump)) {
 				z += stepZ;
 			}
 			maxSideways = Math.max(maxSideways, Math.abs(x - startX));
@@ -103,8 +103,8 @@ class ObstacleAvoiderTest {
 	}
 
 	/** True when the next step straight ahead would be blocked. */
-	private static boolean pressed(Predicate<Cell> solid, double x, double z, double fx, double fz) {
-		return !walkable(solid, x + fx * SPEED, z + fz * SPEED);
+	private static boolean pressed(Predicate<Cell> solid, double x, double z, double fx, double fz, boolean canJump) {
+		return !walkable(solid, x + fx * SPEED, z + fz * SPEED, canJump);
 	}
 
 	private static final List<Waypoint> AHEAD = List.of(new Waypoint(0, FEET, 24));
@@ -120,7 +120,7 @@ class ObstacleAvoiderTest {
 
 	@Test
 	void withoutTheAvoiderThePillarStopsTheWalkerDead() {
-		Result r = walk(wall(0, 0, 8, FEET, FEET + 1), AHEAD, 0.5, 0.5, 1, false, false);
+		Result r = walk(wall(0, 0, 8, FEET, FEET + 1), AHEAD, 0.5, 0.5, 1, false, false, false);
 		assertFalse(r.finished());
 	}
 
@@ -148,7 +148,7 @@ class ObstacleAvoiderTest {
 
 	@Test
 	void onALevelStretchAOneBlockStepIsWalkedRoundNotJumped() {
-		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true);
+		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true, false);
 		assertTrue(r.finished());
 		assertTrue(r.everStrafed());
 		assertTrue(r.maxSideways() < 2.5, "went " + r.maxSideways() + " blocks sideways");
@@ -156,21 +156,42 @@ class ObstacleAvoiderTest {
 
 	@Test
 	void whenTheRouteClimbsAOneBlockStepIsStillJumped() {
-		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, false);
+		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, false, false);
 		assertTrue(r.finished());
 		assertFalse(r.everStrafed());
 	}
 
 	@Test
 	void aStepWallTooWideToWalkRoundIsJumpedInsteadOfStoppingTheRun() {
-		Result r = walk(wall(-40, 40, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true);
+		Result r = walk(wall(-40, 40, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true, false);
+		assertFalse(r.gaveUp());
+		assertTrue(r.finished());
+	}
+
+	@Test
+	void neverJumpWalksRoundAOneBlockStepEvenWhenTheRouteClimbs() {
+		Result r = walk(wall(0, 0, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, false, true);
+		assertTrue(r.finished());
+		assertTrue(r.everStrafed());
+	}
+
+	@Test
+	void neverJumpStopsInsteadOfJumpingWhenAStepWallIsTooWide() {
+		Result r = walk(wall(-40, 40, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true, true);
+		assertTrue(r.gaveUp());
+		assertFalse(r.finished());
+	}
+
+	@Test
+	void withoutNeverJumpAWideStepWallStillGetsJumped() {
+		Result r = walk(wall(-40, 40, 8, FEET, FEET), AHEAD, 0.5, 0.5, 3, true, true, false);
 		assertFalse(r.gaveUp());
 		assertTrue(r.finished());
 	}
 
 	@Test
 	void aTallWallTooWideStillStopsTheRunOnALevelStretch() {
-		Result r = walk(wall(-40, 40, 8, FEET, FEET + 2), AHEAD, 0.5, 0.5, 3, true, true);
+		Result r = walk(wall(-40, 40, 8, FEET, FEET + 2), AHEAD, 0.5, 0.5, 3, true, true, false);
 		assertTrue(r.gaveUp());
 	}
 
