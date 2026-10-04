@@ -12,6 +12,7 @@ import net.minecraft.resources.Identifier;
 public final class OpenGuiKey {
 	private static KeyMapping key;
 	private static boolean requested;
+	private static boolean requestedHudPosition;
 
 	private OpenGuiKey() {
 	}
@@ -20,6 +21,11 @@ public final class OpenGuiKey {
 		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("wigaddons", "general"));
 		key = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.wigaddons.open_gui", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
 		ClientTickEvents.END_CLIENT_TICK.register(OpenGuiKey::tick);
+	}
+
+	/** Opens the HUD position screen on the next tick (the chat box a command was typed in is closed by then). */
+	public static void requestHudPosition() {
+		requestedHudPosition = true;
 	}
 
 	/** Opens the screen on the next tick. */
@@ -34,6 +40,12 @@ public final class OpenGuiKey {
 		}
 		if (mc.player == null) {
 			requested = false;
+			requestedHudPosition = false;
+			return;
+		}
+		if (requestedHudPosition) {
+			requestedHudPosition = false;
+			HudPositionScreen.open();
 			return;
 		}
 		// a chat box or other screen the request came from is gone by now; a key press only counts in the open world

@@ -26,13 +26,11 @@ final class SmokeTest {
 	/** Tab, then the option to scroll into view, for each picture of the settings screen. */
 	private static final String[][] TOUR = {
 		{"about", "", ""},
+		{"list", "", ""},
 		{"routes", "routes.route.farm.tabs", "general"},
 		{"routes", "routes.route.farm.tabs", "waypoints"},
-		{"routes", "routes.route.farm.tabs", "movement"},
-		{"routes", "routes.route.farm.tabs", "humanize"},
-		{"routes", "routes.route.farm.tabs", "display"},
+		{"hud", "", ""},
 		{"safety", "safety.macro", ""},
-		{"safety", "safety.party", ""},
 	};
 	private static final int TOUR_STEP_TICKS = 25;
 	/** Flat world: grass is at y -61, so the player stands at y -60. */
@@ -100,7 +98,8 @@ final class SmokeTest {
 			case 10 -> commandOpensGui(mc);
 			case 11 -> macroCheck(mc);
 			case 12 -> partyLeave(mc);
-			case 13 -> {
+			case 13 -> hudPosition(mc);
+			case 14 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -172,6 +171,38 @@ final class SmokeTest {
 		if (phaseTick > 400) {
 			log("party leave did not stop the run");
 			Runner.stop("smoke test timeout");
+			next();
+		}
+	}
+
+	/** The HUD position screen: drag the box and see the settings change. */
+	private static void hudPosition(Minecraft mc) {
+		if (phaseTick == 1) {
+			HudPositionScreen.open();
+		}
+		if (phaseTick == 10) {
+			log("position screen is " + mc.screen.getClass().getSimpleName() + " at " + String.format("%.2f,%.2f scale %.1f", WigState.config.hudX, WigState.config.hudY, WigState.config.hudScale));
+			photograph(mc, "hud-position-before");
+		}
+		if (phaseTick == 20) {
+			// grab the box where it is drawn and drag it to the lower right
+			int gx = (int) (WigState.config.hudX * (mc.getWindow().getGuiScaledWidth() - 90)) + 10;
+			int gy = (int) (WigState.config.hudY * (mc.getWindow().getGuiScaledHeight() - 30)) + 10;
+			var screen = mc.screen;
+			var info = new net.minecraft.client.input.MouseButtonInfo(0, 0);
+			screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(gx, gy, info), false);
+			screen.mouseDragged(new net.minecraft.client.input.MouseButtonEvent(mc.getWindow().getGuiScaledWidth() - 40, mc.getWindow().getGuiScaledHeight() - 30, info), 0, 0);
+			screen.mouseReleased(new net.minecraft.client.input.MouseButtonEvent(mc.getWindow().getGuiScaledWidth() - 40, mc.getWindow().getGuiScaledHeight() - 30, info));
+			screen.mouseScrolled(0, 0, 0, 5);
+		}
+		if (phaseTick == 30) {
+			log("after the drag and a scroll: " + String.format("%.2f,%.2f scale %.1f", WigState.config.hudX, WigState.config.hudY, WigState.config.hudScale));
+			photograph(mc, "hud-position-after");
+		}
+		if (phaseTick == 40) {
+			mc.screen.onClose();
+			log("after Esc the open screen is " + (mc.screen == null ? "none" : mc.screen.getClass().getSimpleName()));
+			mc.setScreen(null);
 			next();
 		}
 	}

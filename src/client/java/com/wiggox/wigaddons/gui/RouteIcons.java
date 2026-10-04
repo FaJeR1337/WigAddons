@@ -10,7 +10,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /** Looks items up for route icons. */
-final class RouteIcons {
+public final class RouteIcons {
 	private static List<String> ids;
 
 	private RouteIcons() {
@@ -29,6 +29,20 @@ final class RouteIcons {
 
 	static ItemSearch.Result search(String text) {
 		return ItemSearch.find(allIds(), text);
+	}
+
+	/** The item stack for an icon id, or an empty one. */
+	public static ItemStack itemStack(String id) {
+		if (id == null || id.isEmpty()) {
+			return ItemStack.EMPTY;
+		}
+		Identifier key = Identifier.tryParse("minecraft:" + ItemSearch.normalise(id));
+		Item item = key == null ? null : BuiltInRegistries.ITEM.getOptional(key).orElse(null);
+		try {
+			return item == null ? ItemStack.EMPTY : new ItemStack(item);
+		} catch (RuntimeException e) {
+			return ItemStack.EMPTY;
+		}
 	}
 
 	/** The item to draw for an icon id (a whole id, as saved on the route), or an empty stack. */

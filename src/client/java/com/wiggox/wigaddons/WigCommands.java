@@ -78,6 +78,12 @@ public final class WigCommands {
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
+			.then(ClientCommands.literal("hud")
+				.executes(c -> toggleHud())
+				.then(ClientCommands.literal("position").executes(c -> {
+					OpenGuiKey.requestHudPosition();
+					return 1;
+				})))
 			.then(ClientCommands.literal("clear").executes(c -> clear()))
 			.then(ClientCommands.literal("delete")
 				.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
@@ -321,6 +327,13 @@ public final class WigCommands {
 			return 0;
 		}
 		Chat.info("Waypoints " + (route.showWaypoints() ? "shown" : "hidden") + " for " + route.name() + ".");
+		return 1;
+	}
+
+	private static int toggleHud() {
+		WigState.config.showHud = !WigState.config.showHud;
+		WigState.saveConfig();
+		Chat.info("The HUD is " + (WigState.config.showHud ? "on" : "off") + ".");
 		return 1;
 	}
 

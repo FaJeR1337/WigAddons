@@ -12,6 +12,7 @@ public class WigAddonsClient implements ClientModInitializer {
 		WigCommands.register();
 		EditMode.register();
 		OpenGuiKey.register();
+		HudOverlay.register();
 		SmokeTest.register();
 		WaypointRenderer.register();
 

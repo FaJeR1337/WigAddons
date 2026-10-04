@@ -1,6 +1,7 @@
 package com.wiggox.wigaddons.gui;
 
 import com.wiggox.wigaddons.Chat;
+import com.wiggox.wigaddons.HudPositionScreen;
 import com.wiggox.wigaddons.ItemSearch;
 import com.wiggox.wigaddons.PartyLeave;
 import com.wiggox.wigaddons.Route;
@@ -57,7 +58,19 @@ public final class WigGui {
 
 	/** Opens the settings screen. */
 	public static void open() {
+		open(null);
+	}
+
+	/** Opens the settings screen on the tab with this id (or the first one if there is no such tab). */
+	public static void open(String categoryId) {
 		show();
+		if (categoryId != null) {
+			for (DynCategory category : categories) {
+				if (category.getIdentifier().equals(categoryId)) {
+					shown.setSelectedCategory(category);
+				}
+			}
+		}
 	}
 
 	/** Development only (see SmokeTest): switches a route to one of its tabs. */
@@ -131,7 +144,9 @@ public final class WigGui {
 	private static void show() {
 		categories = List.of(
 			new DynCategory("about", "About", "What WigAddons is."),
-			new DynCategory("routes", "Routes", "Your routes and how they run."),
+			new DynCategory("list", "Routes", "Run one of your routes."),
+			new DynCategory("routes", "Edit Routes", "Your routes and how they are set up."),
+			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks and party changes."));
 		fillAll();
 		if (expandAll) {
@@ -149,9 +164,17 @@ public final class WigGui {
 	}
 
 	private static void fillAll() {
-		fillAbout(categories.get(0));
-		fillRoutes(categories.get(1));
-		fillSafety(categories.get(2));
+		for (DynCategory category : categories) {
+			switch (category.getIdentifier()) {
+				case "about" -> fillAbout(category);
+				case "list" -> fillList(category);
+				case "routes" -> fillRoutes(category);
+				case "hud" -> fillHud(category);
+				case "safety" -> fillSafety(category);
+				default -> {
+				}
+			}
+		}
 	}
 
 	private static void reset(DynCategory category) {
@@ -165,9 +188,73 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		b.info("what", "WigAddons", "Record routes of waypoints, then have the player run them.");
-		b.info("routes", "Routes", "Make and edit routes under Routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
+		b.info("list", "Routes", "Start or loop any of your finished routes.");
+		b.info("routes", "Edit Routes", "Make and edit routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
+		b.info("hud", "HUD", "Show the running route's name and how long it has been running, and drag it where you want it.");
 		b.info("safety", "Safety", "What happens when a macro check or a party change is noticed is under Safety.");
 		b.info("commands", "Commands", "Everything here also works as a command: /wig new, edit, done, start, stop, and more.");
+	}
+
+	// ---- Routes (to run) ----
+
+	private static void fillList(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		boolean any = false;
+		for (String name : WigState.routeNames()) {
+			Route route = WigState.route(name);
+			// a route with no waypoints isn't finished yet, and can't be run
+			if (route == null || route.waypoints().isEmpty()) {
+				continue;
+			}
+			any = true;
+			int count = route.waypoints().size();
+			b.custom("run." + name, name, count + (count == 1 ? " waypoint" : " waypoints") + ", radius " + trim(route.radius()),
+				String.class, () -> "", v -> true,
+				(option, config) -> new RouteRowEditor(option, () -> RouteIcons.stack(route.icon()), () -> run(route, false), () -> run(route, true)));
+		}
+		if (!any) {
+			b.info("none", "No routes yet", "Make a route under Edit Routes and add waypoints to it. Finished routes show up here.");
+		}
+	}
+
+	// ---- HUD ----
+
+	private static void fillHud(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.toggle("show", "Show HUD", "Shows a box with the running route's name and how long it has been running while a route runs.",
+			() -> config.showHud, v -> {
+				config.showHud = v;
+				WigState.saveConfig();
+			});
+		b.toggle("timer", "Show timer", "Shows how long the route has been running under its name.",
+			() -> config.hudShowTimer, v -> {
+				config.hudShowTimer = v;
+				WigState.saveConfig();
+			});
+		b.toggle("icon", "Show icon", "Shows the route's icon in the box.",
+			() -> config.hudShowIcon, v -> {
+				config.hudShowIcon = v;
+				WigState.saveConfig();
+			});
+		b.text("scale", "Scale", "How big the box is: 1 is normal, from 0.5 to 4.",
+			() -> trim(config.hudScale), v -> {
+				Double parsed = parseOptional(v);
+				if (parsed != null && parsed >= 0.5 && parsed <= 4.0) {
+					config.hudScale = parsed;
+					WigState.saveConfig();
+				}
+			});
+		b.button("position", "Position", "Opens a screen where you drag the box where you want it.", "Edit", () -> {
+			Minecraft.getInstance().setScreen(null);
+			HudPositionScreen.open();
+		});
+		b.button("reset", "Reset position", "Puts the box back where it started, at its normal size.", "Reset", () -> {
+			HudPositionScreen.resetPosition();
+			refresh(null);
+		});
 	}
 
 	// ---- Routes ----

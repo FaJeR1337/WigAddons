@@ -32,6 +32,14 @@ public final class WigConfig {
 	public double partyLeaveDelaySeconds = 2.0;
 	/** Sent when the run stops because a party member left. Leave empty to only stop. */
 	public String partyLeaveCommand = "/warp hub";
+	/** Show the route's name and how long it has been running on the HUD while a route runs. */
+	public boolean showHud = true;
+	public boolean hudShowTimer = true;
+	public boolean hudShowIcon = true;
+	/** Where the HUD box sits: 0 is the left / top edge of the screen and 1 the right / bottom edge, however big the box is. */
+	public double hudX = 0.02;
+	public double hudY = 0.30;
+	public double hudScale = 1.0;
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 
@@ -85,6 +93,9 @@ public final class WigConfig {
 		if (partyLeaveCommand == null) {
 			partyLeaveCommand = "";
 		}
+		hudX = Math.max(0, Math.min(1, Double.isNaN(hudX) ? d.hudX : hudX));
+		hudY = Math.max(0, Math.min(1, Double.isNaN(hudY) ? d.hudY : hudY));
+		hudScale = Double.isNaN(hudScale) ? d.hudScale : Math.max(0.5, Math.min(4.0, hudScale));
 		if (!(stuckTimeoutSeconds > 0)) {
 			stuckTimeoutSeconds = d.stuckTimeoutSeconds;
 		}

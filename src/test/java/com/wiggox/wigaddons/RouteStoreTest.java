@@ -163,6 +163,18 @@ class RouteStoreTest {
 	}
 
 	@Test
+	void hudSettingsAreRepairedWhenHandEdited() throws IOException {
+		Path file = dir.resolve("config.json");
+		java.nio.file.Files.writeString(file, "{\"hudX\": 7, \"hudY\": -3, \"hudScale\": 99, \"showHud\": false}");
+		WigConfig cfg = WigConfig.load(file);
+		assertEquals(1.0, cfg.hudX);
+		assertEquals(0.0, cfg.hudY);
+		assertEquals(4.0, cfg.hudScale);
+		assertFalse(cfg.showHud);
+		assertTrue(new WigConfig().showHud);
+	}
+
+	@Test
 	void pitchIsKeptInRange() {
 		Route route = new Route("r");
 		route.setPitch(500.0, false);

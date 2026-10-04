@@ -37,6 +37,10 @@ public final class Runner {
 	private static RouteFollower.Output lastOutput;
 	/** The turn speed of the route being run: its own, or the global one. */
 	private static double runTurnSpeed;
+	private static String runName;
+	private static boolean runLoop;
+	private static Route runRouteForHud;
+	private static long runStartNanos;
 	private static boolean jump;
 	/** +1 holds A, -1 holds D, 0 neither: set while going round an obstacle. */
 	private static int strafe;
@@ -70,6 +74,24 @@ public final class Runner {
 		return follower != null;
 	}
 
+	/** The name of the route being run, or null when none is. */
+	public static String runningName() {
+		return follower == null ? null : runName;
+	}
+
+	public static boolean runningOnLoop() {
+		return follower != null && runLoop;
+	}
+
+	public static Route runningRoute() {
+		return follower == null ? null : runRouteForHud;
+	}
+
+	/** Whole seconds since the current run started. */
+	public static long elapsedSeconds() {
+		return follower == null ? 0 : (System.nanoTime() - runStartNanos) / 1_000_000_000L;
+	}
+
 	/** True while the input mixin should press forward and sprint. */
 	public static boolean wantsInput() {
 		return follower != null;
@@ -89,6 +111,10 @@ public final class Runner {
 		if (player == null) {
 			return;
 		}
+		runName = route.name();
+		runLoop = loop;
+		runRouteForHud = route;
+		runStartNanos = System.nanoTime();
 		runTurnSpeed = route.effectiveTurnSpeed(WigState.config);
 		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config.withHumanizeOffset(route.effectiveHumanizeOffset(WigState.config)));
 		points = java.util.List.copyOf(route.waypoints());

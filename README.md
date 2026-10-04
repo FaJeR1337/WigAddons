@@ -14,12 +14,14 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 `/wig` (or `/wig gui`) opens a settings screen built with [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) (LGPL-3.0, bundled inside the mod jar together with the Kotlin runtime it needs). There is also an **Open GUI** key (unbound until you set it) in Controls under a **WigAddons** heading.
 
 - **About**: what the mod is.
-- **Routes**: *Defaults for all routes* (turn speed and aim offset, used by routes that don't set their own), *New route* (type a name and press Create), then one section per route. A route's section has its icon at the end of its header and a row of tabs, so only one part of a route shows at a time (the tab you were on is remembered while the game runs):
+- **Routes**: your finished routes (ones with at least one waypoint), each with its icon, name, waypoint count and **Start** and **Loop** buttons. The buttons close the screen and run the route.
+- **Edit Routes**: *Defaults for all routes* (turn speed and aim offset, used by routes that don't set their own), *New route* (type a name and press Create), then one section per route. A route's section has its icon at the end of its header and a row of tabs, so only one part of a route shows at a time:
   - **General**: the icon (type part of an item's name, see the match, press **Use**), buttons to run the route once, run it on a loop or place waypoints with right-click, and Delete route (press twice within 10 seconds).
   - **Waypoints**: each waypoint's "x y z" is a text field with Up, Down and Del buttons, plus buttons to add the block you were looking at or standing on.
   - **Movement**: radius, turn speed (empty = default), pitch to hold, hold left / right click.
   - **Humanize**: aim offset (empty = default) and whether the held pitch varies.
   - **Display**: show the waypoints, their numbers, radius circles and lines, and the box colour. Several routes can be shown at once.
+- **HUD**: a box on screen, while a route runs, with the route's icon, its name and how long it has been running (`01:23`, or `1:02:03` after an hour, with "(loop)" when looping). Switch the whole box, the timer and the icon on or off, set its scale, and press **Edit** under Position to open a screen where you drag the box where you want it (scroll to resize, R to reset, Esc to finish). Its place is kept as a share of the screen, so it stays put if the window size changes.
 - **Safety**: macro-check limits, the warning time, the stuck timeout, and what to do when a party member leaves (delay, command and the chat lines that count).
 
 Everything saves as you change it. Opening any screen stops a running route, so a route can't be running while the screen is open; the Run buttons close the screen first. Everything in the screen is also a command.
@@ -37,6 +39,7 @@ Everything saves as you change it. Opening any screen stops a running route, so 
 - `/wig radius <route> <blocks>`: how close the player must get to each waypoint of that route before turning toward the next one. `0` means the middle of the block, `1` means within one block, and so on (up to 32; new routes start at 2). It is saved with the route and drawn as an orange circle on top of each block while waypoints are shown.
 - `/wig facing <route> <pitch> [randomize]`: hold an up/down view angle while that route runs, from -90 (straight up) through 0 (level) to 90 (straight down). The view eases to it at the normal turn speed. With `randomize`, the angle is picked within 2 degrees of the value and picked again at every waypoint. `/wig facing <route> off` goes back to leaving the pitch alone. Saved with the route; running the command again replaces the old setting (leave `randomize` off to turn it off).
 - `/wig left <route> on|off` and `/wig right <route> on|off`: hold the left (attack / break blocks) or right (use / place) mouse button for as long as that route runs, and let go when it ends for any reason. Saved with the route; both can be on at once. Holding a button breaks blocks or uses items over and over; it does not click once per swing at an entity.
+- `/wig hud`: switch the HUD box on or off. `/wig hud position` opens the screen for dragging it.
 - `/wig debug`: show or hide the turn readout.
 - `/wig stop`: stop a run.
 - `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). This is the route's "Show waypoints" setting and is saved with it.
