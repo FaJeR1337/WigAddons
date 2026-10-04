@@ -20,6 +20,9 @@ public final class Runner {
 	/** A frame never turns the view by more than this many ticks' worth, so a long hitch can't whip it round. */
 	private static final double MAX_FRAME_TICKS = 2.0;
 
+	/** How often the on-screen warning is shown again. It is shown for longer than this, so it never flickers. */
+	private static final int WARNING_REFRESH_TICKS = 20;
+
 	private static final ObstacleAvoider AVOIDER = new ObstacleAvoider(new WorldTerrain(), new Random());
 
 	private static RouteFollower follower;
@@ -43,6 +46,12 @@ public final class Runner {
 	private static boolean haveAim;
 	private static double aimYaw;
 	private static long lastFrameNanos;
+	/** Ticks left before the run stops for a macro check, or -1 when none was seen. */
+	private static int macroCountdown = -1;
+	private static String macroReason = "";
+	private static int warningTimer;
+	/** Ticks left before the run stops because a party member left, or -1. */
+	private static int partyCountdown = -1;
 	// for /wig debug
 	private static double yawAtLastTick;
 	private static double turnPerTick;
@@ -85,6 +94,8 @@ public final class Runner {
 		jump = false;
 		strafe = 0;
 		AVOIDER.reset();
+		macroCountdown = -1;
+		partyCountdown = -1;
 		ticks = 0;
 		startSlot = player.getInventory().getSelectedSlot();
 		expectedYaw = player.getYRot();
@@ -104,6 +115,11 @@ public final class Runner {
 	}
 
 	private static void end() {
+		if (macroCountdown >= 0) {
+			clearWarning();
+		}
+		macroCountdown = -1;
+		partyCountdown = -1;
 		follower = null;
 		lastOutput = null;
 		jump = false;
@@ -127,6 +143,20 @@ public final class Runner {
 			end();
 			return;
 		}
+		if (partyCountdown > 0 && --partyCountdown == 0) {
+			leaveBecauseOfParty(mc);
+			return;
+		}
+		if (macroCountdown > 0) {
+			if (--macroCountdown == 0) {
+				String reason = macroReason;
+				stop("a macro check was detected (" + reason.toLowerCase(java.util.Locale.ROOT) + ")");
+				return;
+			}
+			if (--warningTimer <= 0) {
+				showWarning(mc);
+			}
+		}
 		if (mc.screen != null && ticks >= SCREEN_GRACE_TICKS) {
 			stop("a screen was opened");
 			return;
@@ -135,13 +165,12 @@ public final class Runner {
 			stop("you pressed a movement key");
 			return;
 		}
-		if (player.getInventory().getSelectedSlot() != startSlot) {
-			stop("the hotbar slot was changed");
-			return;
+		int slot = player.getInventory().getSelectedSlot();
+		if (slot != startSlot) {
+			startSlot = slot;
+			macroCheck("The hotbar slot was changed");
 		}
-		if (viewWasTurnedByOthers(player)) {
-			return;
-		}
+		checkView(player);
 		ticks++;
 
 		RouteFollower.Output out = follower.tick(player.getX(), player.getZ(), player.onGround(), player.horizontalCollision);
@@ -199,9 +228,7 @@ public final class Runner {
 		if (follower == null || player == null) {
 			return;
 		}
-		if (viewWasTurnedByOthers(player)) {
-			return;
-		}
+		checkView(player);
 		if (haveAim) {
 			double before = player.getYRot();
 			float yaw = (float) RouteFollower.stepYaw(before, aimYaw, WigState.config.turnSpeedDegPerTick * frameTicks);
@@ -223,16 +250,70 @@ public final class Runner {
 		}
 	}
 
-	/** Stops the run and returns true when the view differs from where this mod left it by the configured angle or more. */
-	private static boolean viewWasTurnedByOthers(LocalPlayer player) {
+	/** Raises a macro check when the view differs from where this mod left it by the configured angle or more. */
+	private static void checkView(LocalPlayer player) {
 		double limit = WigState.config.rotationStopDegrees;
 		double yawChange = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - expectedYaw));
 		double pitchChange = Math.abs(player.getXRot() - expectedPitch);
 		if (yawChange >= limit || pitchChange >= limit) {
-			stop("your view was turned by something else");
-			return true;
+			macroCheck("Your view was turned by something else");
+			// carry on from wherever the view is now, so one change doesn't raise the check every tick
+			expectedYaw = player.getYRot();
+			expectedPitch = player.getXRot();
 		}
-		return false;
+	}
+
+	/**
+	 * Something a server might check for happened. The run carries on for a few seconds so it doesn't freeze the
+	 * moment it is noticed, with a warning on screen, and then stops.
+	 */
+	private static void macroCheck(String reason) {
+		if (macroCountdown >= 0) {
+			return;
+		}
+		macroReason = reason;
+		macroCountdown = Math.max(1, (int) Math.round(WigState.config.macroWarningSeconds * 20));
+		Chat.error("Macro check detected: " + reason.toLowerCase(java.util.Locale.ROOT) + ". Stopping in "
+			+ WigState.config.macroWarningSeconds + " seconds.");
+		showWarning(Minecraft.getInstance());
+	}
+
+	private static void showWarning(Minecraft mc) {
+		warningTimer = WARNING_REFRESH_TICKS;
+		mc.gui.setTimes(0, WARNING_REFRESH_TICKS * 2, 0);
+		mc.gui.setTitle(Component.literal("WARNING").withColor(0xFF5555));
+		mc.gui.setSubtitle(Component.literal(macroReason).withColor(0xFF5555));
+	}
+
+	private static void clearWarning() {
+		Minecraft mc = Minecraft.getInstance();
+		mc.gui.clearTitles();
+		mc.gui.resetTitleTimes();
+	}
+
+	/** Called for every chat line the server sends. */
+	public static void onChatLine(String line) {
+		if (follower == null || partyCountdown >= 0 || !PartyLeave.matches(line, WigState.config.partyLeavePatterns)) {
+			return;
+		}
+		WigConfig cfg = WigState.config;
+		partyCountdown = Math.max(1, (int) Math.round(cfg.partyLeaveDelaySeconds * 20));
+		String command = partyCommand();
+		Chat.info("A party member left: stopping in " + cfg.partyLeaveDelaySeconds + " seconds" + (command.isEmpty() ? "." : " and running /" + command + "."));
+	}
+
+	/** The command to send, without a leading slash, or empty for none. */
+	private static String partyCommand() {
+		String command = WigState.config.partyLeaveCommand.trim();
+		return command.startsWith("/") ? command.substring(1).trim() : command;
+	}
+
+	private static void leaveBecauseOfParty(Minecraft mc) {
+		String command = partyCommand();
+		stop("a party member left");
+		if (!command.isEmpty() && mc.player != null) {
+			mc.player.connection.sendCommand(command);
+		}
 	}
 
 	private static void showDebug(Minecraft mc, LocalPlayer player) {

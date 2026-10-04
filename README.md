@@ -37,14 +37,19 @@ A run stops at once when:
 
 - any screen opens (chat, inventory, escape, modded screens)
 - you press a movement key (forward, back, left, right, jump, sneak)
-- the selected hotbar slot changes (scrolling, number keys, or the server)
-- the view is turned by 20 degrees or more, in yaw or pitch, by anything but this mod (a server rotation check, for example). The limit is `rotationStopDegrees` in `config.json`.
+- a party member leaves (see below)
 - you disconnect
 - the player barely moves for 3 seconds (stuck)
 
-Minecraft has no sideways tilt (roll) for the player, so only yaw (left/right) and pitch (up/down) are checked.
+### Macro checks
+
+Two things a server might use to catch a macro raise a **macro check**: the selected hotbar slot changing (scrolling, number keys, or the server), and the view being turned by 20 degrees or more in yaw or pitch by anything but this mod (a server rotation check, for example; the limit is `rotationStopDegrees`). The run does **not** stop at once: it carries on for `macroWarningSeconds` (3) while a red **WARNING** title with the reason as its subtitle shows on screen, and a line goes to chat, and then it stops. Minecraft has no sideways tilt (roll) for the player, so only yaw (left/right) and pitch (up/down) are checked.
 
 `/wig debug` toggles a readout above the hotbar while a route runs: the current and wanted yaw, how far the view turned this frame, the turn per tick, FPS, and the waypoint, its distance and the blend toward the next one.
+
+### Party members leaving
+
+If a chat line from the server says someone left your party (for example `Name has left the party.`, `Name was removed from the party...`, `The party was disbanded...`) while a route is running, the run stops `partyLeaveDelaySeconds` (2) later and sends `partyLeaveCommand` (`/warp hub`). If the run has already ended by then (you stopped it, it finished, or a macro check stopped it) nothing is sent. The lines are matched from their start with the regular expressions in `partyLeavePatterns`, so a player typing the same words in chat doesn't count. Set `partyLeaveCommand` to an empty string to only stop.
 
 ### Going round obstacles
 
@@ -54,4 +59,4 @@ Movement is otherwise a straight line between waypoints: no full pathfinding aro
 
 ## Files
 
-Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `rotationStopDegrees` (20), `humanizeOffset` (0.4), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.
+Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `rotationStopDegrees` (20), `macroWarningSeconds` (3), `partyLeaveDelaySeconds` (2), `partyLeaveCommand` (`/warp hub`), `partyLeavePatterns`, `humanizeOffset` (0.4), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.

@@ -8,6 +8,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Settings saved as config.json next to the routes. Edit the file by hand to tune the movement. */
 public final class WigConfig {
@@ -22,6 +24,14 @@ public final class WigConfig {
 	 * picked again every run and every lap, so the path isn't a perfect line through block centres. 0 turns it off.
 	 */
 	public double humanizeOffset = 0.4;
+	/** When the view is turned or the hotbar slot changed by something else, the run keeps going this long, with a warning on screen, then stops. */
+	public double macroWarningSeconds = 3.0;
+	/** A chat line matching one of these (regular expressions, from the start of the line) means a party member left. */
+	public List<String> partyLeavePatterns = new ArrayList<>(PartyLeave.DEFAULT_PATTERNS);
+	/** After a party member leaves, the run stops this many seconds later and the command below is sent. */
+	public double partyLeaveDelaySeconds = 2.0;
+	/** Sent when the run stops because a party member left. Leave empty to only stop. */
+	public String partyLeaveCommand = "/warp hub";
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 
@@ -57,6 +67,18 @@ public final class WigConfig {
 		}
 		if (!(humanizeOffset >= 0)) {
 			humanizeOffset = d.humanizeOffset;
+		}
+		if (!(macroWarningSeconds >= 0)) {
+			macroWarningSeconds = d.macroWarningSeconds;
+		}
+		if (partyLeavePatterns == null) {
+			partyLeavePatterns = d.partyLeavePatterns;
+		}
+		if (!(partyLeaveDelaySeconds >= 0)) {
+			partyLeaveDelaySeconds = d.partyLeaveDelaySeconds;
+		}
+		if (partyLeaveCommand == null) {
+			partyLeaveCommand = "";
 		}
 		if (!(stuckTimeoutSeconds > 0)) {
 			stuckTimeoutSeconds = d.stuckTimeoutSeconds;
