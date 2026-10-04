@@ -40,6 +40,11 @@ public final class WigGui {
 	/** Development only (see SmokeTest): start with every section open. */
 	public static boolean expandAll;
 
+	/** The tabs inside each route, in order, and which one each route was last showing. */
+	private static final String[] TAB_IDS = {"general", "waypoints", "movement", "humanize", "display"};
+	private static final String[] TAB_LABELS = {"General", "Waypoints", "Movement", "Humanize", "Display"};
+	private static final java.util.Map<String, String> ROUTE_TABS = new java.util.HashMap<>();
+
 	private static MoulConfigEditor<WigGuiConfig> shown;
 	/** What is typed in the "new route" box. */
 	private static String newRouteName = "";
@@ -52,6 +57,12 @@ public final class WigGui {
 	/** Opens the settings screen. */
 	public static void open() {
 		show(null);
+	}
+
+	/** Development only (see SmokeTest): switches a route to one of its tabs. */
+	public static void smokeTab(String route, String tab) {
+		ROUTE_TABS.put(route, tab);
+		refresh("routes.route." + route + ".tabs");
 	}
 
 	/** Development only (see SmokeTest): shows a tab with every section open, scrolled to the option at the given path. */
@@ -126,7 +137,7 @@ public final class WigGui {
 		DynCategory category = new DynCategory("about", "About", "What WigAddons is.");
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		b.info("what", "WigAddons", "Record routes of waypoints, then have the player run them.");
-		b.info("routes", "Routes", "Make and edit routes under Routes. Every setting of a route is in its own section.");
+		b.info("routes", "Routes", "Make and edit routes under Routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
 		b.info("safety", "Safety", "What happens when a macro check or a party change is noticed is under Safety.");
 		b.info("commands", "Commands", "Everything here also works as a command: /wig new, edit, done, start, stop, and more.");
 		return category;
@@ -175,67 +186,78 @@ public final class WigGui {
 	private static void routeSection(OptionBuilder b, Route route) {
 		String key = "route." + route.name();
 		String title = route.name() + " (" + route.waypoints().size() + (route.waypoints().size() == 1 ? " waypoint)" : " waypoints)");
-		b.section(key, title, option -> new RouteAccordionEditor(option, b.lastSectionId() + 1, () -> RouteIcons.stack(route.icon())));
+		b.section(key, title, (option, id) -> new RouteAccordionEditor(option, id, () -> RouteIcons.stack(route.icon())));
 
-		String icon = key + ".icon";
-		String[] typedIcon = {route.icon()};
-		b.custom(icon, "Icon", "Type part of an item's name (pick, chest, diamond). The first match is shown; press Use to pick it. A whole id is picked as you type; empty removes the icon.",
-			String.class, () -> typedIcon[0], v -> true, (option, config) -> new IconEditor(option,
-				Buttons.property(() -> typedIcon[0], v -> {
-					typedIcon[0] = v;
-					ItemSearch.Result r = RouteIcons.search(v);
-					if (v.isBlank()) {
-						route.setIcon("");
-						WigState.save(route);
-					} else if (r.exact()) {
-						route.setIcon(r.best());
-						WigState.save(route);
-					}
-				}),
-				() -> RouteIcons.stack(RouteIcons.search(typedIcon[0]).best()),
-				() -> {
-					ItemSearch.Result r = RouteIcons.search(typedIcon[0]);
-					if (r.best() != null) {
-						route.setIcon(r.best());
-						WigState.save(route);
-						refresh(icon);
-					}
-				}));
+		String tab = ROUTE_TABS.getOrDefault(route.name(), TAB_IDS[0]);
+		int selected = Math.max(0, Arrays.asList(TAB_IDS).indexOf(tab));
+		b.custom(key + ".tabs", "Section", "", String.class, () -> tab, v -> true,
+			(option, config) -> new TabBarEditor(option, TAB_LABELS, selected, i -> {
+				ROUTE_TABS.put(route.name(), TAB_IDS[i]);
+				refresh("routes." + key + ".tabs");
+			}));
 
-		b.button(key + ".start", "Run", "Closes this screen and runs the route once.", "Start", () -> run(route, false));
-		b.button(key + ".loop", "Run on a loop", "Closes this screen and runs the route, going back to the first waypoint after the last, until stopped.", "Loop", () -> run(route, true));
-		b.button(key + ".edit", "Place waypoints", "Closes this screen. Right click blocks with an empty hand to add waypoints; /wig done leaves edit mode.", "Edit", () -> {
-			Minecraft.getInstance().setScreen(null);
-			WigCommands.editRoute(route);
-		});
+		switch (tab) {
+			case "waypoints" -> waypointsSection(b, route, key);
+			case "movement" -> movementSection(b, route, key);
+			case "humanize" -> humanizeSection(b, route, key);
+			case "display" -> displaySection(b, route, key);
+			default -> {
+			String icon = key + ".icon";
+			String[] typedIcon = {route.icon()};
+			b.custom(icon, "Icon", "Type part of an item's name (pick, chest, diamond). The first match is shown; press Use to pick it. A whole id is picked as you type; empty removes the icon.",
+				String.class, () -> typedIcon[0], v -> true, (option, config) -> new IconEditor(option,
+					Buttons.property(() -> typedIcon[0], v -> {
+						typedIcon[0] = v;
+						ItemSearch.Result r = RouteIcons.search(v);
+						if (v.isBlank()) {
+							route.setIcon("");
+							WigState.save(route);
+						} else if (r.exact()) {
+							route.setIcon(r.best());
+							WigState.save(route);
+						}
+					}),
+					() -> RouteIcons.stack(RouteIcons.search(typedIcon[0]).best()),
+					() -> {
+						ItemSearch.Result r = RouteIcons.search(typedIcon[0]);
+						if (r.best() != null) {
+							route.setIcon(r.best());
+							WigState.save(route);
+							refresh(icon);
+						}
+					}));
 
-		waypointsSection(b, route, key);
-		movementSection(b, route, key);
-		humanizeSection(b, route, key);
-		displaySection(b, route, key);
+			b.button(key + ".start", "Run", "Closes this screen and runs the route once.", "Start", () -> run(route, false));
+			b.button(key + ".loop", "Run on a loop", "Closes this screen and runs the route, going back to the first waypoint after the last, until stopped.", "Loop", () -> run(route, true));
+			b.button(key + ".edit", "Place waypoints", "Closes this screen. Right click blocks with an empty hand to add waypoints; /wig done leaves edit mode.", "Edit", () -> {
+				Minecraft.getInstance().setScreen(null);
+				WigCommands.editRoute(route);
+			});
 
-		b.button(key + ".delete", "Delete route", "Deletes the route and its file for good. Press twice within 10 seconds.", "Delete", () -> {
-			long now = System.currentTimeMillis();
-			if (!route.name().equals(pendingDelete) || now - pendingDeleteAt > CONFIRM_MILLIS) {
-				pendingDelete = route.name();
-				pendingDeleteAt = now;
-				Chat.info("Press Delete on " + route.name() + " again within 10 seconds to delete it for good.");
-				return;
-			}
-			pendingDelete = null;
-			if (WigState.editing == route) {
-				com.fajer.wigaddons.EditMode.leave();
-			}
-			if (WigState.delete(route)) {
-				if (route.name().equals(WigState.config.selectedRoute)) {
-					WigState.select("");
+			b.button(key + ".delete", "Delete route", "Deletes the route and its file for good. Press twice within 10 seconds.", "Delete", () -> {
+				long now = System.currentTimeMillis();
+				if (!route.name().equals(pendingDelete) || now - pendingDeleteAt > CONFIRM_MILLIS) {
+					pendingDelete = route.name();
+					pendingDeleteAt = now;
+					Chat.info("Press Delete on " + route.name() + " again within 10 seconds to delete it for good.");
+					return;
 				}
-				Chat.info("Deleted " + route.name() + ".");
-				refresh("routes");
-			} else {
-				Chat.error("Could not delete the route file.");
+				pendingDelete = null;
+				if (WigState.editing == route) {
+					com.fajer.wigaddons.EditMode.leave();
+				}
+				if (WigState.delete(route)) {
+					if (route.name().equals(WigState.config.selectedRoute)) {
+						WigState.select("");
+					}
+					Chat.info("Deleted " + route.name() + ".");
+					refresh("routes");
+				} else {
+					Chat.error("Could not delete the route file.");
+				}
+			});
 			}
-		});
+		}
 		b.endSection();
 	}
 
@@ -245,8 +267,7 @@ public final class WigGui {
 	}
 
 	private static void waypointsSection(OptionBuilder b, Route route, String key) {
-		String sectionPath = "routes." + key + ".waypoints";
-		b.section(key + ".waypoints", "Waypoints (" + route.waypoints().size() + ")");
+		String sectionPath = "routes." + key + ".tabs";
 		List<Waypoint> points = route.waypoints();
 		for (int i = 0; i < points.size(); i++) {
 			int index = i;
@@ -285,7 +306,6 @@ public final class WigGui {
 			() -> addWaypoint(route, true, sectionPath));
 		b.button(key + ".addHere", "Add under my feet", "Adds the block you are standing on as the last waypoint.", "Add",
 			() -> addWaypoint(route, false, sectionPath));
-		b.endSection();
 	}
 
 	private static void addWaypoint(Route route, boolean lookingAt, String focus) {
@@ -314,7 +334,6 @@ public final class WigGui {
 	}
 
 	private static void movementSection(OptionBuilder b, Route route, String key) {
-		b.section(key + ".movement", "Movement");
 		b.text(key + ".radius", "Radius", "How close to a waypoint the player gets before turning toward the next one, in blocks, from 0 to 32. 0 is the middle of the block.",
 			() -> trim(route.radius()), v -> {
 				Double parsed = parseOptional(v);
@@ -352,11 +371,9 @@ public final class WigGui {
 				route.setHoldRight(v);
 				WigState.save(route);
 			});
-		b.endSection();
 	}
 
 	private static void humanizeSection(OptionBuilder b, Route route, String key) {
-		b.section(key + ".humanize", "Humanize");
 		b.text(key + ".offset", "Aim offset", "How far from the middle of a waypoint's block, in blocks, the aim can land. 0 aims at the middle. Empty uses the default for all routes.",
 			() -> route.humanizeOffset() == null ? "" : trim(route.humanizeOffset()), v -> {
 				Double parsed = parseOptional(v);
@@ -370,11 +387,9 @@ public final class WigGui {
 				route.setPitch(route.pitch(), v);
 				WigState.save(route);
 			});
-		b.endSection();
 	}
 
 	private static void displaySection(OptionBuilder b, Route route, String key) {
-		b.section(key + ".display", "Display");
 		b.toggle(key + ".show", "Show waypoints", "Draws this route's waypoints in the world.", route::showWaypoints, v -> {
 			route.setShowWaypoints(v);
 			WigState.save(route);
@@ -403,7 +418,6 @@ public final class WigGui {
 					// keep the old colour until a whole code is typed
 				}
 			});
-		b.endSection();
 	}
 
 	// ---- Safety ----

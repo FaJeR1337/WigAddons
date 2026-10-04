@@ -25,16 +25,14 @@ final class SmokeTest {
 
 	/** Tab, then the option to scroll into view, for each picture of the settings screen. */
 	private static final String[][] TOUR = {
-		{"about", ""},
-		{"routes", "routes.defaults"},
-		{"routes", "routes.route.farm"},
-		{"routes", "routes.route.farm.waypoints"},
-		{"routes", "routes.route.farm.movement"},
-		{"routes", "routes.route.farm.humanize"},
-		{"routes", "routes.route.farm.display"},
-		{"routes", "routes.route.mine"},
-		{"safety", "safety.macro"},
-		{"safety", "safety.party"},
+		{"about", "", ""},
+		{"routes", "routes.route.farm.tabs", "general"},
+		{"routes", "routes.route.farm.tabs", "waypoints"},
+		{"routes", "routes.route.farm.tabs", "movement"},
+		{"routes", "routes.route.farm.tabs", "humanize"},
+		{"routes", "routes.route.farm.tabs", "display"},
+		{"safety", "safety.macro", ""},
+		{"safety", "safety.party", ""},
 	};
 	private static final int TOUR_STEP_TICKS = 25;
 	/** Flat world: grass is at y -61, so the player stands at y -60. */
@@ -227,6 +225,9 @@ final class SmokeTest {
 				photograph(mc, "gui-" + String.format("%02d", step - 1));
 			}
 			if (step < TOUR.length) {
+				if (!TOUR[step][2].isEmpty()) {
+					WigGui.smokeTab("farm", TOUR[step][2]);
+				}
 				WigGui.smokeStep(TOUR[step][0], TOUR[step][1]);
 			} else {
 				WigGui.expandAll = false;

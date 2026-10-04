@@ -16,7 +16,6 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** Adds rows to one category, keeping track of which collapsible section they sit in. */
@@ -45,10 +44,10 @@ final class OptionBuilder {
 	}
 
 	/** Starts a collapsible section. Everything added until {@link #endSection()} sits inside it. */
-	DynOption section(String key, String name, Function<DynOption, GuiOptionEditorAccordion> editorFactory) {
+	DynOption section(String key, String name, BiFunction<DynOption, Integer, GuiOptionEditorAccordion> editorFactory) {
 		DynOption option = add(key, name, "", Object.class, () -> null, v -> true);
 		int id = nextSectionId++;
-		GuiOptionEditorAccordion editor = editorFactory == null ? new GuiOptionEditorAccordion(option, id) : editorFactory.apply(option);
+		GuiOptionEditorAccordion editor = editorFactory == null ? new GuiOptionEditorAccordion(option, id) : editorFactory.apply(option, id);
 		option.editor = editor;
 		category.options.add(option);
 		category.accordionAnchors.put(id, option);
@@ -58,10 +57,6 @@ final class OptionBuilder {
 
 	DynOption section(String key, String name) {
 		return section(key, name, null);
-	}
-
-	int lastSectionId() {
-		return nextSectionId - 1;
 	}
 
 	void endSection() {
