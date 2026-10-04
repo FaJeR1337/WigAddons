@@ -76,3 +76,7 @@ Movement is otherwise a straight line between waypoints: no full pathfinding aro
 ## Files
 
 Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (global, not tied to a world; it also stores that route's radius) and `config.json` with the settings: `turnSpeedDegPerTick` (10), `rotationStopDegrees` (20), `macroWarningSeconds` (3), `partyLeaveDelaySeconds` (2), `partyLeaveCommand` (`/warp hub`), `partyLeavePatterns`, `humanizeOffset` (0.4), `stuckTimeoutSeconds` (3), plus the remembered `showWaypoints` and `selectedRoute`.
+
+## Development
+
+`./gradlew runClient -Dwigaddons.smoke=true` (set the property through `JAVA_TOOL_OPTIONS` or the run configuration) runs a scripted check of the real game: it makes a flat world, photographs the settings screen and the waypoint boxes, runs routes in the open, round a pillar and over a step, triggers a macro check and a party-leave line, and quits. Everything it prints starts with `[SMOKE]`; pictures go to `run/screenshots`. It does nothing unless that property is set.

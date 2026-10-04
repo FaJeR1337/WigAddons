@@ -35,7 +35,12 @@ final class RouteAccordionEditor extends GuiOptionEditorAccordion {
 			@Override
 			public void render(@NotNull GuiImmediateContext context) {
 				header.render(context);
-				stack.render(context.translated(context.getWidth() - ICON - 4, 1, ICON, ICON));
+				// children are drawn where the render offset currently is, so move it to the right-hand end first
+				int x = context.getWidth() - ICON - 4;
+				context.getRenderContext().pushMatrix();
+				context.getRenderContext().translate(x, 1);
+				stack.render(context.translated(x, 1, ICON, ICON));
+				context.getRenderContext().popMatrix();
 			}
 
 			@Override

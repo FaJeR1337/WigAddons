@@ -38,6 +38,11 @@ final class RouteIcons {
 		}
 		Identifier key = Identifier.tryParse("minecraft:" + ItemSearch.normalise(id));
 		Item item = key == null ? null : BuiltInRegistries.ITEM.getOptional(key).orElse(null);
-		return MoulConfigPlatform.wrap(item == null ? ItemStack.EMPTY : new ItemStack(item));
+		try {
+			return MoulConfigPlatform.wrap(item == null ? ItemStack.EMPTY : new ItemStack(item));
+		} catch (RuntimeException e) {
+			// items can't be made before a world is loaded (on the title screen); show no icon then
+			return MoulConfigPlatform.wrap(ItemStack.EMPTY);
+		}
 	}
 }

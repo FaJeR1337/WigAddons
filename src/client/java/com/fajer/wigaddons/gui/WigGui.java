@@ -64,6 +64,13 @@ public final class WigGui {
 			return;
 		}
 		shown.setSelectedCategory(category);
+		// only the section being looked at (and the ones around it) stay open, so it is near the top
+		for (ProcessedOption option : category.getOptions()) {
+			if (option.getEditor() instanceof GuiOptionEditorAccordion accordion) {
+				String path = option.getPath();
+				accordion.setToggled(focusPath.equals(path) || focusPath.startsWith(path + "."));
+			}
+		}
 		for (ProcessedOption option : category.getOptions()) {
 			if (option.getPath().equals(focusPath)) {
 				shown.scrollOptionIntoView(option, 0);
@@ -134,14 +141,17 @@ public final class WigGui {
 
 		b.section("defaults", "Defaults for all routes");
 		b.slider("defaultTurnSpeed", "Turn speed", "Degrees per tick the view turns at, for routes that don't set their own.",
-			1, 45, 0.5, () -> config.turnSpeedDegPerTick, v -> {
+			1, 45, 1, () -> config.turnSpeedDegPerTick, v -> {
 				config.turnSpeedDegPerTick = v;
 				WigState.saveConfig();
 			});
-		b.slider("defaultHumanize", "Aim offset", "How far from the middle of a waypoint's block, in blocks, the aim can land, for routes that don't set their own. 0 aims at the middle.",
-			0, 2, 0.05, () -> config.humanizeOffset, v -> {
-				config.humanizeOffset = v;
-				WigState.saveConfig();
+		b.text("defaultHumanize", "Aim offset", "How far from the middle of a waypoint's block, in blocks, the aim can land, for routes that don't set their own. 0 aims at the middle.",
+			() -> trim(config.humanizeOffset), v -> {
+				Double parsed = parseOptional(v);
+				if (parsed != null && parsed >= 0 && parsed <= Route.MAX_HUMANIZE_OFFSET) {
+					config.humanizeOffset = parsed;
+					WigState.saveConfig();
+				}
 			});
 		b.endSection();
 
@@ -242,7 +252,7 @@ public final class WigGui {
 			int index = i;
 			String rowKey = key + ".waypoint" + index;
 			String[] typed = {null};
-			b.custom(rowKey, "Waypoint " + (index + 1), "x y z of the block. Edit the text, or move or delete the waypoint.",
+			b.custom(rowKey, "Waypoint " + (index + 1), "x y z of the block.",
 				String.class, () -> typed[0] != null ? typed[0] : points.get(index).format(), v -> true,
 				(option, config) -> new WaypointEditor(option,
 					Buttons.property(() -> typed[0] != null ? typed[0] : points.get(index).format(), v -> {
@@ -305,10 +315,13 @@ public final class WigGui {
 
 	private static void movementSection(OptionBuilder b, Route route, String key) {
 		b.section(key + ".movement", "Movement");
-		b.slider(key + ".radius", "Radius", "How close to a waypoint the player gets before turning toward the next one, in blocks. 0 is the middle of the block.",
-			0, Route.MAX_RADIUS, 0.5, route::radius, v -> {
-				route.setRadius(v);
-				WigState.save(route);
+		b.text(key + ".radius", "Radius", "How close to a waypoint the player gets before turning toward the next one, in blocks, from 0 to 32. 0 is the middle of the block.",
+			() -> trim(route.radius()), v -> {
+				Double parsed = parseOptional(v);
+				if (parsed != null) {
+					route.setRadius(parsed);
+					WigState.save(route);
+				}
 			});
 		b.text(key + ".turnSpeed", "Turn speed", "Degrees per tick the view turns at. Empty uses the default for all routes.",
 			() -> route.turnSpeed() == null ? "" : trim(route.turnSpeed()), v -> {
@@ -396,7 +409,7 @@ public final class WigGui {
 	// ---- Safety ----
 
 	private static DynCategory safety() {
-		DynCategory category = new DynCategory("safety", "Safety", "What the mod does when it notices something a server might check for.");
+		DynCategory category = new DynCategory("safety", "Safety", "Macro checks and party changes.");
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
 
@@ -407,12 +420,12 @@ public final class WigGui {
 				WigState.saveConfig();
 			});
 		b.slider("warning", "Warning time", "Seconds the run carries on, with a WARNING on screen, after a macro check before it stops.",
-			0, 10, 0.5, () -> config.macroWarningSeconds, v -> {
+			0, 10, 1, () -> config.macroWarningSeconds, v -> {
 				config.macroWarningSeconds = v;
 				WigState.saveConfig();
 			});
 		b.slider("stuck", "Stuck timeout", "Seconds of hardly moving after which the run stops.",
-			1, 30, 0.5, () -> config.stuckTimeoutSeconds, v -> {
+			1, 30, 1, () -> config.stuckTimeoutSeconds, v -> {
 				config.stuckTimeoutSeconds = v;
 				WigState.saveConfig();
 			});
@@ -420,7 +433,7 @@ public final class WigGui {
 
 		b.section("party", "Party members leaving");
 		b.slider("partyDelay", "Delay", "Seconds after a party member leaves before the run stops and the command is sent.",
-			0, 10, 0.5, () -> config.partyLeaveDelaySeconds, v -> {
+			0, 10, 1, () -> config.partyLeaveDelaySeconds, v -> {
 				config.partyLeaveDelaySeconds = v;
 				WigState.saveConfig();
 			});
