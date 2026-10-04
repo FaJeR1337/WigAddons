@@ -211,6 +211,19 @@ public final class RouteFollower {
 		return yaw + clamp(wrapDegrees(wanted - yaw), -maxStep, maxStep);
 	}
 
+	/** Moves from the current value toward the target by at most maxStep (no wrapping: for pitch). */
+	public static double stepToward(double current, double target, double maxStep) {
+		return current + clamp(target - current, -maxStep, maxStep);
+	}
+
+	/** The pitch to aim for: the set value, or with randomize a spot within RANDOM_PITCH_DEGREES of it, kept in range. */
+	public static double pitchTarget(double base, boolean randomize, Random random) {
+		double target = randomize ? base + (random.nextDouble() * 2 - 1) * RANDOM_PITCH_DEGREES : base;
+		return clamp(target, -90.0, 90.0);
+	}
+
+	public static final double RANDOM_PITCH_DEGREES = 2.0;
+
 	public static double clamp(double v, double lo, double hi) {
 		return Math.max(lo, Math.min(hi, v));
 	}

@@ -85,6 +85,9 @@ public final class RouteStore {
 			if (root != null && root.has("radius")) {
 				route.setRadius(root.get("radius").getAsDouble());
 			}
+			if (root != null && root.has("pitch")) {
+				route.setPitch(root.get("pitch").getAsDouble(), root.has("randomizePitch") && root.get("randomizePitch").getAsBoolean());
+			}
 			return route;
 		} catch (IOException | RuntimeException e) {
 			return null;
@@ -103,6 +106,10 @@ public final class RouteStore {
 		}
 		JsonObject root = new JsonObject();
 		root.addProperty("radius", route.radius());
+		if (route.pitch() != null) {
+			root.addProperty("pitch", route.pitch());
+			root.addProperty("randomizePitch", route.randomizePitch());
+		}
 		root.add("waypoints", points);
 		try (Writer out = Files.newBufferedWriter(fileOf(route.name()), StandardCharsets.UTF_8)) {
 			GSON.toJson(root, out);

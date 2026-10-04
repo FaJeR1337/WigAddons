@@ -65,6 +65,13 @@ public final class WigCommands {
 				.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
 					.then(ClientCommands.argument("blocks", DoubleArgumentType.doubleArg(0, Route.MAX_RADIUS))
 						.executes(c -> radius(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "blocks"))))))
+			.then(ClientCommands.literal("facing")
+				.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
+					.then(ClientCommands.literal("off").executes(c -> facing(StringArgumentType.getString(c, "route"), null, false)))
+					.then(ClientCommands.argument("pitch", DoubleArgumentType.doubleArg(-90, 90))
+						.executes(c -> facing(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "pitch"), false))
+						.then(ClientCommands.literal("randomize")
+							.executes(c -> facing(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "pitch"), true))))))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
@@ -211,6 +218,30 @@ public final class WigCommands {
 			WigState.editing.setRadius(blocks);
 		}
 		Chat.info(route.name() + " now turns " + (blocks == 0 ? "at the middle of each block" : "within " + trim(route.radius()) + " blocks of each waypoint") + ".");
+		return 1;
+	}
+
+	private static int facing(String typed, Double pitch, boolean randomize) {
+		Route route = findRoute(typed);
+		if (route == null) {
+			return 0;
+		}
+		route.setPitch(pitch, randomize);
+		try {
+			WigState.STORE.save(route);
+		} catch (IOException e) {
+			Chat.error("Could not save the route file.");
+			return 0;
+		}
+		if (WigState.editing != null && WigState.editing.name().equals(route.name())) {
+			WigState.editing.setPitch(pitch, randomize);
+		}
+		if (pitch == null) {
+			Chat.info(route.name() + " no longer holds a pitch: the view's up/down angle is left alone.");
+		} else {
+			Chat.info(route.name() + " now holds pitch " + trim(route.pitch()) + (randomize ? " (varying by up to " + trim(RouteFollower.RANDOM_PITCH_DEGREES) + " degrees)" : "")
+				+ " while it runs. 0 is level, positive looks down, negative looks up.");
+		}
 		return 1;
 	}
 

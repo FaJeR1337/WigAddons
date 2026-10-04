@@ -24,6 +24,10 @@ public final class Runner {
 
 	private static RouteFollower follower;
 	private static java.util.List<Waypoint> points;
+	private static Route runRoute;
+	private static final Random PITCH_RANDOM = new Random();
+	/** The pitch the view is easing to, or NaN when the route doesn't hold one. */
+	private static double pitchTarget = Double.NaN;
 	/** Standing height of the previous waypoint (or where the run began), to tell level stretches from climbs. */
 	private static int previousLevel;
 	private static int lastTarget;
@@ -73,6 +77,8 @@ public final class Runner {
 		}
 		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config);
 		points = java.util.List.copyOf(route.waypoints());
+		runRoute = route;
+		pickPitch();
 		previousLevel = (int) Math.floor(player.getY() + 1e-4);
 		lastTarget = 0;
 		lastOutput = null;
@@ -156,6 +162,7 @@ public final class Runner {
 		if (out.target() != lastTarget) {
 			previousLevel = standingLevel(lastTarget);
 			lastTarget = out.target();
+			pickPitch(); // with randomize, a new spot near the set pitch at every waypoint
 		}
 		boolean levelLeg = standingLevel(out.target()) == previousLevel;
 		ObstacleAvoider.Output around = AVOIDER.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
@@ -171,6 +178,11 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	private static void pickPitch() {
+		Double set = runRoute.pitch();
+		pitchTarget = set == null ? Double.NaN : RouteFollower.pitchTarget(set, runRoute.randomizePitch(), PITCH_RANDOM);
 	}
 
 	/** The height the player stands at on a waypoint: the block above the one that was clicked. */
@@ -198,6 +210,11 @@ public final class Runner {
 			player.yRotO = yaw;
 			lastFrameStep = RouteFollower.wrapDegrees(yaw - before);
 			lastFrameTicks = frameTicks;
+		}
+		if (!Double.isNaN(pitchTarget)) {
+			float pitch = (float) RouteFollower.stepToward(player.getXRot(), pitchTarget, WigState.config.turnSpeedDegPerTick * frameTicks);
+			player.setXRot(pitch);
+			player.xRotO = pitch;
 		}
 		expectedYaw = player.getYRot();
 		expectedPitch = player.getXRot();

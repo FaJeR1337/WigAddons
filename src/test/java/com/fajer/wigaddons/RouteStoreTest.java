@@ -56,6 +56,32 @@ class RouteStoreTest {
 	}
 
 	@Test
+	void pitchAndRandomizeAreSavedAndCanBeCleared() throws IOException {
+		RouteStore store = new RouteStore(dir);
+		Route route = new Route("p", List.of(new Waypoint(0, 0, 0)));
+		assertNull(route.pitch());
+		route.setPitch(25.0, true);
+		store.save(route);
+		Route loaded = store.load("p");
+		assertEquals(25.0, loaded.pitch());
+		assertTrue(loaded.randomizePitch());
+		loaded.setPitch(null, true);
+		assertNull(loaded.pitch());
+		assertFalse(loaded.randomizePitch());
+		store.save(loaded);
+		assertNull(store.load("p").pitch());
+	}
+
+	@Test
+	void pitchIsKeptInRange() {
+		Route route = new Route("r");
+		route.setPitch(500.0, false);
+		assertEquals(90.0, route.pitch());
+		route.setPitch(-500.0, false);
+		assertEquals(-90.0, route.pitch());
+	}
+
+	@Test
 	void radiusIsKeptInRange() {
 		Route route = new Route("r");
 		route.setRadius(-3);

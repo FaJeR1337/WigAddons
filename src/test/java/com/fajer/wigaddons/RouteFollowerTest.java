@@ -265,4 +265,34 @@ class RouteFollowerTest {
 			}
 		}
 	}
+
+	@Test
+	void stepTowardMovesNoFasterThanTheLimitAndStopsOnTarget() {
+		assertEquals(10, RouteFollower.stepToward(0, 80, 10), 1e-9);
+		assertEquals(-10, RouteFollower.stepToward(0, -80, 10), 1e-9);
+		assertEquals(35, RouteFollower.stepToward(30, 35, 10), 1e-9);
+		assertEquals(35, RouteFollower.stepToward(40, 35, 10), 1e-9);
+	}
+
+	@Test
+	void pitchTargetIsExactWithoutRandomAndWithinTwoDegreesWithIt() {
+		Random random = new Random(5);
+		assertEquals(30, RouteFollower.pitchTarget(30, false, random), 0);
+		boolean varied = false;
+		for (int i = 0; i < 200; i++) {
+			double t = RouteFollower.pitchTarget(30, true, random);
+			assertTrue(t >= 28 && t <= 32, "got " + t);
+			varied |= t != 30;
+		}
+		assertTrue(varied);
+	}
+
+	@Test
+	void randomPitchStaysInsideTheValidRange() {
+		Random random = new Random(9);
+		for (int i = 0; i < 200; i++) {
+			assertTrue(RouteFollower.pitchTarget(90, true, random) <= 90);
+			assertTrue(RouteFollower.pitchTarget(-90, true, random) >= -90);
+		}
+	}
 }
