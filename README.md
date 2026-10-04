@@ -14,8 +14,8 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 `/wig` (or `/wig gui`) opens a settings screen built with [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) (LGPL-3.0, bundled inside the mod jar together with the Kotlin runtime it needs). There is also an **Open GUI** key (unbound until you set it) in Controls under a **WigAddons** heading.
 
 - **About**: what the mod is.
-- **Routes**: *Defaults for all routes* (turn speed and aim offset, used by routes that don't set their own), *New route* (type a name and press Create), then one section per route. A route's section has its icon at the end of its header and these tabs:
-  - **General**: the icon (type part of an item's name, see the match, press **Use**), buttons to run the route once, run it on a loop or place waypoints with right-click, and Delete route (press twice within 10 seconds). and a row of tabs so only one part of a route shows at a time (the tab you were on is remembered while the game runs):
+- **Routes**: *Defaults for all routes* (turn speed and aim offset, used by routes that don't set their own), *New route* (type a name and press Create), then one section per route. A route's section has its icon at the end of its header and a row of tabs, so only one part of a route shows at a time (the tab you were on is remembered while the game runs):
+  - **General**: the icon (type part of an item's name, see the match, press **Use**), buttons to run the route once, run it on a loop or place waypoints with right-click, and Delete route (press twice within 10 seconds).
   - **Waypoints**: each waypoint's "x y z" is a text field with Up, Down and Del buttons, plus buttons to add the block you were looking at or standing on.
   - **Movement**: radius, turn speed (empty = default), pitch to hold, hold left / right click.
   - **Humanize**: aim offset (empty = default) and whether the held pitch varies.
