@@ -72,6 +72,8 @@ public final class WigCommands {
 						.executes(c -> facing(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "pitch"), false))
 						.then(ClientCommands.literal("randomize")
 							.executes(c -> facing(StringArgumentType.getString(c, "route"), DoubleArgumentType.getDouble(c, "pitch"), true))))))
+			.then(clickCommand("left", true))
+			.then(clickCommand("right", false))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
@@ -218,6 +220,41 @@ public final class WigCommands {
 			WigState.editing.setRadius(blocks);
 		}
 		Chat.info(route.name() + " now turns " + (blocks == 0 ? "at the middle of each block" : "within " + trim(route.radius()) + " blocks of each waypoint") + ".");
+		return 1;
+	}
+
+	/** /wig left|right <route> on|off: hold that mouse button while the route runs. */
+	private static LiteralArgumentBuilder<FabricClientCommandSource> clickCommand(String name, boolean left) {
+		return ClientCommands.literal(name)
+			.then(ClientCommands.argument("route", StringArgumentType.word()).suggests(ROUTE_NAMES)
+				.then(ClientCommands.literal("on").executes(c -> hold(StringArgumentType.getString(c, "route"), left, true)))
+				.then(ClientCommands.literal("off").executes(c -> hold(StringArgumentType.getString(c, "route"), left, false))));
+	}
+
+	private static int hold(String typed, boolean left, boolean on) {
+		Route route = findRoute(typed);
+		if (route == null) {
+			return 0;
+		}
+		if (left) {
+			route.setHoldLeft(on);
+		} else {
+			route.setHoldRight(on);
+		}
+		try {
+			WigState.STORE.save(route);
+		} catch (IOException e) {
+			Chat.error("Could not save the route file.");
+			return 0;
+		}
+		if (WigState.editing != null && WigState.editing.name().equals(route.name())) {
+			if (left) {
+				WigState.editing.setHoldLeft(on);
+			} else {
+				WigState.editing.setHoldRight(on);
+			}
+		}
+		Chat.info(route.name() + " will " + (on ? "hold" : "not hold") + " the " + (left ? "left" : "right") + " mouse button while it runs.");
 		return 1;
 	}
 

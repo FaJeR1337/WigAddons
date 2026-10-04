@@ -16,6 +16,10 @@ public final class Route {
 	private Double pitch;
 	/** Vary the held pitch by a couple of degrees, so it isn't the same every time. */
 	private boolean randomizePitch;
+	/** Hold the left mouse button (attack / break) while the route runs. */
+	private boolean holdLeft;
+	/** Hold the right mouse button (use / place) while the route runs. */
+	private boolean holdRight;
 
 	public Route(String name) {
 		this(name, new ArrayList<>());
@@ -37,6 +41,22 @@ public final class Route {
 
 	public void setRadius(double radius) {
 		this.radius = Math.max(0, Math.min(MAX_RADIUS, radius));
+	}
+
+	public boolean holdLeft() {
+		return holdLeft;
+	}
+
+	public boolean holdRight() {
+		return holdRight;
+	}
+
+	public void setHoldLeft(boolean hold) {
+		this.holdLeft = hold;
+	}
+
+	public void setHoldRight(boolean hold) {
+		this.holdRight = hold;
 	}
 
 	public Double pitch() {

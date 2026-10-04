@@ -73,6 +73,28 @@ class RouteStoreTest {
 	}
 
 	@Test
+	void heldMouseButtonsAreSavedPerRoute() throws IOException {
+		RouteStore store = new RouteStore(dir);
+		Route route = new Route("c", List.of(new Waypoint(0, 0, 0)));
+		assertFalse(route.holdLeft());
+		assertFalse(route.holdRight());
+		route.setHoldLeft(true);
+		store.save(route);
+		Route loaded = store.load("c");
+		assertTrue(loaded.holdLeft());
+		assertFalse(loaded.holdRight());
+		loaded.setHoldRight(true);
+		loaded.setHoldLeft(false);
+		store.save(loaded);
+		Route again = store.load("c");
+		assertFalse(again.holdLeft());
+		assertTrue(again.holdRight());
+		// a route saved before this existed has neither
+		java.nio.file.Files.writeString(dir.resolve("old.json"), "{\"waypoints\": []}");
+		assertFalse(store.load("old").holdLeft());
+	}
+
+	@Test
 	void pitchIsKeptInRange() {
 		Route route = new Route("r");
 		route.setPitch(500.0, false);

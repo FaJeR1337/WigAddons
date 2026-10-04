@@ -52,6 +52,9 @@ public final class Runner {
 	private static int warningTimer;
 	/** Ticks left before the run stops because a party member left, or -1. */
 	private static int partyCountdown = -1;
+	/** Which mouse buttons this run is holding down, so only those are let go of. */
+	private static boolean holdingLeft;
+	private static boolean holdingRight;
 	// for /wig debug
 	private static double yawAtLastTick;
 	private static double turnPerTick;
@@ -114,7 +117,32 @@ public final class Runner {
 		Chat.info("Stopped: " + reason + ".");
 	}
 
+	/** Holds the mouse buttons the route asks for. The keys are only ever set by this, so a real press is never mistaken for it. */
+	private static void holdClicks(Minecraft mc) {
+		if (runRoute.holdLeft()) {
+			mc.options.keyAttack.setDown(true);
+			holdingLeft = true;
+		}
+		if (runRoute.holdRight()) {
+			mc.options.keyUse.setDown(true);
+			holdingRight = true;
+		}
+	}
+
+	private static void releaseClicks() {
+		Options options = Minecraft.getInstance().options;
+		if (holdingLeft) {
+			options.keyAttack.setDown(false);
+			holdingLeft = false;
+		}
+		if (holdingRight) {
+			options.keyUse.setDown(false);
+			holdingRight = false;
+		}
+	}
+
 	private static void end() {
+		releaseClicks();
 		if (macroCountdown >= 0) {
 			clearWarning();
 		}
@@ -172,6 +200,7 @@ public final class Runner {
 		}
 		checkView(player);
 		ticks++;
+		holdClicks(mc);
 
 		RouteFollower.Output out = follower.tick(player.getX(), player.getZ(), player.onGround(), player.horizontalCollision);
 		switch (out.status()) {

@@ -85,6 +85,10 @@ public final class RouteStore {
 			if (root != null && root.has("radius")) {
 				route.setRadius(root.get("radius").getAsDouble());
 			}
+			if (root != null) {
+				route.setHoldLeft(root.has("holdLeft") && root.get("holdLeft").getAsBoolean());
+				route.setHoldRight(root.has("holdRight") && root.get("holdRight").getAsBoolean());
+			}
 			if (root != null && root.has("pitch")) {
 				route.setPitch(root.get("pitch").getAsDouble(), root.has("randomizePitch") && root.get("randomizePitch").getAsBoolean());
 			}
@@ -106,6 +110,8 @@ public final class RouteStore {
 		}
 		JsonObject root = new JsonObject();
 		root.addProperty("radius", route.radius());
+		root.addProperty("holdLeft", route.holdLeft());
+		root.addProperty("holdRight", route.holdRight());
 		if (route.pitch() != null) {
 			root.addProperty("pitch", route.pitch());
 			root.addProperty("randomizePitch", route.randomizePitch());
