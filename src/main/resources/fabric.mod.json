@@ -5,13 +5,13 @@
 	"name": "WigAddons",
 	"description": "Record routes of waypoints and have the player run them automatically.",
 	"authors": [
-		"FaJeR1337"
+		"Wiggox"
 	],
 	"license": "MIT",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
-			"com.fajer.wigaddons.WigAddonsClient"
+			"com.wiggox.wigaddons.WigAddonsClient"
 		]
 	},
 	"mixins": [

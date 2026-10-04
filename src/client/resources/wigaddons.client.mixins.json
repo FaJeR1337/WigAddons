@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "com.fajer.wigaddons.mixin",
+	"package": "com.wiggox.wigaddons.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"GameRendererMixin",
