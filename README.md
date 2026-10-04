@@ -38,7 +38,6 @@ A run stops at once when:
 - you press a movement key (forward, back, left, right, jump, sneak)
 - the selected hotbar slot changes (scrolling, number keys, or the server)
 - the view is turned by 20 degrees or more, in yaw or pitch, by anything but this mod (a server rotation check, for example). The limit is `rotationStopDegrees` in `config.json`.
-- you take damage
 - you disconnect
 - the player barely moves for 3 seconds (stuck)
 

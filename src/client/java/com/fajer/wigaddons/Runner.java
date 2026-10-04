@@ -22,7 +22,6 @@ public final class Runner {
 	private static RouteFollower follower;
 	private static RouteFollower.Output lastOutput;
 	private static boolean jump;
-	private static float lastHealth;
 	private static int ticks;
 	private static int startSlot;
 	/** Where the view was left by the last frame: any other change is somebody else's. */
@@ -63,7 +62,6 @@ public final class Runner {
 		lastOutput = null;
 		jump = false;
 		ticks = 0;
-		lastHealth = player.getHealth();
 		startSlot = player.getInventory().getSelectedSlot();
 		expectedYaw = player.getYRot();
 		expectedPitch = player.getXRot();
@@ -91,8 +89,8 @@ public final class Runner {
 	}
 
 	/**
-	 * Called at the end of every client tick. Stops the run when a screen opens, a movement key is pressed, health
-	 * drops, the hotbar slot changes, or the view is turned by something other than this mod.
+	 * Called at the end of every client tick. Stops the run when a screen opens, a movement key is pressed, the hotbar
+	 * slot changes, or the view is turned by something other than this mod.
 	 */
 	public static void tick(Minecraft mc) {
 		if (follower == null) {
@@ -111,10 +109,6 @@ public final class Runner {
 			stop("you pressed a movement key");
 			return;
 		}
-		if (player.getHealth() < lastHealth) {
-			stop("you took damage");
-			return;
-		}
 		if (player.getInventory().getSelectedSlot() != startSlot) {
 			stop("the hotbar slot was changed");
 			return;
@@ -122,7 +116,6 @@ public final class Runner {
 		if (viewWasTurnedByOthers(player)) {
 			return;
 		}
-		lastHealth = player.getHealth();
 		ticks++;
 
 		RouteFollower.Output out = follower.tick(player.getX(), player.getZ(), player.onGround(), player.horizontalCollision);
