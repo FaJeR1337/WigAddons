@@ -251,4 +251,32 @@ class FollowPlannerTest {
 		assertTrue(Math.hypot(0 - end[0], 10 - end[1]) <= 3.3);
 		assertEquals(1, (int) log[1], "started walking " + (int) log[1] + " times");
 	}
+
+	/** The followed player walks down z and then along x; where is the player told to head, with this terrain? */
+	private static double[] aimAtCurve(ObstacleAvoider.Terrain terrain) {
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.setTerrain(terrain);
+		for (double z = 8; z <= 20; z += 0.5) {
+			f.tick(0, -60, 0, 0, at(0, z), true, false);
+		}
+		for (double x = 0.5; x <= 12; x += 0.5) {
+			f.tick(0, -60, 0, 0, at(x, 20), true, false);
+		}
+		for (int i = 0; i < 8; i++) {
+			f.tick(0, -60, 0, 0, at(12, 20), true, false);
+		}
+		return f.snapshot().next();
+	}
+
+	@Test
+	void cutsAcrossACurveWhenTheGroundIsOpen() {
+		double[] next = aimAtCurve((x, y, z) -> y <= -61);
+		assertTrue(next[0] > 5, "heads across the curve, aiming at x=" + next[0]);
+	}
+
+	@Test
+	void followsTheCurveWhenAWallBlocksTheShortcut() {
+		double[] next = aimAtCurve((x, y, z) -> y <= -61 || (x >= 1 && z >= 5 && z <= 15 && y <= -59));
+		assertTrue(next[0] < 2, "stays on the trail, aiming at x=" + next[0]);
+	}
 }

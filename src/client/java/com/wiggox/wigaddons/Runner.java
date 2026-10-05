@@ -194,6 +194,7 @@ public final class Runner {
 		followName = name;
 		followSource = source;
 		planner = new FollowPlanner(FollowPlanner.Params.of(WigState.config), new Random());
+		planner.setTerrain(new WorldTerrain());
 		followDistance = Double.NaN;
 		followWasLost = false;
 		follower = null;

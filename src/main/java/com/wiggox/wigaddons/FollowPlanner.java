@@ -62,6 +62,9 @@ public final class FollowPlanner {
 	static final double REACH = 1.0;
 	/** Within this distance (and in sight) the player is walked at directly instead of along the trail. */
 	static final double STRAIGHT_DISTANCE = 6.0;
+	/** Corners are only cut to points this close, and checked this often (ticks). */
+	static final double SHORTCUT_RANGE = 24.0;
+	static final int SHORTCUT_EVERY = 4;
 	static final double STEP_UP = 0.6;
 	/** How long a randomly picked look spot is kept, in ticks. */
 	static final int MIN_LOOK_TICKS = 25;
@@ -73,6 +76,8 @@ public final class FollowPlanner {
 	private final int lostTicksLimit;
 	private final int stuckWindow;
 
+	private ObstacleAvoider.Terrain terrain;
+	private int shortcutCooldown;
 	private Target lastSeen;
 	private double[] lastNext;
 	/** Ticks spent standing at the last place they were seen, after losing sight of them. */
@@ -91,6 +96,11 @@ public final class FollowPlanner {
 		this.random = random;
 		this.lostTicksLimit = (int) Math.round(params.lostSeconds() * 20);
 		this.stuckWindow = Math.max(1, (int) Math.round(params.stuckSeconds() * 20));
+	}
+
+	/** Lets the planner cut across a curve in the trail when the world shows the way is clear. Without it the trail is followed exactly. */
+	public void setTerrain(ObstacleAvoider.Terrain terrain) {
+		this.terrain = terrain;
 	}
 
 	/** @param target where the followed player is, or null when they can't be seen */
@@ -130,6 +140,10 @@ public final class FollowPlanner {
 			waitTicks = moving ? 0 : waitTicks + 1;
 		}
 
+		if (moving && terrain != null && --shortcutCooldown <= 0) {
+			shortcutCooldown = SHORTCUT_EVERY;
+			cutCorner(px, py, pz);
+		}
 		double[] next = nextPoint(target, dist);
 		lastNext = moving ? next : null;
 		int forward = 0;
@@ -177,6 +191,45 @@ public final class FollowPlanner {
 	public Snapshot snapshot() {
 		List<double[]> points = new ArrayList<>(trail);
 		return new Snapshot(points, lastNext, lastSeen == null ? null : new double[] {lastSeen.x(), lastSeen.y(), lastSeen.z()});
+	}
+
+	/** Skips ahead to the furthest trail point that can be walked to in a straight, flat-enough line. */
+	private void cutCorner(double px, double py, double pz) {
+		if (trail.size() < 2) {
+			return;
+		}
+		List<double[]> points = new ArrayList<>(trail);
+		for (int i = points.size() - 1; i >= 1; i--) {
+			double[] point = points.get(i);
+			if (Math.hypot(point[0] - px, point[2] - pz) > SHORTCUT_RANGE) {
+				continue;
+			}
+			if (clearLine(px, py, pz, point[0], point[1], point[2])) {
+				for (int k = 0; k < i; k++) {
+					trail.pollFirst();
+				}
+				return;
+			}
+		}
+	}
+
+	/** Whether a body can walk from one spot to another in a straight line: room to stand all along and ground, or at most a one block drop, underfoot. */
+	private boolean clearLine(double x0, double y0, double z0, double x1, double y1, double z1) {
+		double length = Math.hypot(x1 - x0, z1 - z0);
+		int steps = Math.max(1, (int) Math.ceil(length / 0.4));
+		for (int i = 1; i <= steps; i++) {
+			double t = i / (double) steps;
+			int cx = (int) Math.floor(x0 + (x1 - x0) * t);
+			int cz = (int) Math.floor(z0 + (z1 - z0) * t);
+			int cy = (int) Math.floor(y0 + (y1 - y0) * t + 0.01);
+			if (terrain.solid(cx, cy, cz) || terrain.solid(cx, cy + 1, cz)) {
+				return false;
+			}
+			if (!terrain.solid(cx, cy - 1, cz) && !terrain.solid(cx, cy - 2, cz)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** Drops trail points up to the furthest one that has been reached, so the player doesn't walk back to them. */
