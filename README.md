@@ -16,7 +16,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
 - **About**: what the mod is.
 - **Routes**: your finished routes (ones with at least one waypoint), each with its icon, name, waypoint count and **Start** and **Loop** buttons. The buttons close the screen and run the route.
 - **Edit Routes**: *Defaults for all routes* (turn speed and aim offset, used by routes that don't set their own), *New route* (type a name and press Create), then one section per route. A route's section has its icon at the end of its header and a row of tabs, so only one part of a route shows at a time:
-  - **General**: the icon (type part of an item's name, see the match, press **Use**), buttons to run the route once, run it on a loop or place waypoints with right-click, and Delete route (press twice within 10 seconds).
+  - **General**: the icon (type part of an item's name, see the match, press **Use**), a button to place waypoints with right-click, and Delete route (press twice within 10 seconds).
   - **Waypoints**: each waypoint's "x y z" is a text field with Up, Down and Del buttons, plus buttons to add the block you were looking at or standing on.
   - **Movement**: radius, turn speed (empty = default), pitch to hold, **Never jump**, hold left / right click.
   - **Humanize**: aim offset (empty = default) and whether the held pitch varies.

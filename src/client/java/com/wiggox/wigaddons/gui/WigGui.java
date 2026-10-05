@@ -340,8 +340,6 @@ public final class WigGui {
 						}
 					}));
 
-			b.button(key + ".start", "Run", "Closes this screen and runs the route once.", "Start", () -> run(route, false));
-			b.button(key + ".loop", "Run on a loop", "Closes this screen and runs the route, going back to the first waypoint after the last, until stopped.", "Loop", () -> run(route, true));
 			b.button(key + ".edit", "Place waypoints", "Closes this screen. Right click blocks with an empty hand to add waypoints; /wig done leaves edit mode.", "Edit", () -> {
 				Minecraft.getInstance().setScreen(null);
 				WigCommands.editRoute(route);
