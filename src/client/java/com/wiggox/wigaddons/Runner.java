@@ -42,6 +42,15 @@ public final class Runner {
 	private static Route runRouteForHud;
 	private static long runStartNanos;
 	private static boolean jump;
+	/** Following a player instead of running a route: the planner and where the player is found. */
+	private static FollowPlanner planner;
+	private static java.util.function.Supplier<FollowPlanner.Target> followSource;
+	private static String followName;
+	private static double followDistance = Double.NaN;
+	private static boolean followWasLost;
+	/** Which movement keys the input mixin presses: forward 1 / back -1, and sprint. */
+	private static int moveForward = 1;
+	private static boolean sprintOn = true;
 	/** +1 holds A, -1 holds D, 0 neither: set while going round an obstacle. */
 	private static int strafe;
 	private static int ticks;
@@ -70,13 +79,21 @@ public final class Runner {
 	private Runner() {
 	}
 
-	public static boolean isRunning() {
-		return follower != null;
+	/** A route is being run, or a player is being followed. */
+	private static boolean active() {
+		return follower != null || planner != null;
 	}
 
-	/** The name of the route being run, or null when none is. */
+	public static boolean isRunning() {
+		return active();
+	}
+
+	/** What is being run, for the HUD: the route's name, or "Following Name". Null when nothing is. */
 	public static String runningName() {
-		return follower == null ? null : runName;
+		if (follower != null) {
+			return runName;
+		}
+		return planner != null ? "Following " + followName : null;
 	}
 
 	public static boolean runningOnLoop() {
@@ -87,14 +104,28 @@ public final class Runner {
 		return follower == null ? null : runRouteForHud;
 	}
 
-	/** Whole seconds since the current run started. */
-	public static long elapsedSeconds() {
-		return follower == null ? 0 : (System.nanoTime() - runStartNanos) / 1_000_000_000L;
+	/** Blocks to the player being followed, or NaN when no player is being followed. */
+	public static double followDistance() {
+		return planner == null ? Double.NaN : followDistance;
 	}
 
-	/** True while the input mixin should press forward and sprint. */
+	/** Whole seconds since the current run started. */
+	public static long elapsedSeconds() {
+		return active() ? (System.nanoTime() - runStartNanos) / 1_000_000_000L : 0;
+	}
+
+	/** True while the input mixin should press keys. */
 	public static boolean wantsInput() {
-		return follower != null;
+		return active();
+	}
+
+	/** 1 presses W, -1 presses S, 0 neither. */
+	public static int forward() {
+		return moveForward;
+	}
+
+	public static boolean sprint() {
+		return sprintOn;
 	}
 
 	public static boolean wantsJump() {
@@ -111,6 +142,9 @@ public final class Runner {
 		if (player == null) {
 			return;
 		}
+		planner = null;
+		moveForward = 1;
+		sprintOn = true;
 		runName = route.name();
 		runLoop = loop;
 		runRouteForHud = route;
@@ -138,8 +172,53 @@ public final class Runner {
 		lastFrameNanos = System.nanoTime();
 	}
 
+	/**
+	 * Starts following a player: walks the path they walk, keeping a few blocks behind, looking at them.
+	 *
+	 * @param source where the player is right now, or null when they can't be seen
+	 */
+	public static void startFollow(String name, java.util.function.Supplier<FollowPlanner.Target> source) {
+		Minecraft mc = Minecraft.getInstance();
+		LocalPlayer player = mc.player;
+		if (player == null) {
+			return;
+		}
+		if (active()) {
+			end();
+		}
+		followName = name;
+		followSource = source;
+		planner = new FollowPlanner(FollowPlanner.Params.of(WigState.config), new Random());
+		followDistance = Double.NaN;
+		followWasLost = false;
+		follower = null;
+		runRoute = null;
+		runName = null;
+		runLoop = false;
+		runRouteForHud = null;
+		runStartNanos = System.nanoTime();
+		runTurnSpeed = WigState.config.turnSpeedDegPerTick;
+		pitchTarget = Double.NaN;
+		lastOutput = null;
+		jump = false;
+		strafe = 0;
+		moveForward = 0;
+		sprintOn = false;
+		AVOIDER.reset();
+		macroCountdown = -1;
+		partyCountdown = -1;
+		ticks = 0;
+		startSlot = player.getInventory().getSelectedSlot();
+		expectedYaw = player.getYRot();
+		expectedPitch = player.getXRot();
+		yawAtLastTick = expectedYaw;
+		turnPerTick = 0;
+		haveAim = false;
+		lastFrameNanos = System.nanoTime();
+	}
+
 	public static void stop(String reason) {
-		if (follower == null) {
+		if (!active()) {
 			return;
 		}
 		end();
@@ -148,6 +227,9 @@ public final class Runner {
 
 	/** Holds the mouse buttons the route asks for. The keys are only ever set by this, so a real press is never mistaken for it. */
 	private static void holdClicks(Minecraft mc) {
+		if (runRoute == null) {
+			return;
+		}
 		if (runRoute.holdLeft()) {
 			mc.options.keyAttack.setDown(true);
 			holdingLeft = true;
@@ -178,6 +260,10 @@ public final class Runner {
 		macroCountdown = -1;
 		partyCountdown = -1;
 		follower = null;
+		planner = null;
+		followSource = null;
+		moveForward = 1;
+		sprintOn = true;
 		lastOutput = null;
 		jump = false;
 		strafe = 0;
@@ -192,7 +278,7 @@ public final class Runner {
 	 * slot changes, or the view is turned by something other than this mod.
 	 */
 	public static void tick(Minecraft mc) {
-		if (follower == null) {
+		if (!active()) {
 			return;
 		}
 		LocalPlayer player = mc.player;
@@ -231,6 +317,11 @@ public final class Runner {
 		ticks++;
 		holdClicks(mc);
 
+		if (planner != null) {
+			followTick(mc, player);
+			return;
+		}
+
 		RouteFollower.Output out = follower.tick(player.getX(), player.getZ(), player.onGround(), player.horizontalCollision);
 		switch (out.status()) {
 			case FINISHED -> {
@@ -267,6 +358,39 @@ public final class Runner {
 		yawAtLastTick = player.getYRot();
 	}
 
+	/** One tick of following: walk the trail, keep the distance, look at the player. */
+	private static void followTick(Minecraft mc, LocalPlayer player) {
+		FollowPlanner.Target target = followSource.get();
+		FollowPlanner.Output out = planner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(), target, player.onGround(), player.horizontalCollision);
+		followDistance = out.distance();
+		switch (out.status()) {
+			case LOST -> {
+				stop("lost sight of " + followName);
+				return;
+			}
+			case STUCK -> {
+				stop("you seem to be stuck");
+				return;
+			}
+			case LOST_WAITING -> {
+				if (!followWasLost) {
+					followWasLost = true;
+					Chat.info("Lost sight of " + followName + ". Going to where they were last seen and waiting " + WigState.config.followLostSeconds + " seconds.");
+				}
+			}
+			default -> followWasLost = false;
+		}
+		moveForward = out.forward();
+		strafe = out.strafe();
+		sprintOn = out.sprint();
+		jump = out.jump();
+		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
+		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		haveAim = true;
+		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
+		yawAtLastTick = player.getYRot();
+	}
+
 	private static void pickPitch() {
 		Double set = runRoute.pitch();
 		pitchTarget = set == null ? Double.NaN : RouteFollower.pitchTarget(set, runRoute.randomizePitch(), PITCH_RANDOM);
@@ -283,7 +407,7 @@ public final class Runner {
 		double frameTicks = Math.min((now - lastFrameNanos) * TICKS_PER_NANO, MAX_FRAME_TICKS);
 		lastFrameNanos = now;
 		LocalPlayer player = mc.player;
-		if (follower == null || player == null) {
+		if (!active() || player == null) {
 			return;
 		}
 		checkView(player);
@@ -351,7 +475,7 @@ public final class Runner {
 
 	/** Called for every chat line the server sends. */
 	public static void onChatLine(String line) {
-		if (follower == null || partyCountdown >= 0 || !PartyLeave.matches(line, WigState.config.partyLeavePatterns)) {
+		if (!active() || partyCountdown >= 0 || !PartyLeave.matches(line, WigState.config.partyLeavePatterns)) {
 			return;
 		}
 		WigConfig cfg = WigState.config;

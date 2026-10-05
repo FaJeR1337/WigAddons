@@ -146,6 +146,7 @@ public final class WigGui {
 			new DynCategory("about", "About", "What WigAddons is."),
 			new DynCategory("list", "Routes", "Run one of your routes."),
 			new DynCategory("routes", "Edit Routes", "Your routes and how they are set up."),
+			new DynCategory("follow", "Follow", "Following a player with /wig follow."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks and party changes."));
 		fillAll();
@@ -169,6 +170,7 @@ public final class WigGui {
 				case "about" -> fillAbout(category);
 				case "list" -> fillList(category);
 				case "routes" -> fillRoutes(category);
+				case "follow" -> fillFollow(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
 				default -> {
@@ -190,6 +192,7 @@ public final class WigGui {
 		b.info("what", "WigAddons", "Record routes of waypoints, then have the player run them.");
 		b.info("list", "Routes", "Start or loop any of your finished routes.");
 		b.info("routes", "Edit Routes", "Make and edit routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
+		b.info("follow", "Follow", "Follow another player with /wig follow, and set how close to stay.");
 		b.info("hud", "HUD", "Show the running route's name and how long it has been running, and drag it where you want it.");
 		b.info("safety", "Safety", "What happens when a macro check or a party change is noticed is under Safety.");
 		b.info("commands", "Commands", "Everything here also works as a command: /wig new, edit, done, start, stop, and more.");
@@ -216,6 +219,38 @@ public final class WigGui {
 		if (!any) {
 			b.info("none", "No routes yet", "Make a route under Edit Routes and add waypoints to it. Finished routes show up here.");
 		}
+	}
+
+	// ---- Follow ----
+
+	private static void fillFollow(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.info("how", "How it works", "Type /wig follow <player> (or look at a player and type /wig follow). You walk the path they walk, keep a few blocks back and look at them. /wig stop ends it.");
+		followNumber(b, "stop", "Stop distance", "You stop walking when you are this many blocks from them.", () -> config.followStopDistance, v -> config.followStopDistance = v, 0, 20);
+		followNumber(b, "resume", "Resume distance", "You start walking again when they are further than this many blocks away. It has to be more than the stop distance, so you don't keep starting and stopping.",
+			() -> config.followResumeDistance, v -> config.followResumeDistance = v, 0, 40);
+		followNumber(b, "sprint", "Sprint distance", "You sprint while they are at least this far away, and walk when nearer.", () -> config.followSprintDistance, v -> config.followSprintDistance = v, 0, 60);
+		followNumber(b, "lost", "Wait when lost", "Seconds to wait at the last place they were seen, after losing sight of them, before stopping.", () -> config.followLostSeconds, v -> config.followLostSeconds = v, 0, 120);
+		followNumber(b, "look", "Look radius", "Blocks around their head that you look within: a new random spot every second or two, so the view isn't fixed on one point. 0 looks right at their head.",
+			() -> config.followLookRadius, v -> config.followLookRadius = v, 0, 3);
+		b.toggle("nojump", "Never jump", "Never jump while following.", () -> config.followNeverJump, v -> {
+			config.followNeverJump = v;
+			WigState.saveConfig();
+		});
+	}
+
+	/** A number setting for following, as a text field (fractions get cut off in the slider's small box). */
+	private static void followNumber(OptionBuilder b, String key, String name, String description,
+		java.util.function.DoubleSupplier getter, java.util.function.DoubleConsumer setter, double min, double max) {
+		b.text(key, name, description, () -> trim(getter.getAsDouble()), v -> {
+			Double parsed = parseOptional(v);
+			if (parsed != null && parsed >= min && parsed <= max) {
+				setter.accept(parsed);
+				WigState.saveConfig();
+			}
+		});
 	}
 
 	// ---- HUD ----

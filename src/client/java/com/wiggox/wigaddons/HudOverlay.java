@@ -29,6 +29,9 @@ public final class HudOverlay {
 			Route route = Runner.runningRoute();
 			ItemStack icon = route == null ? ItemStack.EMPTY : RouteIcons.itemStack(route.icon());
 			String clock = TimeFormat.clock(Runner.elapsedSeconds()) + (Runner.runningOnLoop() ? " (loop)" : "");
+			if (!Double.isNaN(Runner.followDistance())) {
+				clock += String.format("  %.1f blocks", Runner.followDistance());
+			}
 			draw(graphics, Minecraft.getInstance(), name, clock, icon);
 		});
 	}

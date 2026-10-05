@@ -60,6 +60,11 @@ final class SmokeTest {
 
 	private static void tick(Minecraft mc) {
 		tick++;
+		// the game window has no focus here, which would open the pause menu and stop every run
+		mc.options.pauseOnLostFocus = false;
+		if (mc.screen instanceof net.minecraft.client.gui.screens.PauseScreen) {
+			mc.setScreen(null);
+		}
 		if (mc.player == null || mc.level == null) {
 			if (tick == 60 && !creating) {
 				creating = true;
@@ -72,6 +77,9 @@ final class SmokeTest {
 		}
 		worldTicks++;
 		phaseTick++;
+		if (mc.screen != null && tick % 40 == 0) {
+			log("a screen is open: " + mc.screen.getClass().getName() + " in phase " + phase);
+		}
 		switch (phase) {
 			case 0 -> {
 				if (worldTicks == 100) {
@@ -100,8 +108,10 @@ final class SmokeTest {
 			case 12 -> partyLeave(mc);
 			case 13 -> jumpCheck(mc, false, 14);
 			case 14 -> jumpCheck(mc, true, 15);
-			case 15 -> hudPosition(mc);
-			case 16 -> {
+			case 15 -> followCheck(mc);
+			case 16 -> followLostCheck(mc);
+			case 17 -> hudPosition(mc);
+			case 18 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -172,6 +182,68 @@ final class SmokeTest {
 		}
 		if (phaseTick > 400) {
 			log("party leave did not stop the run");
+			Runner.stop("smoke test timeout");
+			next();
+		}
+	}
+
+	private static double targetX;
+	private static boolean targetVisible = true;
+
+	/**
+	 * A pretend player walks east and then stands still; the follower should keep up, stop close to it, and not keep
+	 * starting and stopping while it stands.
+	 */
+	private static void followCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 -90 0");
+			targetX = 8;
+			targetVisible = true;
+		}
+		if (phaseTick == 30) {
+			log("start following a pretend player at x=" + targetX);
+			Runner.startFollow("Tester", () -> targetVisible ? new FollowPlanner.Target(targetX, -60, 0.5, -58.38) : null);
+		}
+		if (phaseTick > 30) {
+			// the pretend player walks east at walking pace for 15 seconds, then stands
+			if (phaseTick < 330) {
+				targetX += 0.215;
+			}
+			if (phaseTick % 40 == 0) {
+				log("follow t=" + (phaseTick - 30) + ": player at x=" + String.format("%.1f", targetX) + ", me " + fmt(mc) + ", distance " + String.format("%.1f", Runner.followDistance()));
+			}
+			if (phaseTick == 200) {
+				photograph(mc, "follow");
+			}
+			if (phaseTick == 460) {
+				double d = Math.hypot(targetX - mc.player.getX(), 0.5 - mc.player.getZ());
+				log("follow ended: still following=" + Runner.isRunning() + ", distance " + String.format("%.1f", d));
+				Runner.stop("smoke test over");
+				next();
+			}
+		}
+	}
+
+	/** The pretend player vanishes: the follower should go to where it was last seen, wait, then stop. */
+	private static void followLostCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 -90 0");
+			targetX = 14;
+			targetVisible = true;
+		}
+		if (phaseTick == 30) {
+			Runner.startFollow("Tester", () -> targetVisible ? new FollowPlanner.Target(targetX, -60, 0.5, -58.38) : null);
+		}
+		if (phaseTick == 50) {
+			targetVisible = false;
+			log("pretend player vanished at x=" + targetX + ", me " + fmt(mc));
+		}
+		if (phaseTick > 50 && !Runner.isRunning()) {
+			log("stopped " + (phaseTick - 50) + " ticks after it vanished, me " + fmt(mc));
+			next();
+		}
+		if (phaseTick > 600) {
+			log("lost follow TIMEOUT");
 			Runner.stop("smoke test timeout");
 			next();
 		}

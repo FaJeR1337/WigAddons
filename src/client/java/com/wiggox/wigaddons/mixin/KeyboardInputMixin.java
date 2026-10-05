@@ -17,8 +17,9 @@ public abstract class KeyboardInputMixin extends ClientInput {
 	private void wigaddons$runRoute(CallbackInfo ci) {
 		if (Runner.wantsInput()) {
 			int strafe = Runner.strafe();
-			this.keyPresses = new Input(true, false, strafe > 0, strafe < 0, Runner.wantsJump(), false, true);
-			this.moveVector = new Vec2(strafe, 1.0F).normalized();
+			int forward = Runner.forward();
+			this.keyPresses = new Input(forward > 0, forward < 0, strafe > 0, strafe < 0, Runner.wantsJump(), false, Runner.sprint());
+			this.moveVector = strafe == 0 && forward == 0 ? Vec2.ZERO : new Vec2(strafe, forward).normalized();
 		}
 	}
 }

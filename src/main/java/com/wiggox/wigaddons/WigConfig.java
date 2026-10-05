@@ -40,6 +40,17 @@ public final class WigConfig {
 	public double hudX = 0.02;
 	public double hudY = 0.30;
 	public double hudScale = 1.0;
+	/** Following a player: stop walking when this close (blocks), and start again once they are further than the resume distance. */
+	public double followStopDistance = 3.0;
+	public double followResumeDistance = 5.0;
+	/** Sprint when they are at least this far away, walk when nearer. */
+	public double followSprintDistance = 6.0;
+	/** After losing sight of the player, wait this long at the last place they were seen, then stop. */
+	public double followLostSeconds = 5.0;
+	/** The view looks at a random spot within this many blocks of the player's head, picked again every second or two. */
+	public double followLookRadius = 0.5;
+	/** Never jump while following. */
+	public boolean followNeverJump = false;
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 
@@ -96,6 +107,21 @@ public final class WigConfig {
 		hudX = Math.max(0, Math.min(1, Double.isNaN(hudX) ? d.hudX : hudX));
 		hudY = Math.max(0, Math.min(1, Double.isNaN(hudY) ? d.hudY : hudY));
 		hudScale = Double.isNaN(hudScale) ? d.hudScale : Math.max(0.5, Math.min(4.0, hudScale));
+		if (!(followStopDistance >= 0)) {
+			followStopDistance = d.followStopDistance;
+		}
+		if (!(followResumeDistance > followStopDistance)) {
+			followResumeDistance = followStopDistance + 2.0;
+		}
+		if (!(followSprintDistance >= 0)) {
+			followSprintDistance = d.followSprintDistance;
+		}
+		if (!(followLostSeconds >= 0)) {
+			followLostSeconds = d.followLostSeconds;
+		}
+		if (!(followLookRadius >= 0)) {
+			followLookRadius = d.followLookRadius;
+		}
 		if (!(stuckTimeoutSeconds > 0)) {
 			stuckTimeoutSeconds = d.stuckTimeoutSeconds;
 		}

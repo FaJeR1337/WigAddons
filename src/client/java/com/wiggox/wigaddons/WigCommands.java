@@ -8,6 +8,8 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.List;
 import java.util.Locale;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
@@ -20,6 +22,21 @@ public final class WigCommands {
 		for (String name : WigState.routeNames()) {
 			if (name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
 				b.suggest(name);
+			}
+		}
+		return b.buildFuture();
+	};
+
+	/** Names of the other players in range, for completing /wig follow. */
+	private static final SuggestionProvider<FabricClientCommandSource> NEARBY_PLAYERS = (c, b) -> {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level != null) {
+			String prefix = b.getRemaining().toLowerCase(Locale.ROOT);
+			for (AbstractClientPlayer other : mc.level.players()) {
+				String name = other.getGameProfile().name();
+				if (other != mc.player && name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+					b.suggest(name);
+				}
 			}
 		}
 		return b.buildFuture();
@@ -79,6 +96,10 @@ public final class WigCommands {
 					.then(ClientCommands.literal("off").executes(c -> noJump(StringArgumentType.getString(c, "route"), false)))))
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
+			.then(ClientCommands.literal("follow")
+				.executes(c -> follow(null))
+				.then(ClientCommands.argument("player", StringArgumentType.word()).suggests(NEARBY_PLAYERS)
+					.executes(c -> follow(StringArgumentType.getString(c, "player")))))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
@@ -310,9 +331,54 @@ public final class WigCommands {
 		return v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
 	}
 
+	/** /wig follow <player>, or /wig follow while looking at a player. */
+	private static int follow(String typed) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || mc.level == null) {
+			return 0;
+		}
+		AbstractClientPlayer target = null;
+		if (typed == null) {
+			if (mc.crosshairPickEntity instanceof AbstractClientPlayer looked && looked != mc.player) {
+				target = looked;
+			} else {
+				Chat.error("Look at a player, or give a name: /wig follow <player>.");
+				return 0;
+			}
+		} else {
+			for (AbstractClientPlayer other : mc.level.players()) {
+				if (other != mc.player && other.getGameProfile().name().equalsIgnoreCase(typed)) {
+					target = other;
+				}
+			}
+			if (target == null) {
+				Chat.error(typed + " isn't near you. Players can only be followed while they are in range.");
+				return 0;
+			}
+		}
+		java.util.UUID id = target.getUUID();
+		String name = target.getGameProfile().name();
+		if (WigState.editing != null) {
+			EditMode.leave();
+		}
+		Runner.startFollow(name, () -> {
+			if (mc.level == null) {
+				return null;
+			}
+			for (AbstractClientPlayer other : mc.level.players()) {
+				if (other.getUUID().equals(id)) {
+					return new FollowPlanner.Target(other.getX(), other.getY(), other.getZ(), other.getEyeY());
+				}
+			}
+			return null;
+		});
+		Chat.info("Following " + name + ". The mouse is locked. /wig stop, a movement key or any screen stops it.");
+		return 1;
+	}
+
 	private static int stop() {
 		if (!Runner.isRunning()) {
-			Chat.error("No route is running.");
+			Chat.error("Nothing is running.");
 			return 0;
 		}
 		Runner.stop("you used /wig stop");

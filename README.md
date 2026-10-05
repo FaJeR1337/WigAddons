@@ -21,6 +21,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
   - **Movement**: radius, turn speed (empty = default), pitch to hold, **Never jump**, hold left / right click.
   - **Humanize**: aim offset (empty = default) and whether the held pitch varies.
   - **Display**: show the waypoints, their numbers, radius circles and lines, and the box colour. Several routes can be shown at once.
+- **Follow**: the distances, look radius, lost-sight wait and never-jump setting for `/wig follow`.
 - **HUD**: a box on screen, while a route runs, with the route's icon, its name and how long it has been running (`01:23`, or `1:02:03` after an hour, with "(loop)" when looping). Switch the whole box, the timer and the icon on or off, set its scale, and press **Edit** under Position to open a screen where you drag the box where you want it (scroll to resize, R to reset, Esc to finish). Its place is kept as a share of the screen, so it stays put if the window size changes.
 - **Safety**: macro-check limits, the warning time, the stuck timeout, and what to do when a party member leaves (delay, command and the chat lines that count).
 
@@ -41,6 +42,7 @@ Everything saves as you change it. Opening any screen stops a running route, so 
 - `/wig left <route> on|off` and `/wig right <route> on|off`: hold the left (attack / break blocks) or right (use / place) mouse button for as long as that route runs, and let go when it ends for any reason. Saved with the route; both can be on at once. Holding a button breaks blocks or uses items over and over; it does not click once per swing at an entity.
 - `/wig hud`: switch the HUD box on or off. `/wig hud position` opens the screen for dragging it.
 - `/wig nojump <route> on|off`: force a route never to jump (see below). Off by default.
+- `/wig follow <player>` (or `/wig follow` while looking at a player): follow another player. `/wig stop` ends it. See "Following a player" below.
 - `/wig debug`: show or hide the turn readout.
 - `/wig stop`: stop a run.
 - `/wig waypoints`: show or hide the selected route's waypoints (numbered boxes joined by lines; the numbers show through walls). This is the route's "Show waypoints" setting and is saved with it.
@@ -70,6 +72,12 @@ Two things a server might use to catch a macro raise a **macro check**: the sele
 ### Party members leaving
 
 If a chat line from the server says someone left your party (for example `Name has left the party.`, `Name was removed from the party...`, `The party was disbanded...`) while a route is running, the run stops `partyLeaveDelaySeconds` (2) later and sends `partyLeaveCommand` (`/warp hub`). If the run has already ended by then (you stopped it, it finished, or a macro check stopped it) nothing is sent. The lines are matched from their start with the regular expressions in `partyLeavePatterns`, so a player typing the same words in chat doesn't count. Set `partyLeaveCommand` to an empty string to only stop.
+
+### Following a player
+
+`/wig follow <player>` (names complete from the players near you), or `/wig follow` while looking at a player, makes you walk the path that player walks, a few blocks behind them. Within about six blocks of them you walk straight at them; further back you follow the trail of places they stood, so you go round whatever they went round. You stop when you are within `followStopDistance` (3) blocks of them and start again only once they are more than `followResumeDistance` (5) away, so you don't keep starting and stopping. You sprint when they are `followSprintDistance` (6) or more away and walk when nearer, and you jump when you are blocked or they are higher (unless `followNeverJump` is on). Your view looks at a random spot within `followLookRadius` (0.5) blocks of their head, picked again every second or two, and you walk with W, A, S and D relative to where you are looking.
+
+If you lose sight of them (they leave range, teleport, die or log off) you walk to where they were last seen, wait `followLostSeconds` (5), then stop with a message; if they come back in that time you carry on. It stops for the same reasons a route does: a screen opening, a movement key, a macro check, a party member leaving, being stuck, or `/wig stop` (taking damage does not stop it). The HUD shows "Following Name", how long, and how far away they are. All the numbers are in `config.json` and on the **Follow** tab.
 
 ### Going round obstacles
 
