@@ -199,6 +199,7 @@ final class SmokeTest {
 			command(mc, "tp @s 0.5 -60 0.5 -90 0");
 			targetX = 8;
 			targetVisible = true;
+			WigState.config.followShowTrail = true;
 		}
 		if (phaseTick == 30) {
 			log("start following a pretend player at x=" + targetX);
@@ -213,6 +214,9 @@ final class SmokeTest {
 				log("follow t=" + (phaseTick - 30) + ": player at x=" + String.format("%.1f", targetX) + ", me " + fmt(mc) + ", distance " + String.format("%.1f", Runner.followDistance()));
 			}
 			if (phaseTick == 200) {
+				FollowPlanner.Snapshot snap = Runner.followTrail();
+				log("trail points " + (snap == null ? "none" : snap.trail().size() + ", next " + (snap.next() == null ? "none" : String.format("%.1f,%.1f", snap.next()[0], snap.next()[2]))
+					+ ", last seen " + (snap.lastSeen() == null ? "none" : String.format("%.1f", snap.lastSeen()[0])) + ", showTrail=" + WigState.config.followShowTrail));
 				photograph(mc, "follow");
 			}
 			if (phaseTick == 460) {

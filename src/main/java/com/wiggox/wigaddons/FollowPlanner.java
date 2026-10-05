@@ -1,7 +1,9 @@
 package com.wiggox.wigaddons;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -43,6 +45,16 @@ public final class FollowPlanner {
 		}
 	}
 
+	/**
+	 * What the planner is working from, for drawing it while debugging.
+	 *
+	 * @param trail the places the player walked that haven't been reached yet, oldest first (x, y, z)
+	 * @param next the point being walked to, or null when standing
+	 * @param lastSeen where the player was last seen, or null
+	 */
+	public record Snapshot(List<double[]> trail, double[] next, double[] lastSeen) {
+	}
+
 	/** Trail points are kept this far apart. */
 	static final double TRAIL_SPACING = 0.5;
 	static final int MAX_TRAIL = 400;
@@ -62,6 +74,7 @@ public final class FollowPlanner {
 	private final int stuckWindow;
 
 	private Target lastSeen;
+	private double[] lastNext;
 	/** Ticks spent standing at the last place they were seen, after losing sight of them. */
 	private int waitTicks;
 	private boolean moving;
@@ -118,6 +131,7 @@ public final class FollowPlanner {
 		}
 
 		double[] next = nextPoint(target, dist);
+		lastNext = moving ? next : null;
 		int forward = 0;
 		int strafe = 0;
 		boolean sprint = false;
@@ -156,6 +170,11 @@ public final class FollowPlanner {
 		double headY = lastSeen.eyeY() - 0.2;
 		return new Output(forward, strafe, sprint, jump, status, dist,
 			lastSeen.x() + lookDx, headY + lookDy, lastSeen.z() + lookDz);
+	}
+
+	public Snapshot snapshot() {
+		List<double[]> points = new ArrayList<>(trail);
+		return new Snapshot(points, lastNext, lastSeen == null ? null : new double[] {lastSeen.x(), lastSeen.y(), lastSeen.z()});
 	}
 
 	/** Drops trail points up to the furthest one that has been reached, so the player doesn't walk back to them. */

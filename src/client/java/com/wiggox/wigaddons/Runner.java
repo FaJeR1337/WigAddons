@@ -104,6 +104,11 @@ public final class Runner {
 		return follower == null ? null : runRouteForHud;
 	}
 
+	/** What is being followed along, for drawing: null when no player is being followed. */
+	public static FollowPlanner.Snapshot followTrail() {
+		return planner == null ? null : planner.snapshot();
+	}
+
 	/** Blocks to the player being followed, or NaN when no player is being followed. */
 	public static double followDistance() {
 		return planner == null ? Double.NaN : followDistance;

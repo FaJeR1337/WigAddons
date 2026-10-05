@@ -49,6 +49,8 @@ public final class WigConfig {
 	public double followLostSeconds = 5.0;
 	/** The view looks at a random spot within this many blocks of the player's head, picked again every second or two. */
 	public double followLookRadius = 0.5;
+	/** Draw the trail being followed in the world, for debugging. */
+	public boolean followShowTrail = false;
 	/** Never jump while following. */
 	public boolean followNeverJump = false;
 	/** The run stops if the player has hardly moved for this long. */

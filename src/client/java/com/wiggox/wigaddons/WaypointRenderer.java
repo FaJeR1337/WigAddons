@@ -25,10 +25,60 @@ public final class WaypointRenderer {
 						draw(route);
 					}
 				}
+				if (WigState.config.followShowTrail) {
+					drawTrail();
+				}
 			} catch (IllegalStateException e) {
 				// no gizmo collector at this point of the frame; nothing to draw into
 			}
 		});
+	}
+
+	private static final int TRAIL_COLOR = 0xFFFFAA00;
+	private static final int NEXT_COLOR = 0xFF55FF55;
+	private static final int LAST_SEEN_COLOR = 0xFFFF5555;
+	private static final int PATH_COLOR = 0xFF55FFFF;
+
+	private static void marker(Vec3 at, double half, int color) {
+		Gizmos.cuboid(new net.minecraft.world.phys.AABB(at.x - half, at.y - half, at.z - half, at.x + half, at.y + half, at.z + half),
+			GizmoStyle.strokeAndFill(color, 2.0F, (color & 0x00FFFFFF) | 0x99000000)).setAlwaysOnTop();
+	}
+
+	/** A dotted line of small cubes; thin line gizmos are unreliable, cuboids always draw. */
+	private static void dotted(Vec3 from, Vec3 to, int color) {
+		double length = from.distanceTo(to);
+		int steps = (int) Math.min(60, Math.max(1, Math.round(length / 0.35)));
+		for (int i = 1; i < steps; i++) {
+			marker(from.lerp(to, i / (double) steps), 0.04, color);
+		}
+	}
+
+	/** The trail of the player being followed: where they walked, the point being walked to, and where they were last seen. */
+	private static void drawTrail() {
+		FollowPlanner.Snapshot trail = Runner.followTrail();
+		if (trail == null) {
+			return;
+		}
+		Vec3 previous = null;
+		for (double[] point : trail.trail()) {
+			Vec3 here = new Vec3(point[0], point[1] + 0.15, point[2]);
+			marker(here, 0.12, TRAIL_COLOR);
+			if (previous != null) {
+				dotted(previous, here, TRAIL_COLOR);
+			}
+			previous = here;
+		}
+		if (trail.lastSeen() != null) {
+			marker(new Vec3(trail.lastSeen()[0], trail.lastSeen()[1] + 0.15, trail.lastSeen()[2]), 0.25, LAST_SEEN_COLOR);
+		}
+		if (trail.next() != null) {
+			Vec3 next = new Vec3(trail.next()[0], trail.next()[1] + 0.15, trail.next()[2]);
+			marker(next, 0.25, NEXT_COLOR);
+			net.minecraft.client.player.LocalPlayer player = net.minecraft.client.Minecraft.getInstance().player;
+			if (player != null) {
+				dotted(new Vec3(player.getX(), player.getY() + 0.15, player.getZ()), next, PATH_COLOR);
+			}
+		}
 	}
 
 	private static void draw(Route route) {

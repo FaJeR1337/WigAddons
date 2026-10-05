@@ -120,6 +120,22 @@ class FollowPlannerTest {
 	}
 
 	@Test
+	void theSnapshotShowsTheTrailTheNextPointAndWhereTheyWereLastSeen() {
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		for (int i = 0; i <= 10; i++) {
+			f.tick(0, -60, 0, 0, at(0, 10 + i * 0.5), true, false); // they walk 5 blocks away while I stand
+		}
+		FollowPlanner.Snapshot snap = f.snapshot();
+		assertTrue(snap.trail().size() >= 10);
+		assertEquals(10.0, snap.trail().get(0)[2], 1e-9);
+		assertEquals(15.0, snap.lastSeen()[2], 1e-9);
+		assertTrue(snap.next() != null); // far away, so walking
+		FollowPlanner close = new FollowPlanner(params(), new Random(1));
+		close.tick(0, -60, 0, 0, at(0, 2), true, false);
+		assertEquals(null, close.snapshot().next()); // close enough: standing, nothing to walk to
+	}
+
+	@Test
 	void resumesIfTheySoonReappear() {
 		WigConfig cfg = new WigConfig();
 		cfg.followLostSeconds = 5;

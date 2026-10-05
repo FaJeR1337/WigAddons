@@ -42,6 +42,7 @@ Everything saves as you change it. Opening any screen stops a running route, so 
 - `/wig left <route> on|off` and `/wig right <route> on|off`: hold the left (attack / break blocks) or right (use / place) mouse button for as long as that route runs, and let go when it ends for any reason. Saved with the route; both can be on at once. Holding a button breaks blocks or uses items over and over; it does not click once per swing at an entity.
 - `/wig hud`: switch the HUD box on or off. `/wig hud position` opens the screen for dragging it.
 - `/wig nojump <route> on|off`: force a route never to jump (see below). Off by default.
+- `/wig trail`: show or hide the trail being followed, drawn in the world while you follow (for debugging).
 - `/wig follow <player>` (or `/wig follow` while looking at a player): follow another player. `/wig stop` ends it. See "Following a player" below.
 - `/wig debug`: show or hide the turn readout.
 - `/wig stop`: stop a run.
@@ -77,7 +78,7 @@ If a chat line from the server says someone left your party (for example `Name h
 
 `/wig follow <player>` (names complete from the players near you), or `/wig follow` while looking at a player, makes you walk the path that player walks, a few blocks behind them. Within about six blocks of them you walk straight at them; further back you follow the trail of places they stood, so you go round whatever they went round. You stop when you are within `followStopDistance` (3) blocks of them and start again only once they are more than `followResumeDistance` (5) away, so you don't keep starting and stopping. You sprint when they are `followSprintDistance` (6) or more away and walk when nearer, and you jump when you are blocked or they are higher (unless `followNeverJump` is on). Your view looks at a random spot within `followLookRadius` (0.5) blocks of their head, picked again every second or two, and you walk with W, A, S and D relative to where you are looking.
 
-If you lose sight of them (they leave range, teleport, die or log off) you walk to where they were last seen, wait `followLostSeconds` (5), then stop with a message; if they come back in that time you carry on. It stops for the same reasons a route does: a screen opening, a movement key, a macro check, a party member leaving, being stuck, or `/wig stop` (taking damage does not stop it). The HUD shows "Following Name", how long, and how far away they are. All the numbers are in `config.json` and on the **Follow** tab.
+If you lose sight of them (they leave range, teleport, die or log off) you walk to where they were last seen, wait `followLostSeconds` (5), then stop with a message; if they come back in that time you carry on. It stops for the same reasons a route does: a screen opening, a movement key, a macro check, a party member leaving, being stuck, or `/wig stop` (taking damage does not stop it). The HUD shows "Following Name", how long, and how far away they are. To see what it is doing, switch on **Show trail** (Follow tab, or `/wig trail`): orange dots and lines mark where the player walked, a green dot the point you are walking to (with a cyan line from your feet to it), and a red dot where they were last seen. All the numbers are in `config.json` and on the **Follow** tab.
 
 ### Going round obstacles
 

@@ -103,6 +103,12 @@ public final class WigCommands {
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
+			.then(ClientCommands.literal("trail").executes(c -> {
+				WigState.config.followShowTrail = !WigState.config.followShowTrail;
+				WigState.saveConfig();
+				Chat.info("The follow trail is " + (WigState.config.followShowTrail ? "shown" : "hidden") + ".");
+				return 1;
+			}))
 			.then(ClientCommands.literal("hud")
 				.executes(c -> toggleHud())
 				.then(ClientCommands.literal("position").executes(c -> {
