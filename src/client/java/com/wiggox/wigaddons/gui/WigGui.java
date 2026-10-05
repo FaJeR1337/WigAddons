@@ -315,32 +315,32 @@ public final class WigGui {
 			case "humanize" -> humanizeSection(b, route, key);
 			case "display" -> displaySection(b, route, key);
 			default -> {
-			String icon = key + ".icon";
 			String[] typedIcon = {route.icon()};
-			b.custom(icon, "Icon", "Type part of an item's name (pick, chest, diamond). The first match is shown; press Use to pick it. A whole id is picked as you type; empty removes the icon.",
-				String.class, () -> typedIcon[0], v -> true, (option, config) -> new IconEditor(option,
-					Buttons.property(() -> typedIcon[0], v -> {
-						typedIcon[0] = v;
-						ItemSearch.Result r = RouteIcons.search(v);
-						if (v.isBlank()) {
-							route.setIcon("");
-							WigState.save(route);
-						} else if (r.exact()) {
-							route.setIcon(r.best());
-							WigState.save(route);
-						}
-					}),
-					() -> RouteIcons.stack(RouteIcons.search(typedIcon[0]).best()),
-					() -> {
-						ItemSearch.Result r = RouteIcons.search(typedIcon[0]);
-						if (r.best() != null) {
-							route.setIcon(r.best());
-							WigState.save(route);
-							refresh(null);
-						}
-					}));
+		b.text(key + ".icon", "Icon", "Type part of an item's name: pick, chest, diamond. A whole item id is picked as you type; empty removes the icon.",
+			() -> typedIcon[0], v -> {
+				typedIcon[0] = v;
+				ItemSearch.Result r = RouteIcons.search(v);
+				if (v.isBlank()) {
+					route.setIcon("");
+					WigState.save(route);
+				} else if (r.exact()) {
+					route.setIcon(r.best());
+					WigState.save(route);
+				}
+			});
+		b.custom(key + ".iconUse", "Match", "The first item that fits what you typed. Press Use to pick it.",
+			String.class, () -> "", v -> true, (option, config) -> new UseItemEditor(option,
+				() -> RouteIcons.stack(RouteIcons.search(typedIcon[0]).best()),
+				() -> {
+					ItemSearch.Result r = RouteIcons.search(typedIcon[0]);
+					if (r.best() != null) {
+						route.setIcon(r.best());
+						WigState.save(route);
+						refresh(null);
+					}
+				}));
 
-			b.button(key + ".edit", "Place waypoints", "Closes this screen. Right click blocks with an empty hand to add waypoints; /wig done leaves edit mode.", "Edit", () -> {
+		b.button(key + ".edit", "Place waypoints", "Closes this screen. Right click blocks with an empty hand to add waypoints; /wig done leaves edit mode.", "Edit", () -> {
 				Minecraft.getInstance().setScreen(null);
 				WigCommands.editRoute(route);
 			});
