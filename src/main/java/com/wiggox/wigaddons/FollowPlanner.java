@@ -168,8 +168,10 @@ public final class FollowPlanner {
 
 		wobble();
 		double headY = lastSeen.eyeY() - 0.2;
+		// up close the view stays at head height, so it doesn't bob up and down at someone standing right there
+		double vertical = dist <= params.resumeDistance() ? 0 : lookDy;
 		return new Output(forward, strafe, sprint, jump, status, dist,
-			lastSeen.x() + lookDx, headY + lookDy, lastSeen.z() + lookDz);
+			lastSeen.x() + lookDx, headY + vertical, lastSeen.z() + lookDz);
 	}
 
 	public Snapshot snapshot() {
