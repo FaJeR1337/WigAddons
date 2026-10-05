@@ -316,20 +316,19 @@ public final class WigGui {
 			case "display" -> displaySection(b, route, key);
 			default -> {
 			String[] typedIcon = {route.icon()};
-		b.text(key + ".icon", "Icon", "Type part of an item's name: pick, chest, diamond. A whole item id is picked as you type; empty removes the icon.",
-			() -> typedIcon[0], v -> {
-				typedIcon[0] = v;
-				ItemSearch.Result r = RouteIcons.search(v);
-				if (v.isBlank()) {
-					route.setIcon("");
-					WigState.save(route);
-				} else if (r.exact()) {
-					route.setIcon(r.best());
-					WigState.save(route);
-				}
-			});
-		b.custom(key + ".iconUse", "Match", "The first item that fits what you typed. Press Use to pick it.",
-			String.class, () -> "", v -> true, (option, config) -> new UseItemEditor(option,
+		b.custom(key + ".icon", "Icon", "Type part of an item's name (pick, chest, diamond). The first match is shown beside Use; press Use to pick it. A whole item id is picked as you type; empty removes the icon.",
+			String.class, () -> typedIcon[0], v -> true, (option, config) -> new IconEditor(option,
+				Buttons.property(() -> typedIcon[0], v -> {
+					typedIcon[0] = v;
+					ItemSearch.Result r = RouteIcons.search(v);
+					if (v.isBlank()) {
+						route.setIcon("");
+						WigState.save(route);
+					} else if (r.exact()) {
+						route.setIcon(r.best());
+						WigState.save(route);
+					}
+				}),
 				() -> RouteIcons.stack(RouteIcons.search(typedIcon[0]).best()),
 				() -> {
 					ItemSearch.Result r = RouteIcons.search(typedIcon[0]);

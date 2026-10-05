@@ -5,17 +5,21 @@ import io.github.notenoughupdates.moulconfig.gui.GuiComponent;
 import io.github.notenoughupdates.moulconfig.gui.component.ItemStackComponent;
 import io.github.notenoughupdates.moulconfig.gui.component.RowComponent;
 import io.github.notenoughupdates.moulconfig.gui.editors.ComponentEditor;
+import io.github.notenoughupdates.moulconfig.observer.GetSetter;
 import io.github.notenoughupdates.moulconfig.processor.ProcessedOption;
 import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 
-/** A Use button with the item it would pick shown beside it. */
-final class UseItemEditor extends ComponentEditor {
+/**
+ * The route's icon in one row: a text field for part of an item's name, and underneath it a Use button with the
+ * item that matches shown beside it.
+ */
+final class IconEditor extends ComponentEditor {
 	private final GuiComponent row;
 
-	UseItemEditor(ProcessedOption option, Supplier<IItemStack> preview, Runnable use) {
+	IconEditor(ProcessedOption option, GetSetter<String> text, Supplier<IItemStack> preview, Runnable use) {
 		super(option);
-		row = wrapComponent(new RowComponent(
+		row = wrapComponent(Buttons.textField(80, text), new RowComponent(
 			Buttons.button("Use", 30, use),
 			new ItemStackComponent(Buttons.readOnly(preview))));
 	}
