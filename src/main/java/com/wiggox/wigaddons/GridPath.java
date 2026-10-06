@@ -29,7 +29,7 @@ public final class GridPath {
 
 	/** Standing room at the cell, with ground under it. */
 	private static boolean standable(ObstacleAvoider.Terrain t, int x, int y, int z) {
-		return free(t, x, y, z) && t.solid(x, y - 1, z);
+		return free(t, x, y, z) && t.supports(x, y - 1, z);
 	}
 
 	/**

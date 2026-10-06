@@ -76,7 +76,7 @@ class FollowPlannerTest {
 		FollowPlanner g = new FollowPlanner(params(), new Random(1));
 		assertFalse(g.tick(0, -60, 0, 0, at(0, 12), false, true).jump()); // in the air
 		FollowPlanner h = new FollowPlanner(params(), new Random(1));
-		assertTrue(h.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -59, 12, -57.4), true, false).jump()); // they are a block up
+		assertFalse(h.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -59, 12, -57.4), true, false).jump()); // a block up but far away: no hopping yet
 		WigConfig cfg = new WigConfig();
 		cfg.followNeverJump = true;
 		FollowPlanner n = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
@@ -326,5 +326,29 @@ class FollowPlannerTest {
 			out = g.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, false);
 		}
 		assertEquals(0.5, out.lookX(), 1e-9);
+	}
+
+	@Test
+	void slabsAreWalkedOverNotAroundOrJumped() {
+		// a strip of bottom slabs across the way at z=5: they can be stood on but don't block
+		ObstacleAvoider.Terrain slabs = new ObstacleAvoider.Terrain() {
+			@Override
+			public boolean solid(int x, int y, int z) {
+				return y <= -61;
+			}
+
+			@Override
+			public boolean supports(int x, int y, int z) {
+				return y <= -61 || (z == 5 && y == -60);
+			}
+		};
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.setTerrain(slabs);
+		FollowPlanner.Output out = null;
+		for (int i = 0; i < 10; i++) {
+			out = f.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, false);
+		}
+		assertEquals(0.5, f.snapshot().next()[0], 1e-9); // straight on, no detour
+		assertFalse(out.jump());
 	}
 }

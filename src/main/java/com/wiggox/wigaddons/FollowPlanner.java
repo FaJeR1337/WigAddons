@@ -165,7 +165,9 @@ public final class FollowPlanner {
 			forward = keys[0];
 			strafe = keys[1];
 			sprint = forward > 0 && dist >= params.sprintDistance();
-			jump = !params.neverJump() && onGround && (horizontalCollision || next[1] > py + STEP_UP);
+			// a rise only matters when it is close: the followed player hopping about far away shouldn't make us jump
+			boolean riseAhead = next[1] > py + STEP_UP && Math.hypot(next[0] - px, next[2] - pz) < 2.5;
+			jump = !params.neverJump() && onGround && (horizontalCollision || riseAhead);
 		}
 
 		Status status;
@@ -294,7 +296,7 @@ public final class FollowPlanner {
 			if (terrain.solid(cx, cy, cz) || terrain.solid(cx, cy + 1, cz)) {
 				return false;
 			}
-			if (!terrain.solid(cx, cy - 1, cz) && !terrain.solid(cx, cy - 2, cz)) {
+			if (!terrain.supports(cx, cy - 1, cz) && !terrain.supports(cx, cy - 2, cz)) {
 				return false;
 			}
 		}

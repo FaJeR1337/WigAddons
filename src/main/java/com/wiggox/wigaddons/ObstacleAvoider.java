@@ -12,7 +12,13 @@ import java.util.Random;
 public final class ObstacleAvoider {
 	/** Whether a block cell stops the player walking through it. */
 	public interface Terrain {
+		/** Whether the cell gets in the way of walking: something taller than a step. Slabs and carpets don't, you walk straight onto them. */
 		boolean solid(int x, int y, int z);
+
+		/** Whether the cell can be stood on: anything with a collision shape, slabs included. */
+		default boolean supports(int x, int y, int z) {
+			return solid(x, y, z);
+		}
 	}
 
 	/**

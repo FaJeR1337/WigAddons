@@ -3,18 +3,34 @@ package com.wiggox.wigaddons;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.level.block.state.BlockState;
 
 /** The loaded world as the obstacle avoider sees it: a cell is solid when its block has something to bump into. */
 final class WorldTerrain implements ObstacleAvoider.Terrain {
+	/** Collision tops up to this high are stepped onto without jumping (the player steps up 0.6). */
+	private static final double STEP = 0.6;
+
 	@Override
 	public boolean solid(int x, int y, int z) {
+		VoxelShape shape = shape(x, y, z);
+		return shape != null && !shape.isEmpty() && shape.max(Direction.Axis.Y) > STEP;
+	}
+
+	@Override
+	public boolean supports(int x, int y, int z) {
+		VoxelShape shape = shape(x, y, z);
+		return shape != null && !shape.isEmpty();
+	}
+
+	private static VoxelShape shape(int x, int y, int z) {
 		ClientLevel level = Minecraft.getInstance().level;
 		if (level == null) {
-			return false;
+			return null;
 		}
 		BlockPos pos = new BlockPos(x, y, z);
 		BlockState state = level.getBlockState(pos);
-		return !state.getCollisionShape(level, pos).isEmpty();
+		return state.getCollisionShape(level, pos);
 	}
 }
