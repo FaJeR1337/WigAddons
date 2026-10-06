@@ -279,4 +279,29 @@ class FollowPlannerTest {
 		double[] next = aimAtCurve((x, y, z) -> y <= -61 || (x >= 1 && z >= 5 && z <= 15 && y <= -59));
 		assertTrue(next[0] < 2, "stays on the trail, aiming at x=" + next[0]);
 	}
+
+	@Test
+	void walksAroundAWallInsteadOfIntoIt() {
+		// a wall across x -6..6 at z=5; the player is behind it at the origin, the followed player is on the far side
+		ObstacleAvoider.Terrain wall = (x, y, z) -> y <= -61 || (z == 5 && x >= -6 && x <= 6 && y <= -59);
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.setTerrain(wall);
+		f.tick(0, -60, 0, 0, at(0.5, 14), true, false);
+		FollowPlanner.Output out = f.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, false);
+		double[] next = f.snapshot().next();
+		assertTrue(Math.abs(next[0] - 0.5) > 1.0, "aims off to the side of the wall, at x=" + next[0]);
+		assertTrue(out.forward() >= 0);
+	}
+
+	@Test
+	void gridPathFindsTheWayAroundAndNullWhenSealedIn() {
+		ObstacleAvoider.Terrain wall = (x, y, z) -> y <= -61 || (z == 5 && x >= -6 && x <= 6 && y <= -59);
+		java.util.List<double[]> path = GridPath.find(wall, 0, -60, 0, 0, -60, 10, true);
+		assertTrue(path != null && !path.isEmpty());
+		for (double[] node : path) {
+			assertFalse(Math.floor(node[2]) == 5 && Math.abs(node[0]) <= 6.5);
+		}
+		ObstacleAvoider.Terrain sealed = (x, y, z) -> y <= -61 || (Math.abs(x) == 2 && Math.abs(z) <= 2 && y <= -59) || (Math.abs(z) == 2 && Math.abs(x) <= 2 && y <= -59);
+		assertTrue(GridPath.find(sealed, 0, -60, 0, 0, -60, 10, true) == null);
+	}
 }

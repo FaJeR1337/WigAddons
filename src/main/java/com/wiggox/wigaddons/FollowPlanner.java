@@ -65,6 +65,7 @@ public final class FollowPlanner {
 	/** Corners are only cut to points this close, and checked this often (ticks). */
 	static final double SHORTCUT_RANGE = 24.0;
 	static final int SHORTCUT_EVERY = 4;
+	static final int REPLAN_EVERY = 10;
 	static final double STEP_UP = 0.6;
 	/** How long a randomly picked look spot is kept, in ticks. */
 	static final int MIN_LOOK_TICKS = 25;
@@ -78,6 +79,9 @@ public final class FollowPlanner {
 
 	private ObstacleAvoider.Terrain terrain;
 	private int shortcutCooldown;
+	private List<double[]> detour;
+	private double[] detourGoal;
+	private int replanCooldown;
 	private Target lastSeen;
 	private double[] lastNext;
 	/** Ticks spent standing at the last place they were seen, after losing sight of them. */
@@ -144,7 +148,7 @@ public final class FollowPlanner {
 			shortcutCooldown = SHORTCUT_EVERY;
 			cutCorner(px, py, pz);
 		}
-		double[] next = nextPoint(target, dist);
+		double[] next = detourAround(px, py, pz, nextPoint(target, dist));
 		lastNext = moving ? next : null;
 		int forward = 0;
 		int strafe = 0;
@@ -191,6 +195,41 @@ public final class FollowPlanner {
 	public Snapshot snapshot() {
 		List<double[]> points = new ArrayList<>(trail);
 		return new Snapshot(points, lastNext, lastSeen == null ? null : new double[] {lastSeen.x(), lastSeen.y(), lastSeen.z()});
+	}
+
+	/**
+	 * When the straight way to the next point is blocked, walks around: plans a route over the block grid and aims at the
+	 * furthest point of it that can be seen in a straight line.
+	 */
+	private double[] detourAround(double px, double py, double pz, double[] next) {
+		if (terrain == null || next == null || !moving) {
+			detour = null;
+			return next;
+		}
+		if (clearLine(px, py, pz, next[0], next[1], next[2])) {
+			detour = null;
+			return next;
+		}
+		boolean goalMoved = detourGoal == null || Math.hypot(detourGoal[0] - next[0], detourGoal[2] - next[2]) > 2.0;
+		if (detour == null || goalMoved || --replanCooldown <= 0) {
+			replanCooldown = REPLAN_EVERY;
+			detourGoal = next;
+			detour = GridPath.find(terrain, (int) Math.floor(px), (int) Math.floor(py + 0.01), (int) Math.floor(pz),
+				(int) Math.floor(next[0]), (int) Math.floor(next[1] + 0.01), (int) Math.floor(next[2]), !params.neverJump());
+		}
+		if (detour == null || detour.isEmpty()) {
+			return next;
+		}
+		while (detour.size() > 1 && Math.hypot(detour.get(0)[0] - px, detour.get(0)[2] - pz) < 0.7) {
+			detour.remove(0);
+		}
+		for (int i = detour.size() - 1; i >= 1; i--) {
+			double[] node = detour.get(i);
+			if (clearLine(px, py, pz, node[0], node[1], node[2])) {
+				return node;
+			}
+		}
+		return detour.get(0);
 	}
 
 	/** Skips ahead to the furthest trail point that can be walked to in a straight, flat-enough line. */
