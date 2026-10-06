@@ -50,6 +50,8 @@ public final class WigConfig {
 	/** The view looks at a random spot within this many blocks of the player's head, picked again every second or two. */
 	public double followLookRadius = 0.5;
 	/** Draw the trail being followed in the world, for debugging. */
+	/** Seconds between looking at the followed player again; the view holds still in between. 0 keeps the view on them all the time. */
+	public double followLookInterval = 0;
 	public boolean followShowTrail = false;
 	/** Stop looking at the followed player while a wall is between you, and look where you are walking instead. */
 	public boolean followLookOnlyWhenVisible = false;
@@ -122,6 +124,9 @@ public final class WigConfig {
 		}
 		if (!(followLostSeconds >= 0)) {
 			followLostSeconds = d.followLostSeconds;
+		}
+		if (!(followLookInterval >= 0)) {
+			followLookInterval = d.followLookInterval;
 		}
 		if (!(followLookRadius >= 0)) {
 			followLookRadius = d.followLookRadius;

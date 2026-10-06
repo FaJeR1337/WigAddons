@@ -235,6 +235,8 @@ public final class WigGui {
 		followNumber(b, "lost", "Wait when lost", "Seconds to wait at the last place they were seen, after losing sight of them, before stopping.", () -> config.followLostSeconds, v -> config.followLostSeconds = v, 0, 120);
 		followNumber(b, "look", "Look radius", "Blocks around their head that you look within: a new random spot every second or two, so the view isn't fixed on one point. 0 looks right at their head.",
 			() -> config.followLookRadius, v -> config.followLookRadius = v, 0, 3);
+		followNumber(b, "relook", "Look again every", "Seconds between looking at the player again. In between, the view holds still instead of tracking them every tick. 0 keeps the view on them all the time.",
+			() -> config.followLookInterval, v -> config.followLookInterval = v, 0, 30);
 		b.toggle("trail", "Show trail", "Draws the trail you are following in the world, for debugging: orange dots and lines where the player walked, a green dot at the point you are walking to (with a cyan line to it), and a red dot where they were last seen.",
 			() -> config.followShowTrail, v -> {
 				config.followShowTrail = v;

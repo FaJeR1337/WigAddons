@@ -362,4 +362,20 @@ class FollowPlannerTest {
 		// a point-wide line down x=0.8 just misses the block, but the body wouldn't: it steers clear
 		assertTrue(Math.abs(f.snapshot().next()[0] - 0.8) > 0.1, "aims away from the corner, x=" + f.snapshot().next()[0]);
 	}
+
+	@Test
+	void holdsTheLookBetweenRelooks() {
+		WigConfig cfg = new WigConfig();
+		cfg.followLookRadius = 0;
+		cfg.followLookInterval = 2;
+		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		double first = f.tick(0, -60, 0, 0, at(0, 12), true, false).lookX();
+		double during = f.tick(0, -60, 0, 0, at(5, 12), true, false).lookX();
+		assertEquals(first, during, 1e-9); // they moved, the view didn't
+		double later = 0;
+		for (int i = 0; i < 60; i++) {
+			later = f.tick(0, -60, 0, 0, at(5, 12), true, false).lookX();
+		}
+		assertEquals(5, later, 1e-9); // by now it has looked again
+	}
 }

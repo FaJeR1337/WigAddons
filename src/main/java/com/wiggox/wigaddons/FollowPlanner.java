@@ -38,10 +38,10 @@ public final class FollowPlanner {
 	}
 
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
-		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible) {
+		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval) {
 		public static Params of(WigConfig c) {
 			return new Params(c.followStopDistance, c.followResumeDistance, c.followSprintDistance, c.followLostSeconds,
-				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible);
+				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval);
 		}
 	}
 
@@ -98,6 +98,9 @@ public final class FollowPlanner {
 	private double lookDy;
 	private double lookDz;
 	private int lookTicksLeft;
+	/** The spot being held while the view only looks at the player now and then, and the ticks until the next look. */
+	private double[] heldLook;
+	private int relookTicksLeft;
 	private double refX = Double.NaN;
 	private double refZ;
 	private int ticksInWindow;
@@ -213,8 +216,16 @@ public final class FollowPlanner {
 				return new Output(forward, strafe, sprint, jump, status, dist, lastNext[0], py + EYE_HEIGHT, lastNext[2]);
 			}
 		}
-		return new Output(forward, strafe, sprint, jump, status, dist,
-			lastSeen.x() + lookDx, headY + vertical, lastSeen.z() + lookDz);
+		double[] look = {lastSeen.x() + lookDx, headY + vertical, lastSeen.z() + lookDz};
+		if (params.lookInterval() > 0) {
+			// look at them, then hold that spot until it is time to look again (a little uneven, so it isn't clockwork)
+			if (heldLook == null || --relookTicksLeft <= 0) {
+				heldLook = look;
+				relookTicksLeft = (int) Math.max(1, Math.round(params.lookInterval() * 20 * (0.75 + random.nextDouble() * 0.5)));
+			}
+			look = heldLook;
+		}
+		return new Output(forward, strafe, sprint, jump, status, dist, look[0], look[1], look[2]);
 	}
 
 	public Snapshot snapshot() {
