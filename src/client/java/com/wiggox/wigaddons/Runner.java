@@ -45,6 +45,8 @@ public final class Runner {
 	/** Following a player instead of running a route: the planner and where the player is found. */
 	private static FollowPlanner planner;
 	private static java.util.function.Supplier<FollowPlanner.Target> followSource;
+	private static final ViewSmoother yawSmoother = new ViewSmoother();
+	private static final ViewSmoother pitchSmoother = new ViewSmoother();
 	private static String followName;
 	private static double followDistance = Double.NaN;
 	private static boolean followWasLost;
@@ -148,6 +150,7 @@ public final class Runner {
 			return;
 		}
 		planner = null;
+		followSource = null;
 		moveForward = 1;
 		sprintOn = true;
 		runName = route.name();
@@ -193,6 +196,8 @@ public final class Runner {
 		}
 		followName = name;
 		followSource = source;
+		yawSmoother.reset();
+		pitchSmoother.reset();
 		planner = new FollowPlanner(FollowPlanner.Params.of(WigState.config), new Random());
 		planner.setTerrain(new WorldTerrain());
 		followDistance = Double.NaN;
@@ -417,9 +422,12 @@ public final class Runner {
 			return;
 		}
 		checkView(player);
+		boolean following = followSource != null;
 		if (haveAim) {
 			double before = player.getYRot();
-			float yaw = (float) RouteFollower.stepYaw(before, aimYaw, runTurnSpeed * frameTicks);
+			float yaw = (float) (following
+				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, WigState.config.followTurnSmoothing, runTurnSpeed)
+				: RouteFollower.stepYaw(before, aimYaw, runTurnSpeed * frameTicks));
 			player.setYRot(yaw);
 			// no blending between ticks: the view is set exactly, every frame
 			player.yRotO = yaw;
@@ -427,7 +435,9 @@ public final class Runner {
 			lastFrameTicks = frameTicks;
 		}
 		if (!Double.isNaN(pitchTarget)) {
-			float pitch = (float) RouteFollower.stepToward(player.getXRot(), pitchTarget, runTurnSpeed * frameTicks);
+			float pitch = (float) (following
+				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, WigState.config.followTurnSmoothing, runTurnSpeed)
+				: RouteFollower.stepToward(player.getXRot(), pitchTarget, runTurnSpeed * frameTicks));
 			player.setXRot(pitch);
 			player.xRotO = pitch;
 		}

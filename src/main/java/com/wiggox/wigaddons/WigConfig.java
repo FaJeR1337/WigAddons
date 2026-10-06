@@ -52,6 +52,8 @@ public final class WigConfig {
 	/** Draw the trail being followed in the world, for debugging. */
 	/** Seconds between looking at the followed player again; the view holds still in between. 0 keeps the view on them all the time. */
 	public double followLookInterval = 0;
+	/** About how many ticks following takes to settle a turn of the view; the turning eases in and out. 0 turns at full speed. */
+	public double followTurnSmoothing = 4;
 	public boolean followShowTrail = false;
 	/** Stop looking at the followed player while a wall is between you, and look where you are walking instead. */
 	public boolean followLookOnlyWhenVisible = false;
@@ -124,6 +126,9 @@ public final class WigConfig {
 		}
 		if (!(followLostSeconds >= 0)) {
 			followLostSeconds = d.followLostSeconds;
+		}
+		if (!(followTurnSmoothing >= 0)) {
+			followTurnSmoothing = d.followTurnSmoothing;
 		}
 		if (!(followLookInterval >= 0)) {
 			followLookInterval = d.followLookInterval;

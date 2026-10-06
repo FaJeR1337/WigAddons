@@ -237,6 +237,8 @@ public final class WigGui {
 			() -> config.followLookRadius, v -> config.followLookRadius = v, 0, 3);
 		followNumber(b, "relook", "Look again every", "Seconds between looking at the player again. In between, the view holds still instead of tracking them every tick. 0 keeps the view on them all the time.",
 			() -> config.followLookInterval, v -> config.followLookInterval = v, 0, 30);
+		followNumber(b, "smooth", "Turn smoothing", "About how many ticks the view takes to settle a turn while following. The turning eases in and out instead of snapping. 0 turns at full speed with no easing.",
+			() -> config.followTurnSmoothing, v -> config.followTurnSmoothing = v, 0, 20);
 		b.toggle("trail", "Show trail", "Draws the trail you are following in the world, for debugging: orange dots and lines where the player walked, a green dot at the point you are walking to (with a cyan line to it), and a red dot where they were last seen.",
 			() -> config.followShowTrail, v -> {
 				config.followShowTrail = v;
