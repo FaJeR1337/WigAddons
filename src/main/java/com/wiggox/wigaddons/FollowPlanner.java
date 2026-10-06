@@ -70,6 +70,7 @@ public final class FollowPlanner {
 	/** A jump is at most this many blocks above where it lands. */
 	static final int MAX_AIR_DROP = 2;
 	/** Within this height of us counts as the same level. */
+	static final double LEVEL_JITTER_DEGREES = 2.0;
 	static final double FLAT_LEVEL = 0.6;
 	static final double EYE_HEIGHT = 1.62;
 	static final int REPLAN_EVERY = 10;
@@ -102,6 +103,8 @@ public final class FollowPlanner {
 	private double lookDy;
 	private double lookDz;
 	private int lookTicksLeft;
+	/** Degrees up or down from level, for when the view is held level. */
+	private double pitchJitter;
 	/** The spot being held while the view only looks at the player now and then, and the ticks until the next look. */
 	private double[] heldLook;
 	private int relookTicksLeft;
@@ -214,7 +217,8 @@ public final class FollowPlanner {
 		double headY = lastSeen.eyeY() - 0.2;
 		// someone on the same level as us gets a level view: aiming at their actual head would pan down whenever they sneak, or when they stand close
 		if (Math.abs(lastSeen.y() - py) <= FLAT_LEVEL) {
-			headY = py + EYE_HEIGHT;
+			// not a perfect zero: the pitch drifts a couple of degrees either way, a new amount every second or two
+			headY = py + EYE_HEIGHT + Math.tan(Math.toRadians(pitchJitter)) * Math.max(dist, 1.0);
 		}
 		// up close the view stays at head height, so it doesn't bob up and down at someone standing right there
 		double vertical = dist <= params.resumeDistance() ? 0 : lookDy;
@@ -419,6 +423,7 @@ public final class FollowPlanner {
 			return;
 		}
 		lookTicksLeft = MIN_LOOK_TICKS + random.nextInt(MAX_LOOK_TICKS - MIN_LOOK_TICKS + 1);
+		pitchJitter = (random.nextDouble() * 2 - 1) * LEVEL_JITTER_DEGREES;
 		double r = params.lookRadius();
 		if (r <= 0) {
 			lookDx = 0;

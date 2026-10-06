@@ -170,13 +170,14 @@ class FollowPlannerTest {
 		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(3));
 		FollowPlanner.Target t = at(0, 20);
 		double headY = -60 + 1.62; // same level as us: the view stays level
+		double levelSlack = Math.tan(Math.toRadians(2.0)) * 20; // the level view drifts up to two degrees
 		java.util.Set<Double> seen = new java.util.HashSet<>();
 		for (int i = 0; i < 600; i++) {
 			FollowPlanner.Output out = f.tick(0, -60, 0, 0, t, true, false);
 			double dx = out.lookX() - t.x();
 			double dy = out.lookY() - headY;
 			double dz = out.lookZ() - t.z();
-			assertTrue(Math.sqrt(dx * dx + dy * dy + dz * dz) <= 0.5 + 1e-9);
+			assertTrue(Math.sqrt(dx * dx + dy * dy + dz * dz) <= 0.5 + levelSlack + 1e-9);
 			seen.add(dx);
 		}
 		assertTrue(seen.size() > 3, "the look spot should move around");
@@ -184,7 +185,7 @@ class FollowPlannerTest {
 		FollowPlanner exact = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(3));
 		FollowPlanner.Output out = exact.tick(0, -60, 0, 0, t, true, false);
 		assertEquals(t.x(), out.lookX(), 1e-12);
-		assertEquals(headY, out.lookY(), 1e-12);
+		assertEquals(headY, out.lookY(), levelSlack);
 	}
 
 	/** Moves the follower from what the planner asks for, with the view turning toward the look spot. */
@@ -414,7 +415,8 @@ class FollowPlannerTest {
 		FollowPlanner flat = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
 		// sneaking: their eyes are lower, but they are on our level
 		double level = flat.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -60, 8, -58.9), true, false).lookY();
-		assertEquals(-60 + 1.62, level, 1e-9);
+		double angle = Math.toDegrees(Math.atan2(level - (-60 + 1.62), 8));
+		assertTrue(Math.abs(angle) <= 2.0 + 1e-6, "level within 2 degrees, was " + angle);
 		FollowPlanner up = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
 		double high = up.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -56, 8, -54.4), true, false).lookY();
 		assertEquals(-54.4 - 0.2, high, 1e-9);
@@ -430,5 +432,20 @@ class FollowPlannerTest {
 		// they have walked on; we have caught up to where they were
 		FollowPlanner.Output out = f.tick(0, -60, 10.5, 0, at(0, 30), true, false);
 		assertEquals(30, out.lookZ(), 1e-9);
+	}
+
+	@Test
+	void theLevelViewVariesByAboutTwoDegreesWhileWaitingWhereTheyWereLost() {
+		WigConfig cfg = new WigConfig();
+		cfg.followLookRadius = 0;
+		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(5));
+		f.tick(0, -60, 0, 0, at(0, 9), true, false);
+		java.util.Set<Double> pitches = new java.util.HashSet<>();
+		for (int i = 0; i < 400; i++) {
+			FollowPlanner.Output out = f.tick(0, -60, 9, 0, null, true, false); // standing where they were last seen
+			double angle = Math.toDegrees(Math.atan2(out.lookY() - (-60 + 1.62), Math.hypot(out.lookX() - 0, out.lookZ() - 9) + 0.0001));
+			pitches.add(Math.round(angle * 100) / 100.0);
+		}
+		assertTrue(pitches.size() > 3, "the pitch should vary");
 	}
 }
