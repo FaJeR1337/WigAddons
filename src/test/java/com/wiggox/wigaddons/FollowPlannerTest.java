@@ -419,4 +419,16 @@ class FollowPlannerTest {
 		double high = up.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -56, 8, -54.4), true, false).lookY();
 		assertEquals(-54.4 - 0.2, high, 1e-9);
 	}
+
+	@Test
+	void relooksWhenCatchingUpToTheHeldSpot() {
+		WigConfig cfg = new WigConfig();
+		cfg.followLookRadius = 0;
+		cfg.followLookInterval = 30; // would hold for ages
+		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		f.tick(0, -60, 0, 0, at(0, 12), true, false); // the spot to hold: z=12
+		// they have walked on; we have caught up to where they were
+		FollowPlanner.Output out = f.tick(0, -60, 10.5, 0, at(0, 30), true, false);
+		assertEquals(30, out.lookZ(), 1e-9);
+	}
 }

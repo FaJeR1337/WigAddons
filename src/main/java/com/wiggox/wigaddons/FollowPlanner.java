@@ -233,7 +233,9 @@ public final class FollowPlanner {
 		double[] look = {lastSeen.x() + lookDx, headY + vertical, lastSeen.z() + lookDz};
 		if (params.lookInterval() > 0) {
 			// look at them, then hold that spot until it is time to look again (a little uneven, so it isn't clockwork)
-			if (heldLook == null || --relookTicksLeft <= 0) {
+			// catching up to the spot being held would swing the view down at it: close in, look at them where they are now
+			boolean caughtUp = heldLook != null && Math.hypot(heldLook[0] - px, heldLook[2] - pz) < Math.max(params.stopDistance(), 2.0);
+			if (heldLook == null || caughtUp || --relookTicksLeft <= 0) {
 				heldLook = look;
 				relookTicksLeft = (int) Math.max(1, Math.round(params.lookInterval() * 20 * (0.75 + random.nextDouble() * 0.5)));
 			}
