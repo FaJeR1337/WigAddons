@@ -393,4 +393,17 @@ class FollowPlannerTest {
 		double[] next = f.snapshot().next();
 		assertEquals(-60, next[1], 1e-9); // aims at where they land
 	}
+
+	@Test
+	void recordsNoTrailWhileStandingNearThemAndStartsFreshWhenTheySetOff() {
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.tick(0, -60, 0, 0, at(0, 2), true, false); // close: standing
+		for (int i = 0; i < 20; i++) {
+			f.tick(0, -60, 0, 0, at(Math.sin(i) * 2, 2 + (i % 3)), true, false); // shuffling about next to us
+		}
+		assertTrue(f.snapshot().trail().isEmpty(), "nothing recorded while idle nearby");
+		f.tick(0, -60, 0, 0, at(0, 9), true, false); // they run off
+		assertEquals(1, f.snapshot().trail().size());
+		assertEquals(9, f.snapshot().trail().get(0)[2], 1e-9);
+	}
 }

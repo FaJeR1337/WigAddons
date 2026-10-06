@@ -129,8 +129,12 @@ public final class FollowPlanner {
 		if (target != null) {
 			waitTicks = 0;
 			lastSeen = target;
+			boolean idleNearby = !moving && Math.hypot(target.x() - px, target.z() - pz) <= params.resumeDistance();
+			if (!moving && !idleNearby) {
+				trail.clear(); // about to set off: start a fresh trail from where they are, not from what they did while we stood still
+			}
 			double[] last = trail.peekLast();
-			if (last == null || Math.hypot(target.x() - last[0], target.z() - last[2]) >= TRAIL_SPACING) {
+			if (!idleNearby && (last == null || Math.hypot(target.x() - last[0], target.z() - last[2]) >= TRAIL_SPACING)) {
 				trail.addLast(new double[] {target.x(), target.y(), target.z()});
 				if (trail.size() > MAX_TRAIL) {
 					trail.pollFirst();
@@ -149,6 +153,7 @@ public final class FollowPlanner {
 				moving = true;
 			} else if (dist <= params.stopDistance()) {
 				moving = false;
+				trail.clear();
 			}
 		} else {
 			// out of sight: keep going until the last place they were seen has been reached
