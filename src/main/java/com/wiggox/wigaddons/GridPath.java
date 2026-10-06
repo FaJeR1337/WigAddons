@@ -71,7 +71,7 @@ public final class GridPath {
 					if (diagonal && !(free(t, n.x() + d[0], ny > n.y() ? ny : n.y(), n.z()) && free(t, n.x(), ny > n.y() ? ny : n.y(), n.z() + d[1]))) {
 						continue; // would clip a corner
 					}
-					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy != 0 ? 0.6 : 0);
+					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy != 0 ? 0.6 : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
 					long k = key(nx, ny, nz);
 					if (g < best.getOrDefault(k, Double.MAX_VALUE)) {
 						best.put(k, g);
@@ -82,6 +82,16 @@ public final class GridPath {
 			}
 		}
 		return null;
+	}
+
+	/** A cell next to a wall: the body brushes it, so paths prefer cells with room. */
+	private static boolean hugsWall(ObstacleAvoider.Terrain t, int x, int y, int z) {
+		for (int[] d : DIRS) {
+			if (t.solid(x + d[0], y, z + d[1]) || t.solid(x + d[0], y + 1, z + d[1])) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static double heuristic(int x, int y, int z, int gx, int gy, int gz) {

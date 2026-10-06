@@ -65,6 +65,8 @@ public final class FollowPlanner {
 	/** Corners are only cut to points this close, and checked this often (ticks). */
 	static final double SHORTCUT_RANGE = 24.0;
 	static final int SHORTCUT_EVERY = 4;
+	/** How far either side of the walked line has to be free: a bit more than half the body's width. */
+	static final double BODY_MARGIN = 0.35;
 	static final double EYE_HEIGHT = 1.62;
 	static final int REPLAN_EVERY = 10;
 	/** How long the view has to be blocked, or clear, before the look switches. */
@@ -167,7 +169,11 @@ public final class FollowPlanner {
 			sprint = forward > 0 && dist >= params.sprintDistance();
 			// a rise only matters when it is close: the followed player hopping about far away shouldn't make us jump
 			boolean riseAhead = next[1] > py + STEP_UP && Math.hypot(next[0] - px, next[2] - pz) < 2.5;
-			jump = !params.neverJump() && onGround && (horizontalCollision || riseAhead);
+			boolean blockedByStep = horizontalCollision && canStepOver(px, py, pz, next);
+			if (horizontalCollision && !blockedByStep) {
+				replanCooldown = 0; // rubbing along a wall that can't be jumped: plan the way again, now
+			}
+			jump = !params.neverJump() && onGround && (blockedByStep || riseAhead);
 		}
 
 		Status status;
@@ -284,10 +290,30 @@ public final class FollowPlanner {
 		}
 	}
 
+	/** Whether what is blocking the way ahead is a single block that can be jumped onto, rather than a wall. */
+	private boolean canStepOver(double px, double py, double pz, double[] next) {
+		if (terrain == null) {
+			return true;
+		}
+		double dx = next[0] - px;
+		double dz = next[2] - pz;
+		double length = Math.hypot(dx, dz);
+		if (length < 1e-6) {
+			return false;
+		}
+		int cx = (int) Math.floor(px + dx / length * 0.6);
+		int cz = (int) Math.floor(pz + dz / length * 0.6);
+		int cy = (int) Math.floor(py + 0.01);
+		return terrain.solid(cx, cy, cz) && !terrain.solid(cx, cy + 1, cz) && !terrain.solid(cx, cy + 2, cz);
+	}
+
 	/** Whether a body can walk from one spot to another in a straight line: room to stand all along and ground, or at most a one block drop, underfoot. */
 	private boolean clearLine(double x0, double y0, double z0, double x1, double y1, double z1) {
 		double length = Math.hypot(x1 - x0, z1 - z0);
 		int steps = Math.max(1, (int) Math.ceil(length / 0.4));
+		// the direction sideways to the line
+		double px = length < 1e-6 ? 0 : -(z1 - z0) / length;
+		double pz = length < 1e-6 ? 0 : (x1 - x0) / length;
 		for (int i = 1; i <= steps; i++) {
 			double t = i / (double) steps;
 			int cx = (int) Math.floor(x0 + (x1 - x0) * t);
@@ -295,6 +321,16 @@ public final class FollowPlanner {
 			int cy = (int) Math.floor(y0 + (y1 - y0) * t + 0.01);
 			if (terrain.solid(cx, cy, cz) || terrain.solid(cx, cy + 1, cz)) {
 				return false;
+			}
+			// the body is wider than the line: leave room either side so the path doesn't scrape along corners
+			double sx = x0 + (x1 - x0) * t;
+			double sz = z0 + (z1 - z0) * t;
+			for (int side = -1; side <= 1; side += 2) {
+				int ox = (int) Math.floor(sx + side * px * BODY_MARGIN);
+				int oz = (int) Math.floor(sz + side * pz * BODY_MARGIN);
+				if ((ox != cx || oz != cz) && (terrain.solid(ox, cy, oz) || terrain.solid(ox, cy + 1, oz))) {
+					return false;
+				}
 			}
 			if (!terrain.supports(cx, cy - 1, cz) && !terrain.supports(cx, cy - 2, cz)) {
 				return false;

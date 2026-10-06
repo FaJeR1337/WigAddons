@@ -351,4 +351,15 @@ class FollowPlannerTest {
 		assertEquals(0.5, f.snapshot().next()[0], 1e-9); // straight on, no detour
 		assertFalse(out.jump());
 	}
+
+	@Test
+	void doesNotScrapeAlongTheCornerOfABlock() {
+		ObstacleAvoider.Terrain pillar = (x, y, z) -> y <= -61 || (x == 1 && z == 5 && y <= -59);
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.setTerrain(pillar);
+		f.tick(0.8, -60, 0.5, 0, at(0.8, 14), true, false);
+		f.tick(0.8, -60, 0.5, 0, at(0.8, 14), true, false);
+		// a point-wide line down x=0.8 just misses the block, but the body wouldn't: it steers clear
+		assertTrue(Math.abs(f.snapshot().next()[0] - 0.8) > 0.1, "aims away from the corner, x=" + f.snapshot().next()[0]);
+	}
 }
