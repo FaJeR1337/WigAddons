@@ -67,6 +67,8 @@ public final class FollowPlanner {
 	static final int SHORTCUT_EVERY = 4;
 	/** How far either side of the walked line has to be free: a bit more than half the body's width. */
 	static final double BODY_MARGIN = 0.35;
+	/** A jump is at most this many blocks above where it lands. */
+	static final int MAX_AIR_DROP = 2;
 	static final double EYE_HEIGHT = 1.62;
 	static final int REPLAN_EVERY = 10;
 	/** How long the view has to be blocked, or clear, before the look switches. */
@@ -123,6 +125,7 @@ public final class FollowPlanner {
 			refX = px;
 			refZ = pz;
 		}
+		target = grounded(target);
 		if (target != null) {
 			waitTicks = 0;
 			lastSeen = target;
@@ -299,6 +302,28 @@ public final class FollowPlanner {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * A followed player in mid-jump is treated as standing where they will land, so a hop on the spot doesn't make us jump
+	 * after them. If they really are going up a block, the points they walk after landing say so.
+	 */
+	private Target grounded(Target target) {
+		if (target == null || terrain == null) {
+			return target;
+		}
+		int cx = (int) Math.floor(target.x());
+		int cz = (int) Math.floor(target.z());
+		int cy = (int) Math.floor(target.y() + 0.01);
+		if (terrain.supports(cx, cy - 1, cz)) {
+			return target; // standing on something
+		}
+		for (int k = 1; k <= MAX_AIR_DROP; k++) {
+			if (terrain.supports(cx, cy - 1 - k, cz)) {
+				return new Target(target.x(), cy - k, target.z(), target.eyeY());
+			}
+		}
+		return target; // falling a long way, or over a void: leave it be
 	}
 
 	/** Whether what is blocking the way ahead is a single block that can be jumped onto, rather than a wall. */

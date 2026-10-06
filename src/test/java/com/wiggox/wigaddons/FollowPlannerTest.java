@@ -378,4 +378,19 @@ class FollowPlannerTest {
 		}
 		assertEquals(5, later, 1e-9); // by now it has looked again
 	}
+
+	@Test
+	void doesNotJumpAfterAPlayerWhoHopsOnTheSpot() {
+		ObstacleAvoider.Terrain flat = (x, y, z) -> y <= -61;
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.setTerrain(flat);
+		FollowPlanner.Output out = null;
+		// they are 4 blocks ahead, in the air at the top of a hop, the next point being close
+		for (int i = 0; i < 3; i++) {
+			out = f.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -59, 6, -56.4), true, false);
+			assertFalse(out.jump());
+		}
+		double[] next = f.snapshot().next();
+		assertEquals(-60, next[1], 1e-9); // aims at where they land
+	}
 }
