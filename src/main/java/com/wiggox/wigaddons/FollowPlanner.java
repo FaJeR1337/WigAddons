@@ -69,6 +69,8 @@ public final class FollowPlanner {
 	static final double BODY_MARGIN = 0.35;
 	/** A jump is at most this many blocks above where it lands. */
 	static final int MAX_AIR_DROP = 2;
+	/** Within this height of us counts as the same level. */
+	static final double FLAT_LEVEL = 0.6;
 	static final double EYE_HEIGHT = 1.62;
 	static final int REPLAN_EVERY = 10;
 	/** How long the view has to be blocked, or clear, before the look switches. */
@@ -210,6 +212,10 @@ public final class FollowPlanner {
 
 		wobble();
 		double headY = lastSeen.eyeY() - 0.2;
+		// someone on the same level as us gets a level view: aiming at their actual head would pan down whenever they sneak, or when they stand close
+		if (Math.abs(lastSeen.y() - py) <= FLAT_LEVEL) {
+			headY = py + EYE_HEIGHT;
+		}
 		// up close the view stays at head height, so it doesn't bob up and down at someone standing right there
 		double vertical = dist <= params.resumeDistance() ? 0 : lookDy;
 		if (params.lookOnlyWhenVisible() && terrain != null) {

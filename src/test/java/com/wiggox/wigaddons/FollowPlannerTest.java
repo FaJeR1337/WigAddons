@@ -169,7 +169,7 @@ class FollowPlannerTest {
 		cfg.followLookRadius = 0.5;
 		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(3));
 		FollowPlanner.Target t = at(0, 20);
-		double headY = t.eyeY() - 0.2;
+		double headY = -60 + 1.62; // same level as us: the view stays level
 		java.util.Set<Double> seen = new java.util.HashSet<>();
 		for (int i = 0; i < 600; i++) {
 			FollowPlanner.Output out = f.tick(0, -60, 0, 0, t, true, false);
@@ -405,5 +405,18 @@ class FollowPlannerTest {
 		f.tick(0, -60, 0, 0, at(0, 9), true, false); // they run off
 		assertEquals(1, f.snapshot().trail().size());
 		assertEquals(9, f.snapshot().trail().get(0)[2], 1e-9);
+	}
+
+	@Test
+	void keepsTheViewLevelOnSomeoneAtTheSameHeightButLooksUpAtSomeoneHigher() {
+		WigConfig cfg = new WigConfig();
+		cfg.followLookRadius = 0;
+		FollowPlanner flat = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		// sneaking: their eyes are lower, but they are on our level
+		double level = flat.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -60, 8, -58.9), true, false).lookY();
+		assertEquals(-60 + 1.62, level, 1e-9);
+		FollowPlanner up = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		double high = up.tick(0, -60, 0, 0, new FollowPlanner.Target(0, -56, 8, -54.4), true, false).lookY();
+		assertEquals(-54.4 - 0.2, high, 1e-9);
 	}
 }
