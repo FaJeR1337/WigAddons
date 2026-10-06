@@ -109,6 +109,9 @@ public final class WigCommands {
 				Chat.info("The follow trail is " + (WigState.config.followShowTrail ? "shown" : "hidden") + ".");
 				return 1;
 			}))
+			.then(ClientCommands.literal("lookwall")
+				.then(ClientCommands.literal("on").executes(c -> setLookWall(true)))
+				.then(ClientCommands.literal("off").executes(c -> setLookWall(false))))
 			.then(ClientCommands.literal("hud")
 				.executes(c -> toggleHud())
 				.then(ClientCommands.literal("position").executes(c -> {
@@ -472,6 +475,13 @@ public final class WigCommands {
 			WigState.select("");
 		}
 		Chat.info("Deleted " + route.name() + ".");
+		return 1;
+	}
+
+	private static int setLookWall(boolean on) {
+		WigState.config.followLookOnlyWhenVisible = on;
+		WigState.saveConfig();
+		Chat.info("When following, you " + (on ? "stop looking at the player while a wall is between you." : "always look at the player."));
 		return 1;
 	}
 }

@@ -51,6 +51,8 @@ public final class WigConfig {
 	public double followLookRadius = 0.5;
 	/** Draw the trail being followed in the world, for debugging. */
 	public boolean followShowTrail = false;
+	/** Stop looking at the followed player while a wall is between you, and look where you are walking instead. */
+	public boolean followLookOnlyWhenVisible = false;
 	/** Never jump while following. */
 	public boolean followNeverJump = false;
 	/** The run stops if the player has hardly moved for this long. */

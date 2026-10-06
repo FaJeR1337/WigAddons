@@ -38,10 +38,10 @@ public final class FollowPlanner {
 	}
 
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
-		boolean neverJump, double stuckSeconds) {
+		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible) {
 		public static Params of(WigConfig c) {
 			return new Params(c.followStopDistance, c.followResumeDistance, c.followSprintDistance, c.followLostSeconds,
-				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds);
+				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible);
 		}
 	}
 
@@ -65,7 +65,10 @@ public final class FollowPlanner {
 	/** Corners are only cut to points this close, and checked this often (ticks). */
 	static final double SHORTCUT_RANGE = 24.0;
 	static final int SHORTCUT_EVERY = 4;
+	static final double EYE_HEIGHT = 1.62;
 	static final int REPLAN_EVERY = 10;
+	/** How long the view has to be blocked, or clear, before the look switches. */
+	static final int LOOK_SWITCH_TICKS = 10;
 	static final double STEP_UP = 0.6;
 	/** How long a randomly picked look spot is kept, in ticks. */
 	static final int MIN_LOOK_TICKS = 25;
@@ -82,6 +85,8 @@ public final class FollowPlanner {
 	private List<double[]> detour;
 	private double[] detourGoal;
 	private int replanCooldown;
+	private boolean lookingAtPlayer = true;
+	private int visibilityTicks;
 	private Target lastSeen;
 	private double[] lastNext;
 	/** Ticks spent standing at the last place they were seen, after losing sight of them. */
@@ -188,6 +193,18 @@ public final class FollowPlanner {
 		double headY = lastSeen.eyeY() - 0.2;
 		// up close the view stays at head height, so it doesn't bob up and down at someone standing right there
 		double vertical = dist <= params.resumeDistance() ? 0 : lookDy;
+		if (params.lookOnlyWhenVisible() && terrain != null) {
+			boolean visible = clearSight(px, py + EYE_HEIGHT, pz, lastSeen.x(), headY, lastSeen.z());
+			// the look only switches once the new situation has lasted a moment, so doorways and corners don't make the view flick back and forth
+			visibilityTicks = visible == lookingAtPlayer ? 0 : visibilityTicks + 1;
+			if (visibilityTicks >= LOOK_SWITCH_TICKS) {
+				lookingAtPlayer = visible;
+				visibilityTicks = 0;
+			}
+			if (!lookingAtPlayer && lastNext != null) {
+				return new Output(forward, strafe, sprint, jump, status, dist, lastNext[0], py + EYE_HEIGHT, lastNext[2]);
+			}
+		}
 		return new Output(forward, strafe, sprint, jump, status, dist,
 			lastSeen.x() + lookDx, headY + vertical, lastSeen.z() + lookDz);
 	}
@@ -230,6 +247,19 @@ public final class FollowPlanner {
 			}
 		}
 		return detour.get(0);
+	}
+
+	/** Whether nothing solid is between the two points, checked every fifth of a block. */
+	private boolean clearSight(double x0, double y0, double z0, double x1, double y1, double z1) {
+		double length = Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
+		int steps = Math.max(1, (int) Math.ceil(length / 0.2));
+		for (int i = 1; i < steps; i++) {
+			double t = i / (double) steps;
+			if (terrain.solid((int) Math.floor(x0 + (x1 - x0) * t), (int) Math.floor(y0 + (y1 - y0) * t), (int) Math.floor(z0 + (z1 - z0) * t))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** Skips ahead to the furthest trail point that can be walked to in a straight, flat-enough line. */

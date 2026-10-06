@@ -240,6 +240,11 @@ public final class WigGui {
 				config.followShowTrail = v;
 				WigState.saveConfig();
 			});
+		b.toggle("lookwall", "Stop looking behind walls", "Stops looking at the player while a wall is between you, and looks where you are walking instead. The view only switches once it has been blocked (or clear) for half a second.",
+			() -> config.followLookOnlyWhenVisible, v -> {
+				config.followLookOnlyWhenVisible = v;
+				WigState.saveConfig();
+			});
 		b.toggle("nojump", "Never jump", "Never jump while following.", () -> config.followNeverJump, v -> {
 			config.followNeverJump = v;
 			WigState.saveConfig();

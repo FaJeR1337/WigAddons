@@ -304,4 +304,27 @@ class FollowPlannerTest {
 		ObstacleAvoider.Terrain sealed = (x, y, z) -> y <= -61 || (Math.abs(x) == 2 && Math.abs(z) <= 2 && y <= -59) || (Math.abs(z) == 2 && Math.abs(x) <= 2 && y <= -59);
 		assertTrue(GridPath.find(sealed, 0, -60, 0, 0, -60, 10, true) == null);
 	}
+
+	@Test
+	void looksAtTheNextPointInsteadOfThePlayerBehindAWall() {
+		ObstacleAvoider.Terrain wall = (x, y, z) -> y <= -61 || (z == 5 && x >= -6 && x <= 6 && y <= -57);
+		WigConfig cfg = new WigConfig();
+		cfg.followLookRadius = 0;
+		cfg.followLookOnlyWhenVisible = true;
+		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		f.setTerrain(wall);
+		FollowPlanner.Output out = null;
+		for (int i = 0; i < 20; i++) {
+			out = f.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, false);
+		}
+		assertTrue(Math.abs(out.lookX() - 0.5) > 1.0, "looks along the detour, x=" + out.lookX());
+		WigConfig always = new WigConfig();
+		always.followLookRadius = 0;
+		FollowPlanner g = new FollowPlanner(FollowPlanner.Params.of(always), new Random(1));
+		g.setTerrain(wall);
+		for (int i = 0; i < 20; i++) {
+			out = g.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, false);
+		}
+		assertEquals(0.5, out.lookX(), 1e-9);
+	}
 }
