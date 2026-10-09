@@ -302,6 +302,11 @@ public final class WigGui {
 		followNumber(b, "click", "Click length (ticks)", "How long the right click button is held for each attack.", () -> config.killClickTicks, v -> config.killClickTicks = (int) Math.round(v), 1, 40);
 		followNumber(b, "cooldown", "Click cooldown (s)", "The least time between one right click and the next, in seconds. Set it to your weapon's cooldown. A little extra is added at random so it isn't clockwork.",
 			() -> config.killClickCooldownSeconds, v -> config.killClickCooldownSeconds = v, 0, 60);
+		b.toggle("stand", "Stand still when crowded", "With two or more targets in sight and within click range, stop walking and deal with them from where you stand, until the last one is marked.",
+			() -> config.killStandWhenCrowded, v -> {
+				config.killStandWhenCrowded = v;
+				WigState.saveConfig();
+			});
 		b.toggle("sight", "Depth check", "Mobs behind walls are only walked toward when none is in sight, and are never looked at or clicked until they are in sight. It only right clicks when nothing solid is between you and the mob, so no shot is wasted on a wall.",
 			() -> config.killRequireSight, v -> {
 				config.killRequireSight = v;

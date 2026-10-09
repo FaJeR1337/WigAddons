@@ -113,8 +113,9 @@ final class SmokeTest {
 			case 17 -> huntCheck(mc);
 			case 18 -> wanderCheck(mc);
 			case 19 -> sightCheck(mc);
-			case 20 -> hudPosition(mc);
-			case 21 -> {
+			case 20 -> crowdCheck(mc);
+			case 21 -> hudPosition(mc);
+			case 22 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -334,6 +335,34 @@ final class SmokeTest {
 		if (phaseTick == 400) {
 			log("wall gone: me " + fmt(mc) + ", attacked " + Runner.huntOrder());
 			Runner.stop("smoke test over");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	/** Three golems within reach at once with "stand still when crowded" on: the player must not move until all three are attacked. */
+	private static void crowdCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			WigState.config.killStandWhenCrowded = true;
+			WigState.config.killHomeSet = false;
+		}
+		if (phaseTick == 10) {
+			String tags = ",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}";
+			command(mc, "summon minecraft:iron_golem 0.5 -60 3.5 {CustomName:\"Zealot\"" + tags);
+			command(mc, "summon minecraft:iron_golem 3.5 -60 0.5 {CustomName:\"Zealot\"" + tags);
+			command(mc, "summon minecraft:iron_golem -2.5 -60 0.5 {CustomName:\"Zealot\"" + tags);
+		}
+		if (phaseTick == 40) {
+			Runner.startHunt();
+		}
+		if (phaseTick > 40 && phaseTick % 20 == 0) {
+			log("crowd t=" + (phaseTick - 40) + ": me " + fmt(mc) + ", attacked " + Runner.huntOrder().size());
+		}
+		if (phaseTick == 500 || (phaseTick > 40 && Runner.huntOrder().size() >= 3)) {
+			log("crowd ended: attacked " + Runner.huntOrder().size() + ", me " + fmt(mc));
+			Runner.stop("smoke test over");
+			WigState.config.killStandWhenCrowded = false;
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
 		}

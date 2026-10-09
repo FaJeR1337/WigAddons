@@ -70,6 +70,11 @@ public final class Runner {
 	private static int useTicksLeft;
 	/** The tick before which the next right click has to wait: the weapon's cooldown. */
 	private static long nextClickTick;
+	/** Standing still because several targets are in reach; since when (ticks). */
+	private static boolean standingGround;
+	private static long standingSince;
+	/** Standing ground gives up after this long, in case nothing manages to get clicked. */
+	private static final int STAND_LIMIT_TICKS = 300;
 	/** The tick each mob was last in clear sight, for the depth check. */
 	private static final java.util.Map<Integer, Long> HUNT_SEEN = new java.util.HashMap<>();
 	/** A mob that has just stepped out of sight is still gone for this many ticks, so a pillar edge doesn't make the target flicker. */
@@ -271,6 +276,7 @@ public final class Runner {
 		idleGoal = null;
 		idlePauseTicks = 0;
 		nextClickTick = 0;
+		standingGround = false;
 		HUNT_SEEN.clear();
 		HUNT_ORDER.clear();
 		huntWaitingTold = false;
@@ -446,6 +452,20 @@ public final class Runner {
 		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
 		// mobs in sight come first; ones behind walls are only walked toward when nothing is in sight
 		java.util.List<ZealotHunter.Mob> inSight = cfg.killRequireSight ? all.stream().filter(m -> recentlySeen(m.id())).toList() : all;
+		if (cfg.killStandWhenCrowded) {
+			java.util.List<ZealotHunter.Mob> reachable = inSight.stream().filter(m -> huntable(m, cfg) && Math.hypot(m.x() - player.getX(), m.z() - player.getZ()) <= cfg.killRange).toList();
+			if (!standingGround && reachable.size() >= 2) {
+				standingGround = true;
+				standingSince = ticks;
+			} else if (standingGround && (reachable.isEmpty() || ticks - standingSince > STAND_LIMIT_TICKS)) {
+				standingGround = false;
+			}
+			if (standingGround) {
+				inSight = reachable; // deal with the ones in reach, where you stand
+			}
+		} else {
+			standingGround = false;
+		}
 		ZealotHunter.Mob pick = HUNTER.pick(inSight, player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
 		if (pick == null && inSight.size() < all.size()) {
 			pick = HUNTER.pick(all, player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
@@ -475,6 +495,13 @@ public final class Runner {
 		strafe = out.strafe();
 		sprintOn = out.sprint();
 		jump = out.jump();
+		if (standingGround) {
+			// several targets in reach: no walking, just turn and click until they are all marked
+			moveForward = 0;
+			strafe = 0;
+			sprintOn = false;
+			jump = false;
+		}
 		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
 		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
 		haveAim = true;
@@ -558,6 +585,12 @@ public final class Runner {
 		haveAim = false;
 		pitchTarget = Double.NaN;
 		followDistance = Double.NaN;
+	}
+
+	/** Whether the mob is one to hunt and not marked dead. */
+	private static boolean huntable(ZealotHunter.Mob mob, WigConfig cfg) {
+		return !HUNTER.isMarkedDead(mob.id(), ticks)
+			&& (ZealotHunter.matches(mob.name(), cfg.killName) || ZealotHunter.matches(mob.name(), cfg.killSpecialName));
 	}
 
 	/** Whether the mob was in clear sight a moment ago. */

@@ -73,6 +73,8 @@ public final class WigConfig {
 	public double killAimMargin = 0.3;
 	/** Only right click when nothing solid is between you and where the view meets the target. */
 	public boolean killRequireSight = true;
+	/** With two or more targets in sight within click range, stand still and deal with them from where you are, until the last one is marked. */
+	public boolean killStandWhenCrowded = false;
 	/** Where to go when there is nothing to hunt (/wig kill home), and whether to wander around it until something turns up. */
 	public boolean killHomeSet = false;
 	public double killHomeX;
