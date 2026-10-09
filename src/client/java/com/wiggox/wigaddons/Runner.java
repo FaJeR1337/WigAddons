@@ -66,6 +66,8 @@ public final class Runner {
 	private static double idleLookYaw;
 	private static double idleLookPitch;
 	private static int idleLookTicks;
+	/** While walking home or wandering the view stays within this many degrees of the way to the goal. */
+	private static final double IDLE_LOOK_SPREAD_DEGREES = 90.0;
 	/** The names attacked so far this hunt, in order (kept for the dev test). */
 	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
 	private static boolean huntWaitingTold;
@@ -577,7 +579,8 @@ public final class Runner {
 		if (cfg.killIdleLookAround) {
 			// the view wanders on its own; the planner already picks W, A, S and D relative to it, so the way round things is sidestepped or backed into
 			if (--idleLookTicks <= 0) {
-				idleLookYaw = player.getYRot() + (HUNT_RANDOM.nextDouble() * 2 - 1) * 70;
+				// somewhere within 90 degrees either side of the way to the goal: the keys vary, but the view never faces away
+				idleLookYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), goal[0], goal[2]) + (HUNT_RANDOM.nextDouble() * 2 - 1) * IDLE_LOOK_SPREAD_DEGREES;
 				idleLookPitch = (HUNT_RANDOM.nextDouble() * 2 - 1) * 2.0;
 				idleLookTicks = 60 + HUNT_RANDOM.nextInt(100);
 			}
