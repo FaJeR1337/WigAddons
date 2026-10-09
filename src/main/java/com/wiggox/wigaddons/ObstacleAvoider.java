@@ -19,6 +19,11 @@ public final class ObstacleAvoider {
 		default boolean supports(int x, int y, int z) {
 			return solid(x, y, z);
 		}
+
+		/** How high the cell's collision reaches within the cell, from 0 (nothing) to 1 (a full block). */
+		default double top(int x, int y, int z) {
+			return solid(x, y, z) ? 1.0 : supports(x, y, z) ? 0.5 : 0.0;
+		}
 	}
 
 	/**

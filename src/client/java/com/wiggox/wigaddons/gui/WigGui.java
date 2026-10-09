@@ -292,6 +292,11 @@ public final class WigGui {
 				config.killWander = v;
 				WigState.saveConfig();
 			});
+		b.toggle("idlelook", "Look around while walking home", "While walking to the home spot or wandering, the view looks around on its own and the walking keys are whatever the way needs: sidestepping round things with A and D, backing up with S. Off keeps the view on where you are going, so mostly W.",
+			() -> config.killIdleLookAround, v -> {
+				config.killIdleLookAround = v;
+				WigState.saveConfig();
+			});
 		followNumber(b, "wanderradius", "Wander radius", "How far from the home spot to stroll, in blocks.", () -> config.killWanderRadius, v -> config.killWanderRadius = v, 0, 50);
 		followNumber(b, "radius", "Search radius", "How many blocks away to look for something to hunt.", () -> config.killSearchRadius, v -> config.killSearchRadius = v, 1, 128);
 		followNumber(b, "range", "Click range", "You right click once you are looking at the mob and it is within this many blocks.", () -> config.killRange, v -> config.killRange = v, 1, 30);

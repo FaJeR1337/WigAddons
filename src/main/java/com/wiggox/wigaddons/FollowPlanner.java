@@ -363,7 +363,11 @@ public final class FollowPlanner {
 		int cx = (int) Math.floor(px + dx / length * 0.6);
 		int cz = (int) Math.floor(pz + dz / length * 0.6);
 		int cy = (int) Math.floor(py + 0.01);
-		return terrain.solid(cx, cy, cz) && !terrain.solid(cx, cy + 1, cz) && !terrain.solid(cx, cy + 2, cz);
+		if (!terrain.solid(cx, cy, cz) || terrain.solid(cx, cy + 1, cz) || terrain.solid(cx, cy + 2, cz)) {
+			return false;
+		}
+		// the walk steps up anything 0.6 or lower by itself: standing on a slab, a full block next to it needs no jump
+		return cy + terrain.top(cx, cy, cz) - py > STEP_UP;
 	}
 
 	/** Whether a body can walk from one spot to another in a straight line: room to stand all along and ground, or at most a one block drop, underfoot. */

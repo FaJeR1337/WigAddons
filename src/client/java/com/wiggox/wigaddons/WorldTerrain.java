@@ -24,6 +24,12 @@ final class WorldTerrain implements ObstacleAvoider.Terrain {
 		return shape != null && !shape.isEmpty();
 	}
 
+	@Override
+	public double top(int x, int y, int z) {
+		VoxelShape shape = shape(x, y, z);
+		return shape == null || shape.isEmpty() ? 0.0 : shape.max(Direction.Axis.Y);
+	}
+
 	private static VoxelShape shape(int x, int y, int z) {
 		ClientLevel level = Minecraft.getInstance().level;
 		if (level == null) {

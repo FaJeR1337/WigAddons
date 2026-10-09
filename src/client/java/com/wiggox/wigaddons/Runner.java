@@ -63,6 +63,9 @@ public final class Runner {
 	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
 	private static double[] idleGoal;
 	private static int idlePauseTicks;
+	private static double idleLookYaw;
+	private static double idleLookPitch;
+	private static int idleLookTicks;
 	/** The names attacked so far this hunt, in order (kept for the dev test). */
 	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
 	private static boolean huntWaitingTold;
@@ -571,8 +574,19 @@ public final class Runner {
 		strafe = out.strafe();
 		sprintOn = false;
 		jump = out.jump();
-		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
-		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		if (cfg.killIdleLookAround) {
+			// the view wanders on its own; the planner already picks W, A, S and D relative to it, so the way round things is sidestepped or backed into
+			if (--idleLookTicks <= 0) {
+				idleLookYaw = player.getYRot() + (HUNT_RANDOM.nextDouble() * 2 - 1) * 70;
+				idleLookPitch = (HUNT_RANDOM.nextDouble() * 2 - 1) * 2.0;
+				idleLookTicks = 60 + HUNT_RANDOM.nextInt(100);
+			}
+			aimYaw = idleLookYaw;
+			pitchTarget = idleLookPitch;
+		} else {
+			aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
+			pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		}
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();

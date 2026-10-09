@@ -87,6 +87,8 @@ public final class WigConfig {
 	public double killHomeY;
 	public double killHomeZ;
 	public boolean killWander = true;
+	/** While walking to the home spot or wandering, the view looks around on its own and the keys (W, A, S, D) are whatever the way needs, instead of the view always facing where it is going. */
+	public boolean killIdleLookAround = true;
 	public double killWanderRadius = 6;
 	/** Stop looking at the followed player while a wall is between you, and look where you are walking instead. */
 	public boolean followLookOnlyWhenVisible = false;

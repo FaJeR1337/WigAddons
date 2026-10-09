@@ -448,4 +448,17 @@ class FollowPlannerTest {
 		}
 		assertTrue(pitches.size() > 3, "the pitch should vary");
 	}
+
+	@Test
+	void doesNotJumpFromASlabOntoTheBlockBesideIt() {
+		// the ground top is y=-60; at z=1 there is a full block in the cell above it (a one block rise from the ground)
+		ObstacleAvoider.Terrain terrain = (x, y, z) -> y <= -61 || (z == 1 && y == -60);
+		FollowPlanner onGround = new FollowPlanner(params(), new Random(1));
+		onGround.setTerrain(terrain);
+		assertTrue(onGround.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, true).jump(), "a whole block up needs a jump");
+		FollowPlanner onSlab = new FollowPlanner(params(), new Random(1));
+		onSlab.setTerrain(terrain);
+		// standing half a block up, on a slab: the same block is only a half block step
+		assertFalse(onSlab.tick(0.5, -59.5, 0.5, 0, at(0.5, 14), true, true).jump(), "half a block is stepped up without jumping");
+	}
 }
