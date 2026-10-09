@@ -443,7 +443,13 @@ public final class Runner {
 			mc.options.keyUse.setDown(false);
 			holdingRight = false;
 		}
-		ZealotHunter.Mob pick = HUNTER.pick(scanMobs(mc, player), player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
+		// mobs in sight come first; ones behind walls are only walked toward when nothing is in sight
+		java.util.List<ZealotHunter.Mob> inSight = cfg.killRequireSight ? all.stream().filter(m -> recentlySeen(m.id())).toList() : all;
+		ZealotHunter.Mob pick = HUNTER.pick(inSight, player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		if (pick == null && inSight.size() < all.size()) {
+			pick = HUNTER.pick(all, player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		}
 		int id = pick == null ? -1 : pick.id();
 		if (pick != null && id != huntTargetId) {
 			// a new target: a fresh plan, so the old one's trail isn't walked
@@ -554,6 +560,11 @@ public final class Runner {
 		followDistance = Double.NaN;
 	}
 
+	/** Whether the mob was in clear sight a moment ago. */
+	private static boolean recentlySeen(int id) {
+		return ticks - HUNT_SEEN.getOrDefault(id, -1000L) <= SIGHT_GRACE_TICKS;
+	}
+
 	/** Whether a line from the eyes to the mob's eyes, middle or lower body is free of blocks. */
 	private static boolean inSight(Minecraft mc, LocalPlayer player, Entity mob) {
 		Vec3 eye = player.getEyePosition();
@@ -625,14 +636,12 @@ public final class Runner {
 		}
 		java.util.List<ZealotHunter.Mob> mobs = new java.util.ArrayList<>(found.values());
 		if (cfg.killRequireSight) {
-			// the depth check: mobs behind walls aren't targeted (or looked at) until they are in sight again
-			mobs.removeIf(mob -> {
+			for (ZealotHunter.Mob mob : mobs) {
 				Entity body = mc.level.getEntity(mob.id());
 				if (body != null && inSight(mc, player, body)) {
 					HUNT_SEEN.put(mob.id(), (long) ticks);
 				}
-				return ticks - HUNT_SEEN.getOrDefault(mob.id(), -1000L) > SIGHT_GRACE_TICKS;
-			});
+			}
 		}
 		return mobs;
 	}

@@ -315,7 +315,7 @@ final class SmokeTest {
 		}
 	}
 
-	/** A named golem behind a long wall must be left alone; with the wall gone it is attacked. */
+	/** A named golem behind a long wall must not be aimed at or attacked through it; with the wall gone it is attacked. */
 	private static void sightCheck(Minecraft mc) {
 		if (phaseTick == 1) {
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
@@ -328,7 +328,7 @@ final class SmokeTest {
 			Runner.startHunt();
 		}
 		if (phaseTick == 200) {
-			log("behind the wall: me " + fmt(mc) + ", attacked " + Runner.huntOrder());
+			log("behind the wall (walking toward it is fine, attacking is not): me " + fmt(mc) + ", attacked " + Runner.huntOrder());
 			command(mc, "fill -30 -60 4 30 -57 4 air");
 		}
 		if (phaseTick == 400) {
