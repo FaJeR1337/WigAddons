@@ -73,8 +73,6 @@ public final class Runner {
 	/** Standing still because several targets are in reach; since when (ticks). */
 	private static boolean standingGround;
 	private static long standingSince;
-	/** Standing ground gives up after this long, in case nothing manages to get clicked. */
-	private static final int STAND_LIMIT_TICKS = 300;
 	/** The tick each mob was last in clear sight, for the depth check. */
 	private static final java.util.Map<Integer, Long> HUNT_SEEN = new java.util.HashMap<>();
 	/** A mob that has just stepped out of sight is still gone for this many ticks, so a pillar edge doesn't make the target flicker. */
@@ -457,7 +455,7 @@ public final class Runner {
 			if (!standingGround && reachable.size() >= 2) {
 				standingGround = true;
 				standingSince = ticks;
-			} else if (standingGround && (reachable.isEmpty() || ticks - standingSince > STAND_LIMIT_TICKS)) {
+			} else if (standingGround && (reachable.isEmpty() || ticks - standingSince > Math.round(cfg.killStandLimitSeconds * 20))) {
 				standingGround = false;
 			}
 			if (standingGround) {

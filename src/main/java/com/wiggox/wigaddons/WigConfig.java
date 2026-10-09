@@ -75,6 +75,8 @@ public final class WigConfig {
 	public boolean killRequireSight = true;
 	/** With two or more targets in sight within click range, stand still and deal with them from where you are, until the last one is marked. */
 	public boolean killStandWhenCrowded = false;
+	/** Standing still gives up after this many seconds, in case nothing manages to get clicked. */
+	public double killStandLimitSeconds = 15;
 	/** Where to go when there is nothing to hunt (/wig kill home), and whether to wander around it until something turns up. */
 	public boolean killHomeSet = false;
 	public double killHomeX;
@@ -180,6 +182,9 @@ public final class WigConfig {
 		}
 		if (!(killWanderRadius >= 0)) {
 			killWanderRadius = d.killWanderRadius;
+		}
+		if (!(killStandLimitSeconds > 0)) {
+			killStandLimitSeconds = d.killStandLimitSeconds;
 		}
 		if (!(killAimMargin >= 0)) {
 			killAimMargin = d.killAimMargin;
