@@ -56,4 +56,16 @@ class ZealotHunterTest {
 		assertFalse(h.isMarkedDead(1, 201));
 		assertEquals(1, pick(h, 201, mob(1, "Zealot", 2, 0)).id());
 	}
+
+	@Test
+	void ignoresTargetsThatNeedTheViewPitchedAlmostStraightUp() {
+		// eyes at y=1.62; a mob 10 blocks up and 2 across needs about -79 degrees
+		ZealotHunter.Mob above = new ZealotHunter.Mob(1, "Zealot", 2, 10, 0, 12);
+		ZealotHunter.Mob ahead = new ZealotHunter.Mob(2, "Zealot", 8, 0, 0, 2.5);
+		ZealotHunter.Mob gentle = new ZealotHunter.Mob(3, "Zealot", 5, 5, 0, 7); // about -47
+		assertTrue(ZealotHunter.tooSteepUp(0, 1.62, 0, above, 65));
+		assertFalse(ZealotHunter.tooSteepUp(0, 1.62, 0, ahead, 65));
+		assertFalse(ZealotHunter.tooSteepUp(0, 1.62, 0, gentle, 65));
+		assertFalse(ZealotHunter.tooSteepUp(0, 1.62, 0, above, 90)); // switched off
+	}
 }

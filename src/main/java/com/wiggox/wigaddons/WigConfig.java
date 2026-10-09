@@ -71,6 +71,8 @@ public final class WigConfig {
 	public double killClickCooldownSeconds = 0.5;
 	/** How much bigger than the target's hitbox counts as looking at it, in blocks. */
 	public double killAimMargin = 0.3;
+	/** Targets that would need the view pitched up steeper than this many degrees (a pitch from minus this to -90) are ignored. 90 or more ignores none. */
+	public double killMaxLookUp = 65;
 	/** Only right click when nothing solid is between you and where the view meets the target. */
 	public boolean killRequireSight = true;
 	/** With two or more targets in sight within click range, stand still and deal with them from where you are, until the last one is marked. */
@@ -185,6 +187,9 @@ public final class WigConfig {
 		}
 		if (!(killStandLimitSeconds > 0)) {
 			killStandLimitSeconds = d.killStandLimitSeconds;
+		}
+		if (!(killMaxLookUp > 0)) {
+			killMaxLookUp = d.killMaxLookUp;
 		}
 		if (!(killAimMargin >= 0)) {
 			killAimMargin = d.killAimMargin;

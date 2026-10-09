@@ -448,6 +448,8 @@ public final class Runner {
 			holdingRight = false;
 		}
 		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
+		// a target almost straight above can't be looked at: leave it alone
+		all = all.stream().filter(m -> !ZealotHunter.tooSteepUp(player.getX(), player.getEyeY(), player.getZ(), m, cfg.killMaxLookUp)).toList();
 		// mobs in sight come first; ones behind walls are only walked toward when nothing is in sight
 		java.util.List<ZealotHunter.Mob> inSight = cfg.killRequireSight ? all.stream().filter(m -> recentlySeen(m.id())).toList() : all;
 		if (cfg.killStandWhenCrowded) {

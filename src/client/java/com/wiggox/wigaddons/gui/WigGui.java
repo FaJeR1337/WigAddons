@@ -309,6 +309,8 @@ public final class WigGui {
 			});
 		followNumber(b, "standlimit", "Stand still limit (s)", "Standing still gives up after this many seconds if nothing gets clicked, so a blocked shot can't freeze you in place. Then you walk on as normal.",
 			() -> config.killStandLimitSeconds, v -> config.killStandLimitSeconds = v, 1, 600);
+		followNumber(b, "maxup", "Ignore above pitch", "Targets that would need you to look up steeper than this many degrees (a pitch from minus this to -90) are ignored, so the view never ends up pointing straight up. 90 ignores none.",
+			() -> config.killMaxLookUp, v -> config.killMaxLookUp = v, 1, 90);
 		b.toggle("sight", "Depth check", "Mobs behind walls are only walked toward when none is in sight, and are never looked at or clicked until they are in sight. It only right clicks when nothing solid is between you and the mob, so no shot is wasted on a wall.",
 			() -> config.killRequireSight, v -> {
 				config.killRequireSight = v;

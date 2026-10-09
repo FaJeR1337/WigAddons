@@ -24,6 +24,17 @@ public final class ZealotHunter {
 		return name.toLowerCase(Locale.ROOT).contains(wanted.trim().toLowerCase(Locale.ROOT));
 	}
 
+	/**
+	 * Whether the mob is so far above the eyes that it would take looking up steeper than the limit (a pitch between
+	 * -limit and -90). Those are left alone: the view can't reasonably be held that high, and the mob is never found.
+	 */
+	public static boolean tooSteepUp(double px, double eyeY, double pz, Mob mob, double maxUpDegrees) {
+		if (maxUpDegrees >= 90) {
+			return false;
+		}
+		return FollowPlanner.pitchToward(px, eyeY, pz, mob.x(), mob.eyeY(), mob.z()) < -maxUpDegrees;
+	}
+
 	/** Assumes the mob is going to die: it is left alone for a random time between the two limits, in seconds. */
 	public void markDead(int id, long nowTick, double minSeconds, double maxSeconds, Random random) {
 		double lo = Math.min(minSeconds, maxSeconds);
