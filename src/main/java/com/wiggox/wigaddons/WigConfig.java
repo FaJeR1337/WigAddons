@@ -73,6 +73,8 @@ public final class WigConfig {
 	public double killAimMargin = 0.3;
 	/** Targets that would need the view pitched up steeper than this many degrees (a pitch from minus this to -90) are ignored. 90 or more ignores none. */
 	public double killMaxLookUp = 65;
+	/** Go for the target nearest to where the view already points, so the view turns as little as possible; off goes for the nearest to you. */
+	public boolean killPickByCrosshair = true;
 	/** Only right click when nothing solid is between you and where the view meets the target. */
 	public boolean killRequireSight = true;
 	/** With two or more targets in sight within click range, stand still and deal with them from where you are, until the last one is marked. */

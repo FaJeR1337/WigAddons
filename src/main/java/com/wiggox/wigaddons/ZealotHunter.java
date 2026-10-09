@@ -51,19 +51,42 @@ public final class ZealotHunter {
 		return until != null && nowTick < until;
 	}
 
+	/** Where the player is and where the view points, for choosing the target nearest the crosshair. */
+	public record View(double x, double eyeY, double z, double yaw, double pitch) {
+		/** The angle in degrees between the view and the direction to a point. */
+		public double angleTo(double tx, double ty, double tz) {
+			double dx = tx - x;
+			double dy = ty - eyeY;
+			double dz = tz - z;
+			double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+			if (length < 1e-9) {
+				return 0;
+			}
+			double yawRad = Math.toRadians(yaw);
+			double pitchRad = Math.toRadians(pitch);
+			double vx = -Math.sin(yawRad) * Math.cos(pitchRad);
+			double vy = -Math.sin(pitchRad);
+			double vz = Math.cos(yawRad) * Math.cos(pitchRad);
+			double dot = (dx * vx + dy * vy + dz * vz) / length;
+			return Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, dot))));
+		}
+	}
+
 	/**
+	 * @param byCrosshair choose the target nearest to where the view already points, so it turns as little as possible;
+	 *        otherwise the nearest to the player
 	 * @return the mob to go for, or null when there is none. A special one within the radius always comes first (the
-	 *         nearest of them); otherwise the one already being gone for is kept, else the nearest.
+	 *         best of them); otherwise the one already being gone for is kept, else the best.
 	 */
-	public Mob pick(List<Mob> mobs, double px, double pz, double radius, long nowTick, String name, String special) {
+	public Mob pick(List<Mob> mobs, View view, boolean byCrosshair, double radius, long nowTick, String name, String special) {
 		deadUntil.values().removeIf(until -> nowTick >= until);
-		Mob nearestSpecial = null;
-		Mob nearest = null;
+		Mob bestSpecial = null;
+		Mob best = null;
 		Mob current = null;
-		double specialDist = Double.MAX_VALUE;
-		double nearestDist = Double.MAX_VALUE;
+		double specialScore = Double.MAX_VALUE;
+		double bestScore = Double.MAX_VALUE;
 		for (Mob mob : mobs) {
-			double dist = Math.hypot(mob.x() - px, mob.z() - pz);
+			double dist = Math.hypot(mob.x() - view.x(), mob.z() - view.z());
 			if (dist > radius || isMarkedDead(mob.id(), nowTick)) {
 				continue;
 			}
@@ -71,19 +94,20 @@ public final class ZealotHunter {
 			if (!isSpecial && !matches(mob.name(), name)) {
 				continue;
 			}
-			if (isSpecial && dist < specialDist) {
-				specialDist = dist;
-				nearestSpecial = mob;
+			double score = byCrosshair ? view.angleTo(mob.x(), mob.eyeY(), mob.z()) : dist;
+			if (isSpecial && score < specialScore) {
+				specialScore = score;
+				bestSpecial = mob;
 			}
-			if (dist < nearestDist) {
-				nearestDist = dist;
-				nearest = mob;
+			if (score < bestScore) {
+				bestScore = score;
+				best = mob;
 			}
 			if (mob.id() == currentId) {
 				current = mob;
 			}
 		}
-		Mob chosen = nearestSpecial != null ? nearestSpecial : current != null ? current : nearest;
+		Mob chosen = bestSpecial != null ? bestSpecial : current != null ? current : best;
 		currentId = chosen == null ? -1 : chosen.id();
 		return chosen;
 	}

@@ -15,7 +15,7 @@ class ZealotHunterTest {
 	}
 
 	private static ZealotHunter.Mob pick(ZealotHunter h, long now, ZealotHunter.Mob... mobs) {
-		return h.pick(List.of(mobs), 0, 0, 40, now, "Zealot", "Special Zealot");
+		return h.pick(List.of(mobs), new ZealotHunter.View(0, 1.62, 0, 0, 0), false, 40, now, "Zealot", "Special Zealot");
 	}
 
 	@Test
@@ -37,7 +37,7 @@ class ZealotHunterTest {
 	void aSpecialZealotComesFirstEvenWhenFarther() {
 		ZealotHunter h = new ZealotHunter();
 		assertEquals(2, pick(h, 0, mob(1, "Zealot", 3, 0), mob(2, "Special Zealot", 30, 0)).id());
-		assertNull(h.pick(List.of(mob(2, "Special Zealot", 30, 0)), 0, 0, 20, 0, "Zealot", "Special Zealot")); // out of range
+		assertNull(h.pick(List.of(mob(2, "Special Zealot", 30, 0)), new ZealotHunter.View(0, 1.62, 0, 0, 0), false, 20, 0, "Zealot", "Special Zealot")); // out of range
 	}
 
 	@Test
@@ -67,5 +67,18 @@ class ZealotHunterTest {
 		assertFalse(ZealotHunter.tooSteepUp(0, 1.62, 0, ahead, 65));
 		assertFalse(ZealotHunter.tooSteepUp(0, 1.62, 0, gentle, 65));
 		assertFalse(ZealotHunter.tooSteepUp(0, 1.62, 0, above, 90)); // switched off
+	}
+
+	@Test
+	void picksTheTargetNearestTheCrosshairInsteadOfTheNearest() {
+		ZealotHunter h = new ZealotHunter();
+		// looking south (yaw 0): one mob close behind us, one farther but almost dead ahead
+		ZealotHunter.Mob behind = mob(1, "Zealot", 0, -2);
+		ZealotHunter.Mob ahead = mob(2, "Zealot", 1, 15);
+		ZealotHunter.View view = new ZealotHunter.View(0, 1.62, 0, 0, 0);
+		assertEquals(2, h.pick(List.of(behind, ahead), view, true, 40, 0, "Zealot", "Special Zealot").id());
+		assertEquals(1, new ZealotHunter().pick(List.of(behind, ahead), view, false, 40, 0, "Zealot", "Special Zealot").id());
+		assertEquals(0, view.angleTo(0, 1.62, 10), 1e-6);
+		assertEquals(90, view.angleTo(-10, 1.62, 0), 1e-6); // west is +90 yaw: to the right of south... either side is 90
 	}
 }

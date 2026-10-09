@@ -311,6 +311,11 @@ public final class WigGui {
 			() -> config.killStandLimitSeconds, v -> config.killStandLimitSeconds = v, 1, 600);
 		followNumber(b, "maxup", "Ignore above pitch", "Targets that would need you to look up steeper than this many degrees (a pitch from minus this to -90) are ignored, so the view never ends up pointing straight up. 90 ignores none.",
 			() -> config.killMaxLookUp, v -> config.killMaxLookUp = v, 1, 90);
+		b.toggle("crosshair", "Pick nearest the crosshair", "Go for the target nearest to where you are already looking, so the view turns as little as possible and doesn't spin round. Off goes for the nearest to you. Special mobs still come first.",
+			() -> config.killPickByCrosshair, v -> {
+				config.killPickByCrosshair = v;
+				WigState.saveConfig();
+			});
 		b.toggle("sight", "Depth check", "Mobs behind walls are only walked toward when none is in sight, and are never looked at or clicked until they are in sight. It only right clicks when nothing solid is between you and the mob, so no shot is wasted on a wall.",
 			() -> config.killRequireSight, v -> {
 				config.killRequireSight = v;
