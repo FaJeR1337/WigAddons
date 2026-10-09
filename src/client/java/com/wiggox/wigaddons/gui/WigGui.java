@@ -147,6 +147,7 @@ public final class WigGui {
 			new DynCategory("list", "Routes", "Run one of your routes."),
 			new DynCategory("routes", "Edit Routes", "Your routes and how they are set up."),
 			new DynCategory("follow", "Follow", "Following a player with /wig follow."),
+			new DynCategory("hunt", "Hunt", "Hunting mobs with /wig kill."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks and party changes."));
 		fillAll();
@@ -171,6 +172,7 @@ public final class WigGui {
 				case "list" -> fillList(category);
 				case "routes" -> fillRoutes(category);
 				case "follow" -> fillFollow(category);
+				case "hunt" -> fillHunt(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
 				default -> {
@@ -268,6 +270,31 @@ public final class WigGui {
 	}
 
 	// ---- HUD ----
+
+	private static void fillHunt(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.info("how", "How it works", "Type /wig kill. You walk up to the nearest mob with the name below (special ones first), look at it and right click once it is in reach. The mob is then treated as dead for a few seconds and you move on to the next. /wig stop ends it.");
+		b.text("name", "Mob name", "Mobs whose name contains this text are hunted, ignoring capitals, so Zealot also finds Zealot Bruiser.",
+			() -> config.killName, v -> {
+				config.killName = v.trim();
+				WigState.saveConfig();
+			});
+		b.text("special", "Special mob name", "Mobs whose name contains this text are always gone for first, however far away (within the search radius).",
+			() -> config.killSpecialName, v -> {
+				config.killSpecialName = v.trim();
+				WigState.saveConfig();
+			});
+		followNumber(b, "radius", "Search radius", "How many blocks away to look for something to hunt.", () -> config.killSearchRadius, v -> config.killSearchRadius = v, 1, 128);
+		followNumber(b, "range", "Click range", "You right click once you are looking at the mob and it is within this many blocks.", () -> config.killRange, v -> config.killRange = v, 1, 30);
+		followNumber(b, "markmin", "Dead for at least (s)", "After attacking, the mob is assumed dead and ignored for a random time between this and the next number, in seconds.",
+			() -> config.killMarkMinSeconds, v -> config.killMarkMinSeconds = v, 0, 300);
+		followNumber(b, "markmax", "Dead for at most (s)", "The longest the mob is ignored after an attack, in seconds.",
+			() -> config.killMarkMaxSeconds, v -> config.killMarkMaxSeconds = v, 0, 300);
+		followNumber(b, "click", "Click length (ticks)", "How long the right click button is held for each attack.", () -> config.killClickTicks, v -> config.killClickTicks = (int) Math.round(v), 1, 40);
+		followNumber(b, "margin", "Aim margin", "How much bigger than the mob's hitbox still counts as looking at it, in blocks.", () -> config.killAimMargin, v -> config.killAimMargin = v, 0, 2);
+	}
 
 	private static void fillHud(DynCategory category) {
 		reset(category);

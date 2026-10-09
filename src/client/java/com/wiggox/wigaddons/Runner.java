@@ -6,6 +6,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Runs the player along a route. Each tick it works out which way to face and feeds forward/sprint/jump into the
@@ -48,6 +54,17 @@ public final class Runner {
 	private static final ViewSmoother yawSmoother = new ViewSmoother();
 	private static final ViewSmoother pitchSmoother = new ViewSmoother();
 	private static String followName;
+	/** Hunting mobs (/wig kill) instead of following a player: the planner is aimed at one mob at a time. */
+	private static boolean hunting;
+	private static final ZealotHunter HUNTER = new ZealotHunter();
+	private static final Random HUNT_RANDOM = new Random();
+	private static int huntTargetId = -1;
+	private static int huntKills;
+	/** The names attacked so far this hunt, in order (kept for the dev test). */
+	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
+	private static boolean huntWaitingTold;
+	/** Ticks left of the right click being held for an attack. */
+	private static int useTicksLeft;
 	private static double followDistance = Double.NaN;
 	private static boolean followWasLost;
 	/** Which movement keys the input mixin presses: forward 1 / back -1, and sprint. */
@@ -94,6 +111,9 @@ public final class Runner {
 	public static String runningName() {
 		if (follower != null) {
 			return runName;
+		}
+		if (hunting && planner != null) {
+			return "Hunting " + WigState.config.killName;
 		}
 		return planner != null ? "Following " + followName : null;
 	}
@@ -151,6 +171,7 @@ public final class Runner {
 		}
 		planner = null;
 		followSource = null;
+		hunting = false;
 		moveForward = 1;
 		sprintOn = true;
 		runName = route.name();
@@ -195,6 +216,7 @@ public final class Runner {
 			end();
 		}
 		followName = name;
+		hunting = false;
 		followSource = source;
 		yawSmoother.reset();
 		pitchSmoother.reset();
@@ -226,6 +248,27 @@ public final class Runner {
 		turnPerTick = 0;
 		haveAim = false;
 		lastFrameNanos = System.nanoTime();
+	}
+
+	/**
+	 * Starts hunting: goes for the mobs named in the config one after another, special ones first, looking at each and
+	 * right clicking when it is in reach, then treating it as dead for a few seconds and moving on.
+	 */
+	public static void startHunt() {
+		startFollow("mobs", () -> null);
+		hunting = true;
+		huntTargetId = -1;
+		huntKills = 0;
+		HUNT_ORDER.clear();
+		huntWaitingTold = false;
+		useTicksLeft = 0;
+		planner = new FollowPlanner(FollowPlanner.Params.forHunt(WigState.config), new Random());
+		planner.setTerrain(new WorldTerrain());
+	}
+
+	/** The names attacked so far in this hunt, in order. */
+	public static java.util.List<String> huntOrder() {
+		return java.util.List.copyOf(HUNT_ORDER);
 	}
 
 	public static void stop(String reason) {
@@ -265,6 +308,8 @@ public final class Runner {
 
 	private static void end() {
 		releaseClicks();
+		hunting = false;
+		useTicksLeft = 0;
 		if (macroCountdown >= 0) {
 			clearWarning();
 		}
@@ -329,7 +374,11 @@ public final class Runner {
 		holdClicks(mc);
 
 		if (planner != null) {
-			followTick(mc, player);
+			if (hunting) {
+				huntTick(mc, player);
+			} else {
+				followTick(mc, player);
+			}
 			return;
 		}
 
@@ -367,6 +416,111 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	/** One tick of hunting: pick a target, walk up to it, look at it, and right click once it is in reach. */
+	private static void huntTick(Minecraft mc, LocalPlayer player) {
+		var cfg = WigState.config;
+		if (useTicksLeft > 0 && --useTicksLeft == 0) {
+			mc.options.keyUse.setDown(false);
+			holdingRight = false;
+		}
+		ZealotHunter.Mob pick = HUNTER.pick(scanMobs(mc, player), player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		int id = pick == null ? -1 : pick.id();
+		if (id != huntTargetId) {
+			// a new target: a fresh plan, so the old one's trail isn't walked
+			huntTargetId = id;
+			planner = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random());
+			planner.setTerrain(new WorldTerrain());
+		}
+		if (pick == null) {
+			if (!huntWaitingTold) {
+				huntWaitingTold = true;
+				Chat.info("No " + cfg.killName + " in range. Waiting for one to come close.");
+			}
+			moveForward = 0;
+			strafe = 0;
+			sprintOn = false;
+			jump = false;
+			haveAim = false;
+			pitchTarget = Double.NaN;
+			followDistance = Double.NaN;
+			return;
+		}
+		huntWaitingTold = false;
+		FollowPlanner.Output out = planner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
+			new FollowPlanner.Target(pick.x(), pick.y(), pick.z(), pick.eyeY()), player.onGround(), player.horizontalCollision);
+		followDistance = out.distance();
+		if (out.status() == FollowPlanner.Status.STUCK) {
+			// can't get to this one: leave it for a while and try another
+			HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
+			return;
+		}
+		moveForward = out.forward();
+		strafe = out.strafe();
+		sprintOn = out.sprint();
+		jump = out.jump();
+		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
+		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		haveAim = true;
+		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
+		yawAtLastTick = player.getYRot();
+		if (useTicksLeft == 0 && lookingAtInReach(mc, player, id, cfg)) {
+			mc.options.keyUse.setDown(true);
+			holdingRight = true;
+			useTicksLeft = cfg.killClickTicks;
+			HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
+			huntKills++;
+			HUNT_ORDER.add(pick.name());
+		}
+	}
+
+	/** Whether the view points at the mob (its hitbox, a little bigger) within the click range. */
+	private static boolean lookingAtInReach(Minecraft mc, LocalPlayer player, int id, WigConfig cfg) {
+		Entity mob = mc.level.getEntity(id);
+		if (mob == null || !mob.isAlive()) {
+			return false;
+		}
+		Vec3 eye = player.getEyePosition();
+		Vec3 end = eye.add(player.getViewVector(1.0F).scale(cfg.killRange));
+		return mob.getBoundingBox().inflate(cfg.killAimMargin).clip(eye, end).isPresent();
+	}
+
+	/** The mobs around that carry the hunted name: on the mob itself, or on the name tag stand floating above it. */
+	private static java.util.List<ZealotHunter.Mob> scanMobs(Minecraft mc, LocalPlayer player) {
+		var cfg = WigState.config;
+		AABB area = player.getBoundingBox().inflate(cfg.killSearchRadius);
+		java.util.List<Entity> around = mc.level.getEntities((Entity) null, area);
+		java.util.Map<Integer, ZealotHunter.Mob> found = new java.util.LinkedHashMap<>();
+		for (Entity entity : around) {
+			if (!entity.hasCustomName()) {
+				continue;
+			}
+			String name = entity.getCustomName().getString();
+			if (!ZealotHunter.matches(name, cfg.killName) && !ZealotHunter.matches(name, cfg.killSpecialName)) {
+				continue;
+			}
+			Entity body = entity;
+			if (entity instanceof ArmorStand) {
+				body = null;
+				double best = Double.MAX_VALUE;
+				for (Entity other : around) {
+					if (!(other instanceof LivingEntity) || other instanceof ArmorStand || other instanceof Player) {
+						continue;
+					}
+					double flat = Math.hypot(other.getX() - entity.getX(), other.getZ() - entity.getZ());
+					double above = entity.getY() - other.getY();
+					if (flat < 1.5 && above > -0.5 && above < 4.0 && flat < best) {
+						best = flat;
+						body = other;
+					}
+				}
+			}
+			if (body != null && body.isAlive() && !(body instanceof Player)) {
+				found.putIfAbsent(body.getId(), new ZealotHunter.Mob(body.getId(), name, body.getX(), body.getY(), body.getZ(), body.getEyeY()));
+			}
+		}
+		return new java.util.ArrayList<>(found.values());
 	}
 
 	/** One tick of following: walk the trail, keep the distance, look at the player. */

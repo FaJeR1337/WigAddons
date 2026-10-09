@@ -96,6 +96,14 @@ public final class WigCommands {
 					.then(ClientCommands.literal("off").executes(c -> noJump(StringArgumentType.getString(c, "route"), false)))))
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
+			.then(ClientCommands.literal("kill").executes(c -> {
+				if (WigState.editing != null) {
+					EditMode.leave();
+				}
+				Runner.startHunt();
+				Chat.info("Hunting " + WigState.config.killName + " (" + WigState.config.killSpecialName + " first). The mouse is locked. /wig stop, a movement key or any screen stops it.");
+				return 1;
+			}))
 			.then(ClientCommands.literal("follow")
 				.executes(c -> follow(null))
 				.then(ClientCommands.argument("player", StringArgumentType.word()).suggests(NEARBY_PLAYERS)

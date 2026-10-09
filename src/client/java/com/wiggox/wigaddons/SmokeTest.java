@@ -110,8 +110,9 @@ final class SmokeTest {
 			case 14 -> jumpCheck(mc, true, 15);
 			case 15 -> followCheck(mc);
 			case 16 -> followLostCheck(mc);
-			case 17 -> hudPosition(mc);
-			case 18 -> {
+			case 17 -> huntCheck(mc);
+			case 18 -> hudPosition(mc);
+			case 19 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -249,6 +250,39 @@ final class SmokeTest {
 		if (phaseTick > 600) {
 			log("lost follow TIMEOUT");
 			Runner.stop("smoke test timeout");
+			next();
+		}
+	}
+
+	/** Three named iron golems standing in for endermen stand about: the special one should be attacked first, then the others, nearest first. */
+	private static void huntCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 -90 0");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+		}
+		if (phaseTick == 10) {
+			String tags = ",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}";
+			command(mc, "summon minecraft:iron_golem 9.5 -60 0.5 {CustomName:\"Zealot\"" + tags);
+			command(mc, "summon minecraft:iron_golem 0.5 -60 14.5 {CustomName:\"Special Zealot\"" + tags);
+			command(mc, "summon minecraft:iron_golem 5.5 -60 -5.5 {CustomName:\"Zealot Bruiser\"" + tags);
+		}
+		if (phaseTick == 40) {
+			for (net.minecraft.world.entity.Entity e : mc.level.getEntities((net.minecraft.world.entity.Entity) null, mc.player.getBoundingBox().inflate(40))) {
+				log("entity " + e.getType() + " name=" + (e.hasCustomName() ? e.getCustomName().getString() : "-") + " at " + String.format("%.1f,%.1f,%.1f", e.getX(), e.getY(), e.getZ()));
+			}
+			log("start hunting");
+			Runner.startHunt();
+		}
+		if (phaseTick > 40 && phaseTick % 100 == 0) {
+			log("hunt t=" + (phaseTick - 40) + ": me " + fmt(mc) + ", attacked " + Runner.huntOrder());
+		}
+		if (phaseTick == 300) {
+			photograph(mc, "hunt");
+		}
+		if (phaseTick == 700 || (phaseTick > 40 && Runner.huntOrder().size() >= 3)) {
+			log("hunt ended: attacked in order " + Runner.huntOrder());
+			Runner.stop("smoke test over");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
 		}
 	}

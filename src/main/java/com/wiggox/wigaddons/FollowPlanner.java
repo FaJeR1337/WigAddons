@@ -39,6 +39,12 @@ public final class FollowPlanner {
 
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
 		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval) {
+		/** For hunting: walk right up to the target, always look at it. */
+		public static Params forHunt(WigConfig c) {
+			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, 0.3), c.followNeverJump,
+				c.stuckTimeoutSeconds, false, 0);
+		}
+
 		public static Params of(WigConfig c) {
 			return new Params(c.followStopDistance, c.followResumeDistance, c.followSprintDistance, c.followLostSeconds,
 				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval);

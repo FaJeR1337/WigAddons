@@ -55,6 +55,20 @@ public final class WigConfig {
 	/** About how many ticks following takes to settle a turn of the view; the turning eases in and out. 0 turns at full speed. */
 	public double followTurnSmoothing = 4;
 	public boolean followShowTrail = false;
+	/** Hunting (/wig kill): what to go for, and what to go for first. A name matches when it contains this text, ignoring case. */
+	public String killName = "Zealot";
+	public String killSpecialName = "Special Zealot";
+	/** How far away to look for something to hunt, in blocks. */
+	public double killSearchRadius = 40;
+	/** How close the target has to be, in blocks, for the right click. */
+	public double killRange = 5;
+	/** After attacking, the target is treated as dead and left alone for a random time between these, in seconds. */
+	public double killMarkMinSeconds = 5;
+	public double killMarkMaxSeconds = 10;
+	/** How long the right click button is held per attack, in ticks. */
+	public int killClickTicks = 3;
+	/** How much bigger than the target's hitbox counts as looking at it, in blocks. */
+	public double killAimMargin = 0.3;
 	/** Stop looking at the followed player while a wall is between you, and look where you are walking instead. */
 	public boolean followLookOnlyWhenVisible = false;
 	/** Never jump while following. */
@@ -126,6 +140,30 @@ public final class WigConfig {
 		}
 		if (!(followLostSeconds >= 0)) {
 			followLostSeconds = d.followLostSeconds;
+		}
+		if (killName == null) {
+			killName = d.killName;
+		}
+		if (killSpecialName == null) {
+			killSpecialName = d.killSpecialName;
+		}
+		if (!(killSearchRadius > 0)) {
+			killSearchRadius = d.killSearchRadius;
+		}
+		if (!(killRange > 0)) {
+			killRange = d.killRange;
+		}
+		if (!(killMarkMinSeconds >= 0)) {
+			killMarkMinSeconds = d.killMarkMinSeconds;
+		}
+		if (!(killMarkMaxSeconds >= killMarkMinSeconds)) {
+			killMarkMaxSeconds = killMarkMinSeconds;
+		}
+		if (killClickTicks < 1) {
+			killClickTicks = d.killClickTicks;
+		}
+		if (!(killAimMargin >= 0)) {
+			killAimMargin = d.killAimMargin;
 		}
 		if (!(followTurnSmoothing >= 0)) {
 			followTurnSmoothing = d.followTurnSmoothing;
