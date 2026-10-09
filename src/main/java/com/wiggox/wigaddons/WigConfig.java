@@ -67,8 +67,19 @@ public final class WigConfig {
 	public double killMarkMaxSeconds = 10;
 	/** How long the right click button is held per attack, in ticks. */
 	public int killClickTicks = 3;
+	/** The least time between one right click and the next, in seconds: set it to the weapon's cooldown. A little extra is added at random so it isn't clockwork. */
+	public double killClickCooldownSeconds = 0.5;
 	/** How much bigger than the target's hitbox counts as looking at it, in blocks. */
 	public double killAimMargin = 0.3;
+	/** Only right click when nothing solid is between you and where the view meets the target. */
+	public boolean killRequireSight = true;
+	/** Where to go when there is nothing to hunt (/wig kill home), and whether to wander around it until something turns up. */
+	public boolean killHomeSet = false;
+	public double killHomeX;
+	public double killHomeY;
+	public double killHomeZ;
+	public boolean killWander = true;
+	public double killWanderRadius = 6;
 	/** Stop looking at the followed player while a wall is between you, and look where you are walking instead. */
 	public boolean followLookOnlyWhenVisible = false;
 	/** Never jump while following. */
@@ -159,8 +170,14 @@ public final class WigConfig {
 		if (!(killMarkMaxSeconds >= killMarkMinSeconds)) {
 			killMarkMaxSeconds = killMarkMinSeconds;
 		}
+		if (!(killClickCooldownSeconds >= 0)) {
+			killClickCooldownSeconds = d.killClickCooldownSeconds;
+		}
 		if (killClickTicks < 1) {
 			killClickTicks = d.killClickTicks;
+		}
+		if (!(killWanderRadius >= 0)) {
+			killWanderRadius = d.killWanderRadius;
 		}
 		if (!(killAimMargin >= 0)) {
 			killAimMargin = d.killAimMargin;

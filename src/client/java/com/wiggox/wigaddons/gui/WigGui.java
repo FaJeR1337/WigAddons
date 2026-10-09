@@ -286,6 +286,13 @@ public final class WigGui {
 				config.killSpecialName = v.trim();
 				WigState.saveConfig();
 			});
+		b.info("home", "Home spot", "/wig kill home sets the spot you are standing on as home, /wig kill home clear removes it. With nothing to hunt you walk back there and wander around it until something turns up.");
+		b.toggle("wander", "Wander at home", "While nothing is in range, stroll to random spots around the home spot, resting a moment between them, instead of standing still.",
+			() -> config.killWander, v -> {
+				config.killWander = v;
+				WigState.saveConfig();
+			});
+		followNumber(b, "wanderradius", "Wander radius", "How far from the home spot to stroll, in blocks.", () -> config.killWanderRadius, v -> config.killWanderRadius = v, 0, 50);
 		followNumber(b, "radius", "Search radius", "How many blocks away to look for something to hunt.", () -> config.killSearchRadius, v -> config.killSearchRadius = v, 1, 128);
 		followNumber(b, "range", "Click range", "You right click once you are looking at the mob and it is within this many blocks.", () -> config.killRange, v -> config.killRange = v, 1, 30);
 		followNumber(b, "markmin", "Dead for at least (s)", "After attacking, the mob is assumed dead and ignored for a random time between this and the next number, in seconds.",
@@ -293,6 +300,13 @@ public final class WigGui {
 		followNumber(b, "markmax", "Dead for at most (s)", "The longest the mob is ignored after an attack, in seconds.",
 			() -> config.killMarkMaxSeconds, v -> config.killMarkMaxSeconds = v, 0, 300);
 		followNumber(b, "click", "Click length (ticks)", "How long the right click button is held for each attack.", () -> config.killClickTicks, v -> config.killClickTicks = (int) Math.round(v), 1, 40);
+		followNumber(b, "cooldown", "Click cooldown (s)", "The least time between one right click and the next, in seconds. Set it to your weapon's cooldown. A little extra is added at random so it isn't clockwork.",
+			() -> config.killClickCooldownSeconds, v -> config.killClickCooldownSeconds = v, 0, 60);
+		b.toggle("sight", "Depth check", "Only right click when nothing solid is between you and the mob, so a shot isn't wasted on a wall in the way.",
+			() -> config.killRequireSight, v -> {
+				config.killRequireSight = v;
+				WigState.saveConfig();
+			});
 		followNumber(b, "margin", "Aim margin", "How much bigger than the mob's hitbox still counts as looking at it, in blocks.", () -> config.killAimMargin, v -> config.killAimMargin = v, 0, 2);
 	}
 

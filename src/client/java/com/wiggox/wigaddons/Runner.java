@@ -60,11 +60,16 @@ public final class Runner {
 	private static final Random HUNT_RANDOM = new Random();
 	private static int huntTargetId = -1;
 	private static int huntKills;
+	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
+	private static double[] idleGoal;
+	private static int idlePauseTicks;
 	/** The names attacked so far this hunt, in order (kept for the dev test). */
 	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
 	private static boolean huntWaitingTold;
 	/** Ticks left of the right click being held for an attack. */
 	private static int useTicksLeft;
+	/** The tick before which the next right click has to wait: the weapon's cooldown. */
+	private static long nextClickTick;
 	private static double followDistance = Double.NaN;
 	private static boolean followWasLost;
 	/** Which movement keys the input mixin presses: forward 1 / back -1, and sprint. */
@@ -259,6 +264,9 @@ public final class Runner {
 		hunting = true;
 		huntTargetId = -1;
 		huntKills = 0;
+		idleGoal = null;
+		idlePauseTicks = 0;
+		nextClickTick = 0;
 		HUNT_ORDER.clear();
 		huntWaitingTold = false;
 		useTicksLeft = 0;
@@ -269,6 +277,11 @@ public final class Runner {
 	/** The names attacked so far in this hunt, in order. */
 	public static java.util.List<String> huntOrder() {
 		return java.util.List.copyOf(HUNT_ORDER);
+	}
+
+	/** Whether a hunt is running, for drawing the home spot. */
+	public static boolean isHunting() {
+		return hunting && planner != null;
 	}
 
 	public static void stop(String reason) {
@@ -427,26 +440,17 @@ public final class Runner {
 		}
 		ZealotHunter.Mob pick = HUNTER.pick(scanMobs(mc, player), player.getX(), player.getZ(), cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
 		int id = pick == null ? -1 : pick.id();
-		if (id != huntTargetId) {
+		if (pick != null && id != huntTargetId) {
 			// a new target: a fresh plan, so the old one's trail isn't walked
 			huntTargetId = id;
 			planner = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random());
 			planner.setTerrain(new WorldTerrain());
 		}
 		if (pick == null) {
-			if (!huntWaitingTold) {
-				huntWaitingTold = true;
-				Chat.info("No " + cfg.killName + " in range. Waiting for one to come close.");
-			}
-			moveForward = 0;
-			strafe = 0;
-			sprintOn = false;
-			jump = false;
-			haveAim = false;
-			pitchTarget = Double.NaN;
-			followDistance = Double.NaN;
+			idleTick(mc, player, cfg);
 			return;
 		}
+		idleGoal = null;
 		huntWaitingTold = false;
 		FollowPlanner.Output out = planner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
 			new FollowPlanner.Target(pick.x(), pick.y(), pick.z(), pick.eyeY()), player.onGround(), player.horizontalCollision);
@@ -465,14 +469,84 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
-		if (useTicksLeft == 0 && lookingAtInReach(mc, player, id, cfg)) {
+		if (useTicksLeft == 0 && ticks >= nextClickTick && lookingAtInReach(mc, player, id, cfg)) {
 			mc.options.keyUse.setDown(true);
 			holdingRight = true;
 			useTicksLeft = cfg.killClickTicks;
+			// the weapon's cooldown, plus up to a fifth more at random
+			nextClickTick = ticks + Math.max(cfg.killClickTicks, Math.round(cfg.killClickCooldownSeconds * 20 * (1 + HUNT_RANDOM.nextDouble() * 0.2)));
 			HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
 			huntKills++;
 			HUNT_ORDER.add(pick.name());
 		}
+	}
+
+	/** Nothing to hunt: go to the home spot if there is one, then stroll around it until something turns up. */
+	private static void idleTick(Minecraft mc, LocalPlayer player, WigConfig cfg) {
+		if (!cfg.killHomeSet) {
+			huntTargetId = -1;
+			if (!huntWaitingTold) {
+				huntWaitingTold = true;
+				Chat.info("No " + cfg.killName + " in range. Waiting for one to come close. (/wig kill home sets a place to go to meanwhile.)");
+			}
+			standStill();
+			return;
+		}
+		huntWaitingTold = false;
+		double toHome = Math.hypot(cfg.killHomeX - player.getX(), cfg.killHomeZ - player.getZ());
+		double[] goal = idleGoal;
+		if (goal == null) {
+			if (toHome > Math.max(3.0, cfg.killWander ? cfg.killWanderRadius + 2 : 3.0)) {
+				goal = new double[] {cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ}; // too far from home: go back
+			} else if (cfg.killWander) {
+				if (idlePauseTicks > 0) {
+					idlePauseTicks--;
+					standStill();
+					return;
+				}
+				goal = Wander.pick(new WorldTerrain(), cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ, cfg.killWanderRadius, 3.0, HUNT_RANDOM);
+				if (goal == null) {
+					standStill();
+					return;
+				}
+			} else {
+				standStill();
+				return;
+			}
+			idleGoal = goal;
+			huntTargetId = -2;
+			planner = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random());
+			planner.setTerrain(new WorldTerrain());
+		}
+		FollowPlanner.Output out = planner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
+			new FollowPlanner.Target(goal[0], goal[1], goal[2], goal[1] + 1.62), player.onGround(), player.horizontalCollision);
+		followDistance = out.distance();
+		if (out.status() == FollowPlanner.Status.CLOSE || out.status() == FollowPlanner.Status.STUCK) {
+			// got there (or can't): rest a moment, then pick the next stroll
+			idleGoal = null;
+			idlePauseTicks = 20 + HUNT_RANDOM.nextInt(60);
+			standStill();
+			return;
+		}
+		moveForward = out.forward();
+		strafe = out.strafe();
+		sprintOn = false;
+		jump = out.jump();
+		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
+		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		haveAim = true;
+		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
+		yawAtLastTick = player.getYRot();
+	}
+
+	private static void standStill() {
+		moveForward = 0;
+		strafe = 0;
+		sprintOn = false;
+		jump = false;
+		haveAim = false;
+		pitchTarget = Double.NaN;
+		followDistance = Double.NaN;
 	}
 
 	/** Whether the view points at the mob (its hitbox, a little bigger) within the click range. */
@@ -483,7 +557,17 @@ public final class Runner {
 		}
 		Vec3 eye = player.getEyePosition();
 		Vec3 end = eye.add(player.getViewVector(1.0F).scale(cfg.killRange));
-		return mob.getBoundingBox().inflate(cfg.killAimMargin).clip(eye, end).isPresent();
+		java.util.Optional<Vec3> hit = mob.getBoundingBox().inflate(cfg.killAimMargin).clip(eye, end);
+		if (hit.isEmpty()) {
+			return false;
+		}
+		if (!cfg.killRequireSight) {
+			return true;
+		}
+		// the depth check: a block between the eyes and where the view meets the mob means the shot would hit the block
+		net.minecraft.world.phys.BlockHitResult block = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, hit.get(),
+			net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+		return block.getType() == net.minecraft.world.phys.HitResult.Type.MISS;
 	}
 
 	/** The mobs around that carry the hunted name: on the mob itself, or on the name tag stand floating above it. */

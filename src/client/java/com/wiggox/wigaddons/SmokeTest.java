@@ -111,8 +111,9 @@ final class SmokeTest {
 			case 15 -> followCheck(mc);
 			case 16 -> followLostCheck(mc);
 			case 17 -> huntCheck(mc);
-			case 18 -> hudPosition(mc);
-			case 19 -> {
+			case 18 -> wanderCheck(mc);
+			case 19 -> hudPosition(mc);
+			case 20 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -283,6 +284,32 @@ final class SmokeTest {
 			log("hunt ended: attacked in order " + Runner.huntOrder());
 			Runner.stop("smoke test over");
 			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	/** Nothing to hunt, a home spot set 12 blocks away: walk there, then stroll around it. */
+	private static void wanderCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			WigState.config.killHomeSet = true;
+			WigState.config.killHomeX = 12.5;
+			WigState.config.killHomeY = -60;
+			WigState.config.killHomeZ = 0.5;
+		}
+		if (phaseTick == 30) {
+			Runner.startHunt();
+		}
+		if (phaseTick > 30 && phaseTick % 60 == 0) {
+			log("wander t=" + (phaseTick - 30) + ": me " + fmt(mc));
+		}
+		if (phaseTick == 150) {
+			photograph(mc, "wander");
+		}
+		if (phaseTick == 700) {
+			Runner.stop("smoke test over");
+			WigState.config.killHomeSet = false;
 			next();
 		}
 	}

@@ -96,7 +96,11 @@ public final class WigCommands {
 					.then(ClientCommands.literal("off").executes(c -> noJump(StringArgumentType.getString(c, "route"), false)))))
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
-			.then(ClientCommands.literal("kill").executes(c -> {
+			.then(ClientCommands.literal("kill")
+				.then(ClientCommands.literal("home")
+					.executes(c -> setHuntHome(true))
+					.then(ClientCommands.literal("clear").executes(c -> setHuntHome(false))))
+				.executes(c -> {
 				if (WigState.editing != null) {
 					EditMode.leave();
 				}
@@ -490,6 +494,23 @@ public final class WigCommands {
 		WigState.config.followLookOnlyWhenVisible = on;
 		WigState.saveConfig();
 		Chat.info("When following, you " + (on ? "stop looking at the player while a wall is between you." : "always look at the player."));
+		return 1;
+	}
+
+	private static int setHuntHome(boolean set) {
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		if (set && mc.player == null) {
+			return 0;
+		}
+		WigState.config.killHomeSet = set;
+		if (set) {
+			WigState.config.killHomeX = Math.floor(mc.player.getX()) + 0.5;
+			WigState.config.killHomeY = Math.floor(mc.player.getY() + 0.01);
+			WigState.config.killHomeZ = Math.floor(mc.player.getZ()) + 0.5;
+		}
+		WigState.saveConfig();
+		Chat.info(set ? "Hunt home set here. With nothing to hunt you walk back here and wander around it."
+			: "Hunt home cleared. With nothing to hunt you stand still.");
 		return 1;
 	}
 }
