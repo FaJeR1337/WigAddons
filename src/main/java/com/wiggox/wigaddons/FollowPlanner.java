@@ -42,7 +42,7 @@ public final class FollowPlanner {
 		/** For hunting: walk right up to the target, always look at it. */
 		public static Params forHunt(WigConfig c) {
 			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, 0.3), c.followNeverJump,
-				c.stuckTimeoutSeconds, false, 0);
+				c.stuckTimeoutSeconds, c.killRequireSight, 0);
 		}
 
 		public static Params of(WigConfig c) {

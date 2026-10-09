@@ -112,8 +112,9 @@ final class SmokeTest {
 			case 16 -> followLostCheck(mc);
 			case 17 -> huntCheck(mc);
 			case 18 -> wanderCheck(mc);
-			case 19 -> hudPosition(mc);
-			case 20 -> {
+			case 19 -> sightCheck(mc);
+			case 20 -> hudPosition(mc);
+			case 21 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -310,6 +311,30 @@ final class SmokeTest {
 		if (phaseTick == 700) {
 			Runner.stop("smoke test over");
 			WigState.config.killHomeSet = false;
+			next();
+		}
+	}
+
+	/** A named golem behind a long wall must be left alone; with the wall gone it is attacked. */
+	private static void sightCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "fill -30 -60 4 30 -57 4 stone");
+		}
+		if (phaseTick == 10) {
+			command(mc, "summon minecraft:iron_golem 0.5 -60 8.5 {CustomName:\"Zealot\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}");
+		}
+		if (phaseTick == 40) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 200) {
+			log("behind the wall: me " + fmt(mc) + ", attacked " + Runner.huntOrder());
+			command(mc, "fill -30 -60 4 30 -57 4 air");
+		}
+		if (phaseTick == 400) {
+			log("wall gone: me " + fmt(mc) + ", attacked " + Runner.huntOrder());
+			Runner.stop("smoke test over");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
 		}
 	}

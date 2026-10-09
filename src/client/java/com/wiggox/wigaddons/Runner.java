@@ -70,6 +70,10 @@ public final class Runner {
 	private static int useTicksLeft;
 	/** The tick before which the next right click has to wait: the weapon's cooldown. */
 	private static long nextClickTick;
+	/** The tick each mob was last in clear sight, for the depth check. */
+	private static final java.util.Map<Integer, Long> HUNT_SEEN = new java.util.HashMap<>();
+	/** A mob that has just stepped out of sight is still gone for this many ticks, so a pillar edge doesn't make the target flicker. */
+	private static final int SIGHT_GRACE_TICKS = 15;
 	private static double followDistance = Double.NaN;
 	private static boolean followWasLost;
 	/** Which movement keys the input mixin presses: forward 1 / back -1, and sprint. */
@@ -267,6 +271,7 @@ public final class Runner {
 		idleGoal = null;
 		idlePauseTicks = 0;
 		nextClickTick = 0;
+		HUNT_SEEN.clear();
 		HUNT_ORDER.clear();
 		huntWaitingTold = false;
 		useTicksLeft = 0;
@@ -549,6 +554,20 @@ public final class Runner {
 		followDistance = Double.NaN;
 	}
 
+	/** Whether a line from the eyes to the mob's eyes, middle or lower body is free of blocks. */
+	private static boolean inSight(Minecraft mc, LocalPlayer player, Entity mob) {
+		Vec3 eye = player.getEyePosition();
+		double[] heights = {mob.getEyeY(), mob.getY() + mob.getBbHeight() * 0.5, mob.getY() + 0.3};
+		for (double y : heights) {
+			net.minecraft.world.phys.BlockHitResult block = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, new Vec3(mob.getX(), y, mob.getZ()),
+				net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+			if (block.getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Whether the view points at the mob (its hitbox, a little bigger) within the click range. */
 	private static boolean lookingAtInReach(Minecraft mc, LocalPlayer player, int id, WigConfig cfg) {
 		Entity mob = mc.level.getEntity(id);
@@ -604,7 +623,18 @@ public final class Runner {
 				found.putIfAbsent(body.getId(), new ZealotHunter.Mob(body.getId(), name, body.getX(), body.getY(), body.getZ(), body.getEyeY()));
 			}
 		}
-		return new java.util.ArrayList<>(found.values());
+		java.util.List<ZealotHunter.Mob> mobs = new java.util.ArrayList<>(found.values());
+		if (cfg.killRequireSight) {
+			// the depth check: mobs behind walls aren't targeted (or looked at) until they are in sight again
+			mobs.removeIf(mob -> {
+				Entity body = mc.level.getEntity(mob.id());
+				if (body != null && inSight(mc, player, body)) {
+					HUNT_SEEN.put(mob.id(), (long) ticks);
+				}
+				return ticks - HUNT_SEEN.getOrDefault(mob.id(), -1000L) > SIGHT_GRACE_TICKS;
+			});
+		}
+		return mobs;
 	}
 
 	/** One tick of following: walk the trail, keep the distance, look at the player. */
