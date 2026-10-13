@@ -314,6 +314,15 @@ public final class WigGui {
 			() -> config.killTurnSmoothing, v -> config.killTurnSmoothing = v, 0, 20);
 		followNumber(b, "tagscale", "Name tag size", "How big the name tags are, the same at any distance: they shrink with distance like any name tag. About 0.45 is the size of an ordinary name tag, make it bigger to read them from further away.",
 			() -> config.killTagScale, v -> config.killTagScale = v, 0.1, 5);
+		b.text("react", "Spawn message", "When this chat message arrives while hunting, you stand still, look around and jump for a few seconds before going for the mob. Leave it empty to turn that off.",
+			() -> config.killReactMessage, v -> {
+				config.killReactMessage = v.trim();
+				WigState.saveConfig();
+			});
+		followNumber(b, "reactmin", "Look around for at least (s)", "The shortest time spent looking around and jumping after the spawn message, in seconds.",
+			() -> config.killReactMinSeconds, v -> config.killReactMinSeconds = v, 0, 30);
+		followNumber(b, "reactmax", "Look around for at most (s)", "The longest time spent looking around and jumping after the spawn message, in seconds.",
+			() -> config.killReactMaxSeconds, v -> config.killReactMaxSeconds = v, 0, 30);
 		b.toggle("bytype", "Hunt by mob type (no name tag needed)", "Name tags are separate entities, and the server may not send them or may only send them when you are close. With this on, every mob of the type below within the search radius is hunted whether or not its name tag is there. It can't tell special mobs apart without their tag, and it will also go for any other mob of that type.",
 			() -> config.killByType, v -> {
 				config.killByType = v;

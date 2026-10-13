@@ -115,8 +115,9 @@ final class SmokeTest {
 			case 19 -> sightCheck(mc);
 			case 20 -> crowdCheck(mc);
 			case 21 -> typeCheck(mc);
-			case 22 -> hudPosition(mc);
-			case 23 -> {
+			case 22 -> reactCheck(mc);
+			case 23 -> hudPosition(mc);
+			case 24 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -390,6 +391,39 @@ final class SmokeTest {
 			Runner.stop("smoke test over");
 			WigState.config.killByType = false;
 			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	private static int reactJumps;
+	private static double reactYawMoved;
+	private static double reactLastYaw;
+
+	/** The spawn message makes the hunt stand, look around and jump for 2 to 3 seconds. */
+	private static void reactCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			WigState.config.killHomeSet = false;
+			reactJumps = 0;
+			reactYawMoved = 0;
+		}
+		if (phaseTick == 20) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 40) {
+			Runner.onChatLine("A special Zealot has spawned nearby!");
+			reactLastYaw = mc.player.getYRot();
+		}
+		if (phaseTick > 40 && phaseTick <= 120) {
+			if (!mc.player.onGround()) {
+				reactJumps++;
+			}
+			reactYawMoved += Math.abs(mc.player.getYRot() - reactLastYaw);
+			reactLastYaw = mc.player.getYRot();
+		}
+		if (phaseTick == 140) {
+			log("react: airborne ticks " + reactJumps + ", view moved " + String.format("%.0f", reactYawMoved) + " degrees, me " + fmt(mc));
+			Runner.stop("smoke test over");
 			next();
 		}
 	}

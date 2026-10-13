@@ -63,6 +63,11 @@ public final class Runner {
 	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
 	private static double[] idleGoal;
 	private static int idlePauseTicks;
+	/** Ticks left of looking around and jumping after the message that something special spawned, and the ticks to the next look and the next jump. */
+	private static int huntReactTicks;
+	private static int huntReactLookTicks;
+	private static int huntReactJumpTicks;
+	private static double huntReactPitch;
 	private static double idleLookOffset;
 	private static double idleLookPitch;
 	/** While walking home or wandering the view stays within this many degrees either side of the way being walked. */
@@ -297,6 +302,7 @@ public final class Runner {
 		idleGoal = null;
 		idlePauseTicks = 0;
 		nextClickTick = 0;
+		huntReactTicks = 0;
 		standingGround = false;
 		HUNT_SEEN.clear();
 		HUNT_NAME_OF.clear();
@@ -472,6 +478,23 @@ public final class Runner {
 		if (useTicksLeft > 0 && --useTicksLeft == 0) {
 			mc.options.keyUse.setDown(false);
 			holdingRight = false;
+		}
+		if (huntReactTicks > 0) {
+			huntReactTicks--;
+			standStill();
+			if (--huntReactLookTicks <= 0) {
+				// a new way to look every half second or so, all round and a little up or down
+				aimYaw = player.getYRot() + (HUNT_RANDOM.nextDouble() * 2 - 1) * 110;
+				huntReactPitch = (HUNT_RANDOM.nextDouble() * 2 - 1) * 20;
+				huntReactLookTicks = 8 + HUNT_RANDOM.nextInt(10);
+			}
+			haveAim = true;
+			pitchTarget = huntReactPitch;
+			if (--huntReactJumpTicks <= 0 && player.onGround()) {
+				jump = true;
+				huntReactJumpTicks = 8 + HUNT_RANDOM.nextInt(6);
+			}
+			return;
 		}
 		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
 		// a target almost straight above can't be looked at: leave it alone
@@ -879,6 +902,14 @@ public final class Runner {
 
 	/** Called for every chat line the server sends. */
 	public static void onChatLine(String line) {
+		WigConfig reactCfg = WigState.config;
+		if (hunting && planner != null && !reactCfg.killReactMessage.isBlank() && ZealotHunter.matches(line, reactCfg.killReactMessage)) {
+			// something special has turned up: stop, look around and hop about for a moment before going for it
+			double seconds = reactCfg.killReactMinSeconds + HUNT_RANDOM.nextDouble() * (reactCfg.killReactMaxSeconds - reactCfg.killReactMinSeconds);
+			huntReactTicks = Math.max(1, (int) Math.round(seconds * 20));
+			huntReactLookTicks = 0;
+			huntReactJumpTicks = 0;
+		}
 		if (!active() || partyCountdown >= 0 || !PartyLeave.matches(line, WigState.config.partyLeavePatterns)) {
 			return;
 		}

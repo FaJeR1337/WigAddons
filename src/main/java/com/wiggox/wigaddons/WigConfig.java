@@ -76,6 +76,10 @@ public final class WigConfig {
 	 * type below within the search radius counts as hunted, name tag or not. (It can't tell a special one apart without its tag.)
 	 */
 	public boolean killByType = false;
+	/** When this chat message arrives while hunting, stand and look around while jumping for a few seconds before going for it. Blank turns it off. */
+	public String killReactMessage = "A special Zealot has spawned nearby!";
+	public double killReactMinSeconds = 2;
+	public double killReactMaxSeconds = 3;
 	/** Draws the mod's own name tag and box over every mob it is hunting, through walls and from far away. */
 	/** Like followTurnSmoothing, for hunting: about how many ticks the view takes to settle a turn. 0 turns at full speed. */
 	public double killTurnSmoothing = 4;
@@ -204,6 +208,15 @@ public final class WigConfig {
 		}
 		if (!(killTagScale > 0)) {
 			killTagScale = d.killTagScale;
+		}
+		if (killReactMessage == null) {
+			killReactMessage = d.killReactMessage;
+		}
+		if (!(killReactMinSeconds >= 0)) {
+			killReactMinSeconds = d.killReactMinSeconds;
+		}
+		if (!(killReactMaxSeconds >= killReactMinSeconds)) {
+			killReactMaxSeconds = killReactMinSeconds;
 		}
 		if (killType == null || killType.isBlank()) {
 			killType = d.killType;
