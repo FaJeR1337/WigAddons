@@ -75,6 +75,13 @@ public final class Runner {
 	private static int useTicksLeft;
 	/** The tick before which the next right click has to wait: the weapon's cooldown. */
 	private static long nextClickTick;
+	/** What each recognised mob was called, and when it last was seen with its name tag. */
+	private static final java.util.Map<Integer, String> HUNT_NAME_OF = new java.util.HashMap<>();
+	private static final java.util.Map<Integer, Long> HUNT_NAMED_AT = new java.util.HashMap<>();
+	/** A mob stays recognised this long after its name tag was last seen, in ticks. */
+	private static final int NAME_MEMORY_TICKS = 400;
+	/** How far sideways from a mob its name tag stand may be found, in blocks (the stand trails behind a moving mob). */
+	private static final double NAME_TAG_REACH = 3.0;
 	/** Standing still because several targets are in reach; since when (ticks). */
 	private static boolean standingGround;
 	private static long standingSince;
@@ -281,6 +288,8 @@ public final class Runner {
 		nextClickTick = 0;
 		standingGround = false;
 		HUNT_SEEN.clear();
+		HUNT_NAME_OF.clear();
+		HUNT_NAMED_AT.clear();
 		HUNT_ORDER.clear();
 		huntWaitingTold = false;
 		useTicksLeft = 0;
@@ -519,7 +528,11 @@ public final class Runner {
 			useTicksLeft = cfg.killClickTicks;
 			// the weapon's cooldown, plus up to a fifth more at random
 			nextClickTick = ticks + Math.max(cfg.killClickTicks, Math.round(cfg.killClickCooldownSeconds * 20 * (1 + HUNT_RANDOM.nextDouble() * 0.2)));
-			HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
+			// an ordinary mob is assumed dead after one click; a special one gets a few before it is
+			int needed = ZealotHunter.matches(pick.name(), cfg.killSpecialName) ? cfg.killSpecialClicks : 1;
+			if (HUNTER.clickLanded(id, needed)) {
+				HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
+			}
 			huntKills++;
 			HUNT_ORDER.add(pick.name());
 		}
@@ -675,7 +688,7 @@ public final class Runner {
 					}
 					double flat = Math.hypot(other.getX() - entity.getX(), other.getZ() - entity.getZ());
 					double above = entity.getY() - other.getY();
-					if (flat < 1.5 && above > -0.5 && above < 4.0 && flat < best) {
+					if (flat < NAME_TAG_REACH && above > -0.5 && above < 4.0 && flat < best) {
 						best = flat;
 						body = other;
 					}
@@ -683,6 +696,18 @@ public final class Runner {
 			}
 			if (body != null && body.isAlive() && !(body instanceof Player)) {
 				found.putIfAbsent(body.getId(), new ZealotHunter.Mob(body.getId(), name, body.getX(), body.getY(), body.getZ(), body.getEyeY()));
+				HUNT_NAME_OF.put(body.getId(), name);
+				HUNT_NAMED_AT.put(body.getId(), (long) ticks);
+			}
+		}
+		// a mob that was recognised a moment ago stays recognised when its name tag isn't there for the moment (it lags behind a moving mob, or comes and goes)
+		for (Entity entity : around) {
+			if (found.containsKey(entity.getId()) || !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity instanceof Player || !entity.isAlive()) {
+				continue;
+			}
+			String remembered = HUNT_NAME_OF.get(entity.getId());
+			if (remembered != null && ticks - HUNT_NAMED_AT.getOrDefault(entity.getId(), -100000L) <= NAME_MEMORY_TICKS) {
+				found.put(entity.getId(), new ZealotHunter.Mob(entity.getId(), remembered, entity.getX(), entity.getY(), entity.getZ(), entity.getEyeY()));
 			}
 		}
 		java.util.List<ZealotHunter.Mob> mobs = new java.util.ArrayList<>(found.values());

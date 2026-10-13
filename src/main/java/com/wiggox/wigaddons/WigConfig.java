@@ -67,6 +67,8 @@ public final class WigConfig {
 	public double killMarkMaxSeconds = 10;
 	/** How long the right click button is held per attack, in ticks. */
 	public int killClickTicks = 3;
+	/** How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. */
+	public int killSpecialClicks = 3;
 	/** The least time between one right click and the next, in seconds: set it to the weapon's cooldown. A little extra is added at random so it isn't clockwork. */
 	public double killClickCooldownSeconds = 0.5;
 	/** How much bigger than the target's hitbox counts as looking at it, in blocks. */
@@ -182,6 +184,9 @@ public final class WigConfig {
 		}
 		if (!(killClickCooldownSeconds >= 0)) {
 			killClickCooldownSeconds = d.killClickCooldownSeconds;
+		}
+		if (killSpecialClicks < 1) {
+			killSpecialClicks = d.killSpecialClicks;
 		}
 		if (killClickTicks < 1) {
 			killClickTicks = d.killClickTicks;

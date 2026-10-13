@@ -46,6 +46,24 @@ public final class ZealotHunter {
 		}
 	}
 
+	/** Clicks landed so far on mobs that need more than one. */
+	private final Map<Integer, Integer> clicks = new HashMap<>();
+
+	/**
+	 * Notes a right click on the mob.
+	 *
+	 * @param clicksNeeded how many clicks it takes before the mob is assumed dead (1 for ordinary mobs)
+	 * @return true once that many have landed: the caller then marks it dead
+	 */
+	public boolean clickLanded(int id, int clicksNeeded) {
+		int n = clicks.merge(id, 1, Integer::sum);
+		if (n >= Math.max(1, clicksNeeded)) {
+			clicks.remove(id);
+			return true;
+		}
+		return false;
+	}
+
 	public boolean isMarkedDead(int id, long nowTick) {
 		Long until = deadUntil.get(id);
 		return until != null && nowTick < until;

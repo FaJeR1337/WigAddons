@@ -282,7 +282,7 @@ final class SmokeTest {
 		if (phaseTick == 300) {
 			photograph(mc, "hunt");
 		}
-		if (phaseTick == 700 || (phaseTick > 40 && Runner.huntOrder().size() >= 3)) {
+		if (phaseTick == 700 || (phaseTick > 40 && Runner.huntOrder().size() >= 5)) { // the special one takes three clicks
 			log("hunt ended: attacked in order " + Runner.huntOrder());
 			Runner.stop("smoke test over");
 			command(mc, "kill @e[type=minecraft:iron_golem]");

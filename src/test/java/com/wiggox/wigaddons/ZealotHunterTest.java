@@ -81,4 +81,14 @@ class ZealotHunterTest {
 		assertEquals(0, view.angleTo(0, 1.62, 10), 1e-6);
 		assertEquals(90, view.angleTo(-10, 1.62, 0), 1e-6); // west is +90 yaw: to the right of south... either side is 90
 	}
+
+	@Test
+	void aSpecialMobTakesSeveralClicksBeforeItIsAssumedDead() {
+		ZealotHunter h = new ZealotHunter();
+		assertFalse(h.clickLanded(7, 3));
+		assertFalse(h.clickLanded(7, 3));
+		assertTrue(h.clickLanded(7, 3));
+		assertFalse(h.clickLanded(7, 3)); // counting starts again
+		assertTrue(h.clickLanded(8, 1)); // an ordinary one is done at once
+	}
 }
