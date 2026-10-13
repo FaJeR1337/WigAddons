@@ -51,7 +51,10 @@ public final class WaypointRenderer {
 		for (Runner.HuntMark mark : Runner.huntMarks()) {
 			int color = mark.dead() ? 0xFF888888 : mark.target() ? 0xFF55FF55 : mark.special() ? 0xFFFFD700 : 0xFFFF7755;
 			double distance = Math.sqrt(player.distanceToSqr(mark.x(), mark.y(), mark.z()));
-			String text = (mark.special() ? "* " : "") + mark.name() + " " + Math.round(distance) + "m" + (mark.dead() ? " (dead?)" : !mark.visible() ? " (hidden)" : "");
+			// colour codes: the name in the colour of its kind, the distance and notes in greys
+			String kind = mark.dead() ? "\u00a77" : mark.target() ? "\u00a7a" : mark.special() ? "\u00a76" : "\u00a7c";
+			String text = (mark.special() ? "\u00a76\u00a7l* " : "") + kind + mark.name() + " \u00a7f" + Math.round(distance) + "m"
+				+ (mark.dead() ? " \u00a78(dead?)" : !mark.visible() ? " \u00a78(hidden)" : "");
 			// the same scale at every distance, like an ordinary name tag: it shrinks with distance in the world
 			float scale = (float) WigState.config.killTagScale;
 			Gizmos.billboardText(text, new Vec3(mark.x(), mark.eyeY() + 1.2, mark.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(scale)).setAlwaysOnTop();
