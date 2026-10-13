@@ -305,11 +305,13 @@ public final class WigGui {
 		followNumber(b, "markmax", "Dead for at most (s)", "The longest the mob is ignored after an attack, in seconds.",
 			() -> config.killMarkMaxSeconds, v -> config.killMarkMaxSeconds = v, 0, 300);
 		followNumber(b, "click", "Click length (ticks)", "How long the right click button is held for each attack.", () -> config.killClickTicks, v -> config.killClickTicks = (int) Math.round(v), 1, 40);
-		b.toggle("tags", "Show my own name tags", "Draws the mod's own name tag and box over every mob being hunted, through walls and readable from far away: gold for special mobs, green for the current target, grey for ones assumed dead, with the distance.",
+		b.toggle("tags", "Show my own name tags", "Draws the mod's own name tag (white, like an ordinary one) and a box over every mob being hunted, through walls. The box is gold for special mobs, green for the current target, red for the others and grey for ones assumed dead.",
 			() -> config.killShowTags, v -> {
 				config.killShowTags = v;
 				WigState.saveConfig();
 			});
+		followNumber(b, "tagscale", "Name tag size", "How big the name tags are, the same at any distance: they shrink with distance like any name tag. About 0.45 is the size of an ordinary name tag, make it bigger to read them from further away.",
+			() -> config.killTagScale, v -> config.killTagScale = v, 0.1, 5);
 		b.toggle("bytype", "Hunt by mob type (no name tag needed)", "Name tags are separate entities, and the server may not send them or may only send them when you are close. With this on, every mob of the type below within the search radius is hunted whether or not its name tag is there. It can't tell special mobs apart without their tag, and it will also go for any other mob of that type.",
 			() -> config.killByType, v -> {
 				config.killByType = v;

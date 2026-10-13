@@ -76,6 +76,8 @@ public final class WigConfig {
 	public boolean killByType = false;
 	/** Draws the mod's own name tag and box over every mob it is hunting, through walls and from far away. */
 	public boolean killShowTags = true;
+	/** How big those name tags are, the same at any distance (they shrink with distance like any name tag). About 0.45 is the size of an ordinary name tag. */
+	public double killTagScale = 0.45;
 	public String killType = "minecraft:enderman";
 	/** The least time between one right click and the next, in seconds: set it to the weapon's cooldown. A little extra is added at random so it isn't clockwork. */
 	public double killClickCooldownSeconds = 0.5;
@@ -192,6 +194,9 @@ public final class WigConfig {
 		}
 		if (!(killClickCooldownSeconds >= 0)) {
 			killClickCooldownSeconds = d.killClickCooldownSeconds;
+		}
+		if (!(killTagScale > 0)) {
+			killTagScale = d.killTagScale;
 		}
 		if (killType == null || killType.isBlank()) {
 			killType = d.killType;
