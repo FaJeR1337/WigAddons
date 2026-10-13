@@ -571,7 +571,16 @@ public final class Runner {
 		// sidestepping with A or D with the target near the crosshair: aim right at it with next to no easing, or the view lags behind a
 		// moving target and keeps pointing a block or two ahead of it, never lining up to shoot
 		huntPrecise = false;
-		if (cfg.killPreciseAim && strafe != 0) {
+		boolean seenNow = HUNT_SEEN.getOrDefault(id, -1000L) == ticks;
+		if (cfg.killRequireSight && !recentlySeen(id)) {
+			// behind a wall: never aim at it, look where the walk is going
+			double[] way = planner.snapshot().next();
+			if (way != null) {
+				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), way[0], way[2]);
+				pitchTarget = 0;
+			}
+		}
+		if (cfg.killPreciseAim && strafe != 0 && (seenNow || !cfg.killRequireSight)) {
 			double aimY = pick.y() + (pick.eyeY() - pick.y()) * 0.6;
 			ZealotHunter.View now = new ZealotHunter.View(player.getX(), player.getEyeY(), player.getZ(), player.getYRot(), player.getXRot());
 			if (now.angleTo(pick.x(), aimY, pick.z()) <= cfg.killPreciseAngle) {
