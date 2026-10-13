@@ -810,7 +810,7 @@ public final class Runner {
 		if (haveAim) {
 			double before = player.getYRot();
 			float yaw = (float) (following
-				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, WigState.config.followTurnSmoothing, runTurnSpeed)
+				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, (hunting ? WigState.config.killTurnSmoothing : WigState.config.followTurnSmoothing), runTurnSpeed)
 				: RouteFollower.stepYaw(before, aimYaw, runTurnSpeed * frameTicks));
 			player.setYRot(yaw);
 			// no blending between ticks: the view is set exactly, every frame
@@ -820,7 +820,7 @@ public final class Runner {
 		}
 		if (!Double.isNaN(pitchTarget)) {
 			float pitch = (float) (following
-				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, WigState.config.followTurnSmoothing, runTurnSpeed)
+				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, (hunting ? WigState.config.killTurnSmoothing : WigState.config.followTurnSmoothing), runTurnSpeed)
 				: RouteFollower.stepToward(player.getXRot(), pitchTarget, runTurnSpeed * frameTicks));
 			player.setXRot(pitch);
 			player.xRotO = pitch;

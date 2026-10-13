@@ -75,6 +75,8 @@ public final class WigConfig {
 	 */
 	public boolean killByType = false;
 	/** Draws the mod's own name tag and box over every mob it is hunting, through walls and from far away. */
+	/** Like followTurnSmoothing, for hunting: about how many ticks the view takes to settle a turn. 0 turns at full speed. */
+	public double killTurnSmoothing = 4;
 	public boolean killShowTags = true;
 	/** How big those name tags are, the same at any distance (they shrink with distance like any name tag). About 0.45 is the size of an ordinary name tag. */
 	public double killTagScale = 0.45;
@@ -194,6 +196,9 @@ public final class WigConfig {
 		}
 		if (!(killClickCooldownSeconds >= 0)) {
 			killClickCooldownSeconds = d.killClickCooldownSeconds;
+		}
+		if (!(killTurnSmoothing >= 0)) {
+			killTurnSmoothing = d.killTurnSmoothing;
 		}
 		if (!(killTagScale > 0)) {
 			killTagScale = d.killTagScale;

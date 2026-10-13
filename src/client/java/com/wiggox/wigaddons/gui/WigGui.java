@@ -310,6 +310,8 @@ public final class WigGui {
 				config.killShowTags = v;
 				WigState.saveConfig();
 			});
+		followNumber(b, "smooth", "Turn smoothing", "About how many ticks the view takes to settle a turn while hunting, the same as the setting on the Follow tab but just for hunting. The turning eases in and out instead of snapping. Lower is quicker to lock on, 0 turns at full speed with no easing.",
+			() -> config.killTurnSmoothing, v -> config.killTurnSmoothing = v, 0, 20);
 		followNumber(b, "tagscale", "Name tag size", "How big the name tags are, the same at any distance: they shrink with distance like any name tag. About 0.45 is the size of an ordinary name tag, make it bigger to read them from further away.",
 			() -> config.killTagScale, v -> config.killTagScale = v, 0.1, 5);
 		b.toggle("bytype", "Hunt by mob type (no name tag needed)", "Name tags are separate entities, and the server may not send them or may only send them when you are close. With this on, every mob of the type below within the search radius is hunted whether or not its name tag is there. It can't tell special mobs apart without their tag, and it will also go for any other mob of that type.",
