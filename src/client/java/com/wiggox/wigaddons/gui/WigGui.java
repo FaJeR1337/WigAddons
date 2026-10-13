@@ -292,7 +292,7 @@ public final class WigGui {
 				config.killWander = v;
 				WigState.saveConfig();
 			});
-		b.toggle("idlelook", "Look around while walking home", "While walking to the home spot or wandering, the view sits 0, 45 or 90 degrees to either side of the way you are going and changes every second or two, so the walking keys vary (W, A, D, or two together) while the path stays exactly as accurate. Off keeps the view straight on where you are going, so mostly W.",
+		b.toggle("idlelook", "Look around while walking home", "While walking to the home spot or wandering, the view sits at a random angle within 30 degrees either side of the way you are going (60 degrees in all) and changes every second or two. Off keeps the view straight on where you are going, so mostly W.",
 			() -> config.killIdleLookAround, v -> {
 				config.killIdleLookAround = v;
 				WigState.saveConfig();

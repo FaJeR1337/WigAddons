@@ -63,8 +63,10 @@ public final class Runner {
 	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
 	private static double[] idleGoal;
 	private static int idlePauseTicks;
-	private static int idleLookStep;
+	private static double idleLookOffset;
 	private static double idleLookPitch;
+	/** While walking home or wandering the view stays within this many degrees either side of the way being walked. */
+	private static final double IDLE_LOOK_SPREAD_DEGREES = 30.0;
 	private static int idleLookTicks;
 	/** The names attacked so far this hunt, in order (kept for the dev test). */
 	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
@@ -603,10 +605,10 @@ public final class Runner {
 		sprintOn = false;
 		jump = out.jump();
 		if (cfg.killIdleLookAround) {
-			// the view sits a whole number of 45 degree steps (up to two) off the way being walked, so the keys (W, A, D, or two together)
-			// point exactly the way the path goes; it moves to another step every second or two for variety
+			// the view sits a random angle within 30 degrees either side of the way being walked (60 degrees in all), and moves to
+			// another every second or two
 			if (--idleLookTicks <= 0) {
-				idleLookStep = HUNT_RANDOM.nextInt(5) - 2;
+				idleLookOffset = (HUNT_RANDOM.nextDouble() * 2 - 1) * IDLE_LOOK_SPREAD_DEGREES;
 				idleLookPitch = (HUNT_RANDOM.nextDouble() * 2 - 1) * 2.0;
 				idleLookTicks = 60 + HUNT_RANDOM.nextInt(100);
 			}
@@ -614,7 +616,7 @@ public final class Runner {
 			double base = way != null
 				? FollowPlanner.yawToward(player.getX(), player.getZ(), way[0], way[2])
 				: FollowPlanner.yawToward(player.getX(), player.getZ(), goal[0], goal[2]);
-			aimYaw = base + idleLookStep * 45.0;
+			aimYaw = base + idleLookOffset;
 			pitchTarget = idleLookPitch;
 		} else {
 			aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
