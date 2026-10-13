@@ -79,6 +79,8 @@ public final class FollowPlanner {
 	static final double LEVEL_JITTER_DEGREES = 2.0;
 	static final double FLAT_LEVEL = 0.6;
 	static final double EYE_HEIGHT = 1.62;
+	/** Fewest ticks between two jumps, so a staircase isn't bunny hopped. */
+	static final int JUMP_GAP_TICKS = 8;
 	static final int REPLAN_EVERY = 10;
 	/** How long the view has to be blocked, or clear, before the look switches. */
 	static final int LOOK_SWITCH_TICKS = 10;
@@ -95,6 +97,7 @@ public final class FollowPlanner {
 
 	private ObstacleAvoider.Terrain terrain;
 	private int shortcutCooldown;
+	private int jumpCooldown;
 	private List<double[]> detour;
 	private double[] detourGoal;
 	private int replanCooldown;
@@ -132,6 +135,7 @@ public final class FollowPlanner {
 
 	/** @param target where the followed player is, or null when they can't be seen */
 	public Output tick(double px, double py, double pz, double viewYaw, Target target, boolean onGround, boolean horizontalCollision) {
+		jumpCooldown--;
 		if (Double.isNaN(refX)) {
 			refX = px;
 			refZ = pz;
@@ -190,12 +194,16 @@ public final class FollowPlanner {
 			strafe = keys[1];
 			sprint = forward > 0 && dist >= params.sprintDistance();
 			// a rise only matters when it is close: the followed player hopping about far away shouldn't make us jump
-			boolean riseAhead = next[1] > py + STEP_UP && Math.hypot(next[0] - px, next[2] - pz) < 2.5;
+			// with the world known, only an actual bump jumps: slabs, stairs and the like are stepped up by the walk itself, and path heights are only block-accurate
+			boolean riseAhead = terrain == null && next[1] > py + STEP_UP && Math.hypot(next[0] - px, next[2] - pz) < 2.5;
 			boolean blockedByStep = horizontalCollision && canStepOver(px, py, pz, next);
 			if (horizontalCollision && !blockedByStep) {
 				replanCooldown = 0; // rubbing along a wall that can't be jumped: plan the way again, now
 			}
-			jump = !params.neverJump() && onGround && (blockedByStep || riseAhead);
+			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead);
+			if (jump) {
+				jumpCooldown = JUMP_GAP_TICKS;
+			}
 		}
 
 		Status status;
