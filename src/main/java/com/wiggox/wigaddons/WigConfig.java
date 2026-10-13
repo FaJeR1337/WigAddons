@@ -80,9 +80,16 @@ public final class WigConfig {
 	public String killReactMessage = "A special Zealot has spawned nearby!";
 	public double killReactMinSeconds = 2;
 	public double killReactMaxSeconds = 3;
+	/** After this long, a special mob already in sight within the angle below of where the view points ends the looking around early. */
+	public double killReactEarlySeconds = 1;
+	public double killReactSeeAngle = 60;
 	/** Draws the mod's own name tag and box over every mob it is hunting, through walls and from far away. */
 	/** Like followTurnSmoothing, for hunting: about how many ticks the view takes to settle a turn. 0 turns at full speed. */
 	public double killTurnSmoothing = 4;
+	/** While sidestepping with A or D with the target within killPreciseAngle of the crosshair: aim straight at it with this little turn smoothing, so the view doesn't lag behind. */
+	public boolean killPreciseAim = true;
+	public double killCloseSmoothing = 0;
+	public double killPreciseAngle = 25;
 	public boolean killShowTags = true;
 	/** How big those name tags are, the same at any distance (they shrink with distance like any name tag). About 0.45 is the size of an ordinary name tag. */
 	public double killTagScale = 0.45;
@@ -206,6 +213,12 @@ public final class WigConfig {
 		if (!(killTurnSmoothing >= 0)) {
 			killTurnSmoothing = d.killTurnSmoothing;
 		}
+		if (!(killCloseSmoothing >= 0)) {
+			killCloseSmoothing = d.killCloseSmoothing;
+		}
+		if (!(killPreciseAngle > 0)) {
+			killPreciseAngle = d.killPreciseAngle;
+		}
 		if (!(killTagScale > 0)) {
 			killTagScale = d.killTagScale;
 		}
@@ -217,6 +230,12 @@ public final class WigConfig {
 		}
 		if (!(killReactMaxSeconds >= killReactMinSeconds)) {
 			killReactMaxSeconds = killReactMinSeconds;
+		}
+		if (!(killReactEarlySeconds >= 0)) {
+			killReactEarlySeconds = d.killReactEarlySeconds;
+		}
+		if (!(killReactSeeAngle > 0)) {
+			killReactSeeAngle = d.killReactSeeAngle;
 		}
 		if (killType == null || killType.isBlank()) {
 			killType = d.killType;

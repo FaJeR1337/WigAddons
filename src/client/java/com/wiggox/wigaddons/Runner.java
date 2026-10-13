@@ -65,9 +65,13 @@ public final class Runner {
 	private static int idlePauseTicks;
 	/** Ticks left of looking around and jumping after the message that something special spawned, and the ticks to the next look and the next jump. */
 	private static int huntReactTicks;
-	private static int huntReactLookTicks;
+	/** Aiming straight at the target with little easing (see huntTick). */
+	private static boolean huntPrecise;
+	private static boolean huntReactSpotted;
+	private static int huntReactTotal;
+	private static double huntReactStartYaw;
+	private static int huntReactDirection = 1;
 	private static int huntReactJumpTicks;
-	private static double huntReactPitch;
 	private static double idleLookOffset;
 	private static double idleLookPitch;
 	/** While walking home or wandering the view stays within this many degrees either side of the way being walked. */
@@ -475,26 +479,33 @@ public final class Runner {
 	/** One tick of hunting: pick a target, walk up to it, look at it, and right click once it is in reach. */
 	private static void huntTick(Minecraft mc, LocalPlayer player) {
 		var cfg = WigState.config;
+		huntPrecise = false;
 		if (useTicksLeft > 0 && --useTicksLeft == 0) {
 			mc.options.keyUse.setDown(false);
 			holdingRight = false;
 		}
 		if (huntReactTicks > 0) {
 			huntReactTicks--;
-			standStill();
-			if (--huntReactLookTicks <= 0) {
-				// a new way to look every half second or so, all round and a little up or down
-				aimYaw = player.getYRot() + (HUNT_RANDOM.nextDouble() * 2 - 1) * 110;
-				huntReactPitch = (HUNT_RANDOM.nextDouble() * 2 - 1) * 20;
-				huntReactLookTicks = 8 + HUNT_RANDOM.nextInt(10);
+			int elapsed = huntReactTotal - huntReactTicks;
+			// a special mob has been in front of the view at some point: after the first second (a person would need that long to react) go for it
+			if (specialInFront(mc, player, cfg)) {
+				huntReactSpotted = true;
 			}
-			haveAim = true;
-			pitchTarget = huntReactPitch;
-			if (--huntReactJumpTicks <= 0 && player.onGround()) {
-				jump = true;
-				huntReactJumpTicks = 8 + HUNT_RANDOM.nextInt(6);
+			if (huntReactSpotted && elapsed >= Math.round(cfg.killReactEarlySeconds * 20)) {
+				huntReactTicks = 0;
+			} else {
+				standStill();
+				// all the way round once over the time, a little up and down as it goes
+				double progress = huntReactTotal <= 0 ? 1 : (double) elapsed / huntReactTotal;
+				aimYaw = huntReactStartYaw + huntReactDirection * 360.0 * progress;
+				pitchTarget = Math.sin(progress * Math.PI * 3) * 15.0;
+				haveAim = true;
+				if (--huntReactJumpTicks <= 0 && player.onGround()) {
+					jump = true;
+					huntReactJumpTicks = 8 + HUNT_RANDOM.nextInt(6);
+				}
+				return;
 			}
-			return;
 		}
 		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
 		// a target almost straight above can't be looked at: leave it alone
@@ -557,6 +568,18 @@ public final class Runner {
 		}
 		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
 		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		// sidestepping with A or D with the target near the crosshair: aim right at it with next to no easing, or the view lags behind a
+		// moving target and keeps pointing a block or two ahead of it, never lining up to shoot
+		huntPrecise = false;
+		if (cfg.killPreciseAim && strafe != 0) {
+			double aimY = pick.y() + (pick.eyeY() - pick.y()) * 0.6;
+			ZealotHunter.View now = new ZealotHunter.View(player.getX(), player.getEyeY(), player.getZ(), player.getYRot(), player.getXRot());
+			if (now.angleTo(pick.x(), aimY, pick.z()) <= cfg.killPreciseAngle) {
+				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), pick.x(), pick.z());
+				pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), pick.x(), aimY, pick.z());
+				huntPrecise = true;
+			}
+		}
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
@@ -679,6 +702,19 @@ public final class Runner {
 			net.minecraft.world.phys.BlockHitResult block = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, new Vec3(mob.getX(), y, mob.getZ()),
 				net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, player));
 			if (block.getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Whether a special mob is in sight and within the angle either side of where the view points. */
+	private static boolean specialInFront(Minecraft mc, LocalPlayer player, WigConfig cfg) {
+		ZealotHunter.View view = new ZealotHunter.View(player.getX(), player.getEyeY(), player.getZ(), player.getYRot(), player.getXRot());
+		for (ZealotHunter.Mob mob : scanMobs(mc, player)) {
+			if (ZealotHunter.matches(mob.name(), cfg.killSpecialName) && !HUNTER.isMarkedDead(mob.id(), ticks)
+				&& (!cfg.killRequireSight || recentlySeen(mob.id()))
+				&& view.angleTo(mob.x(), mob.eyeY(), mob.z()) <= cfg.killReactSeeAngle) {
 				return true;
 			}
 		}
@@ -834,10 +870,11 @@ public final class Runner {
 		}
 		checkView(player);
 		boolean following = followSource != null;
+		double smoothing = !hunting ? WigState.config.followTurnSmoothing : huntPrecise ? WigState.config.killCloseSmoothing : WigState.config.killTurnSmoothing;
 		if (haveAim) {
 			double before = player.getYRot();
 			float yaw = (float) (following
-				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, (hunting ? WigState.config.killTurnSmoothing : WigState.config.followTurnSmoothing), runTurnSpeed)
+				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, smoothing, runTurnSpeed)
 				: RouteFollower.stepYaw(before, aimYaw, runTurnSpeed * frameTicks));
 			player.setYRot(yaw);
 			// no blending between ticks: the view is set exactly, every frame
@@ -847,7 +884,7 @@ public final class Runner {
 		}
 		if (!Double.isNaN(pitchTarget)) {
 			float pitch = (float) (following
-				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, (hunting ? WigState.config.killTurnSmoothing : WigState.config.followTurnSmoothing), runTurnSpeed)
+				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, smoothing, runTurnSpeed)
 				: RouteFollower.stepToward(player.getXRot(), pitchTarget, runTurnSpeed * frameTicks));
 			player.setXRot(pitch);
 			player.xRotO = pitch;
@@ -907,8 +944,12 @@ public final class Runner {
 			// something special has turned up: stop, look around and hop about for a moment before going for it
 			double seconds = reactCfg.killReactMinSeconds + HUNT_RANDOM.nextDouble() * (reactCfg.killReactMaxSeconds - reactCfg.killReactMinSeconds);
 			huntReactTicks = Math.max(1, (int) Math.round(seconds * 20));
-			huntReactLookTicks = 0;
+			huntReactTotal = huntReactTicks;
+			huntReactSpotted = false;
 			huntReactJumpTicks = 0;
+			huntReactDirection = HUNT_RANDOM.nextBoolean() ? 1 : -1;
+			net.minecraft.client.player.LocalPlayer me = Minecraft.getInstance().player;
+			huntReactStartYaw = me == null ? 0 : me.getYRot();
 		}
 		if (!active() || partyCountdown >= 0 || !PartyLeave.matches(line, WigState.config.partyLeavePatterns)) {
 			return;

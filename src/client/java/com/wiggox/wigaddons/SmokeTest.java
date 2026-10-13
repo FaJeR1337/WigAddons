@@ -116,8 +116,9 @@ final class SmokeTest {
 			case 20 -> crowdCheck(mc);
 			case 21 -> typeCheck(mc);
 			case 22 -> reactCheck(mc);
-			case 23 -> hudPosition(mc);
-			case 24 -> {
+			case 23 -> reactEarlyCheck(mc);
+			case 24 -> hudPosition(mc);
+			case 25 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -424,6 +425,41 @@ final class SmokeTest {
 		if (phaseTick == 140) {
 			log("react: airborne ticks " + reactJumps + ", view moved " + String.format("%.0f", reactYawMoved) + " degrees, me " + fmt(mc));
 			Runner.stop("smoke test over");
+			next();
+		}
+	}
+
+	/** A special mob appears straight ahead right after the message: the looking around should end after about a second and the mob be attacked. */
+	private static void reactEarlyCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+		}
+		if (phaseTick == 30) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 40) {
+			Runner.onChatLine("A special Zealot has spawned nearby!");
+			reactLastYaw = mc.player.getYRot();
+			reactYawMoved = 0;
+		}
+		if (phaseTick == 42) {
+			command(mc, "summon minecraft:iron_golem 0.5 -60 4.5 {CustomName:\"Special Zealot\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}");
+		}
+		if (phaseTick > 40 && phaseTick < 160) {
+			reactYawMoved += Math.abs(mc.player.getYRot() - reactLastYaw);
+			reactLastYaw = mc.player.getYRot();
+			if (!Runner.huntOrder().isEmpty()) {
+				log("react early: first attack " + (phaseTick - 40) + " ticks after the message, view moved " + String.format("%.0f", reactYawMoved) + " degrees");
+				Runner.stop("smoke test over");
+				command(mc, "kill @e[type=minecraft:iron_golem]");
+				next();
+			}
+		}
+		if (phaseTick == 160) {
+			log("react early: no attack in 120 ticks");
+			Runner.stop("smoke test over");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
 		}
 	}

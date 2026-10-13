@@ -312,6 +312,15 @@ public final class WigGui {
 			});
 		followNumber(b, "smooth", "Turn smoothing", "About how many ticks the view takes to settle a turn while hunting, the same as the setting on the Follow tab but just for hunting. The turning eases in and out instead of snapping. Lower is quicker to lock on, 0 turns at full speed with no easing.",
 			() -> config.killTurnSmoothing, v -> config.killTurnSmoothing = v, 0, 20);
+		b.toggle("precise", "Aim straight at close targets", "While sidestepping with A or D with the target close to your crosshair, aim straight at it with next to no turn smoothing, so the view doesn't lag behind a moving target and keep pointing a block or two ahead of it.",
+			() -> config.killPreciseAim, v -> {
+				config.killPreciseAim = v;
+				WigState.saveConfig();
+			});
+		followNumber(b, "closesmooth", "Smoothing for close targets", "The turn smoothing used for that, in ticks. 0 is no easing at all.",
+			() -> config.killCloseSmoothing, v -> config.killCloseSmoothing = v, 0, 20);
+		followNumber(b, "preciseangle", "Close to the crosshair (deg)", "How many degrees from the crosshair still counts as close, for the setting above.",
+			() -> config.killPreciseAngle, v -> config.killPreciseAngle = v, 1, 90);
 		followNumber(b, "tagscale", "Name tag size", "How big the name tags are, the same at any distance: they shrink with distance like any name tag. About 0.45 is the size of an ordinary name tag, make it bigger to read them from further away.",
 			() -> config.killTagScale, v -> config.killTagScale = v, 0.1, 5);
 		b.text("react", "Spawn message", "When this chat message arrives while hunting, you stand still, look around and jump for a few seconds before going for the mob. Leave it empty to turn that off.",
@@ -323,6 +332,10 @@ public final class WigGui {
 			() -> config.killReactMinSeconds, v -> config.killReactMinSeconds = v, 0, 30);
 		followNumber(b, "reactmax", "Look around for at most (s)", "The longest time spent looking around and jumping after the spawn message, in seconds.",
 			() -> config.killReactMaxSeconds, v -> config.killReactMaxSeconds = v, 0, 30);
+		followNumber(b, "reactearly", "Go early after (s)", "While looking around after the spawn message, if a special mob has come into sight in front of you (within the angle below), then once this many seconds have passed the looking around ends and you go for it.",
+			() -> config.killReactEarlySeconds, v -> config.killReactEarlySeconds = v, 0, 30);
+		followNumber(b, "reactangle", "In front means within (deg)", "How many degrees either side of where you are facing counts as in front of you, for going early.",
+			() -> config.killReactSeeAngle, v -> config.killReactSeeAngle = v, 1, 180);
 		b.toggle("bytype", "Hunt by mob type (no name tag needed)", "Name tags are separate entities, and the server may not send them or may only send them when you are close. With this on, every mob of the type below within the search radius is hunted whether or not its name tag is there. It can't tell special mobs apart without their tag, and it will also go for any other mob of that type.",
 			() -> config.killByType, v -> {
 				config.killByType = v;
