@@ -508,4 +508,19 @@ class FollowPlannerTest {
 		}
 		assertFalse(neverJumped, "never jump still means never");
 	}
+
+	@Test
+	void doesNotJumpAtAWallTallerThanFiveBlocks() {
+		ObstacleAvoider.Terrain high = (x, y, z) -> y <= -61 || (z == 1 && y <= -52); // 9 tall
+		ObstacleAvoider.Terrain five = (x, y, z) -> y <= -61 || (z == 1 && y <= -56); // 5 tall
+		for (ObstacleAvoider.Terrain wall : new ObstacleAvoider.Terrain[] {high, five}) {
+			FollowPlanner f = new FollowPlanner(params(), new Random(1));
+			f.setTerrain(wall);
+			boolean jumped = false;
+			for (int i = 0; i < 60; i++) {
+				jumped |= f.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, true).jump();
+			}
+			assertEquals(wall == five, jumped, wall == five ? "a five block wall is jumped at" : "a nine block wall is not");
+		}
+	}
 }

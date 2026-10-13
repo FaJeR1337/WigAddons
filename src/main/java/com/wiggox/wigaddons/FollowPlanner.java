@@ -83,6 +83,8 @@ public final class FollowPlanner {
 	static final int JUMP_GAP_TICKS = 8;
 	/** Pressed against a wall for longer than this many ticks (one second) and it jumps. */
 	static final int WALL_JUMP_TICKS = 20;
+	/** Walls up to this many blocks high are jumped at; anything taller is not worth it. */
+	static final int WALL_JUMP_MAX = 5;
 	static final int REPLAN_EVERY = 10;
 	/** How long the view has to be blocked, or clear, before the look switches. */
 	static final int LOOK_SWITCH_TICKS = 10;
@@ -205,7 +207,8 @@ public final class FollowPlanner {
 			}
 			// pressed against something that can't be stepped over (a wall two blocks or higher) for over a second: try jumping at it
 			wallTicks = horizontalCollision && !blockedByStep ? wallTicks + 1 : 0;
-			boolean stuckAtWall = wallTicks > WALL_JUMP_TICKS;
+			int wallHeight = wallTicks > WALL_JUMP_TICKS ? wallHeightAhead(px, py, pz, next) : 0;
+			boolean stuckAtWall = wallHeight >= 2 && wallHeight <= WALL_JUMP_MAX;
 			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead || stuckAtWall);
 			if (jump) {
 				jumpCooldown = JUMP_GAP_TICKS;
@@ -361,6 +364,27 @@ public final class FollowPlanner {
 			}
 		}
 		return target; // falling a long way, or over a void: leave it be
+	}
+
+	/** How many blocks tall the wall ahead is (counting up from the feet, in the direction of travel), at most one more than the jump limit. */
+	private int wallHeightAhead(double px, double py, double pz, double[] next) {
+		if (terrain == null) {
+			return 2;
+		}
+		double dx = next[0] - px;
+		double dz = next[2] - pz;
+		double length = Math.hypot(dx, dz);
+		if (length < 1e-6) {
+			return 0;
+		}
+		int cx = (int) Math.floor(px + dx / length * 0.6);
+		int cz = (int) Math.floor(pz + dz / length * 0.6);
+		int cy = (int) Math.floor(py + 0.01);
+		int height = 0;
+		while (height <= WALL_JUMP_MAX && terrain.solid(cx, cy + height, cz)) {
+			height++;
+		}
+		return height;
 	}
 
 	/** Whether what is blocking the way ahead is a single block that can be jumped onto, rather than a wall. */
