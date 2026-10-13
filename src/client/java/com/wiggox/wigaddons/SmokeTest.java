@@ -280,6 +280,9 @@ final class SmokeTest {
 		if (phaseTick > 40 && phaseTick % 100 == 0) {
 			log("hunt t=" + (phaseTick - 40) + ": me " + fmt(mc) + ", attacked " + Runner.huntOrder());
 		}
+		if (phaseTick == 45) {
+			photograph(mc, "hunt");
+		}
 		if (phaseTick == 300) {
 			photograph(mc, "hunt");
 		}

@@ -30,6 +30,9 @@ public final class WaypointRenderer {
 					Gizmos.cuboid(new BlockPos((int) Math.floor(cfg.killHomeX), (int) Math.floor(cfg.killHomeY) - 1, (int) Math.floor(cfg.killHomeZ)), GizmoStyle.stroke(0xFF55FF55, 3.0F));
 					Gizmos.billboardText("Hunt home", new Vec3(cfg.killHomeX, cfg.killHomeY + 0.9, cfg.killHomeZ), TextGizmo.Style.forColorAndCentered(0xFF55FF55).withScale(1.2F)).setAlwaysOnTop();
 				}
+				if (Runner.isHunting() && WigState.config.killShowTags) {
+					drawHuntTags();
+				}
 				if (WigState.config.followShowTrail) {
 					drawTrail();
 				}
@@ -37,6 +40,23 @@ public final class WaypointRenderer {
 				// no gizmo collector at this point of the frame; nothing to draw into
 			}
 		});
+	}
+
+	/** The mod's own name tag and box over every mob being hunted, drawn over walls and made bigger with distance so they can be read from afar. */
+	private static void drawHuntTags() {
+		net.minecraft.client.player.LocalPlayer player = net.minecraft.client.Minecraft.getInstance().player;
+		if (player == null) {
+			return;
+		}
+		for (Runner.HuntMark mark : Runner.huntMarks()) {
+			int color = mark.dead() ? 0xFF888888 : mark.target() ? 0xFF55FF55 : mark.special() ? 0xFFFFD700 : 0xFFFF7755;
+			double distance = Math.sqrt(player.distanceToSqr(mark.x(), mark.y(), mark.z()));
+			String text = (mark.special() ? "* " : "") + mark.name() + " " + Math.round(distance) + "m" + (mark.dead() ? " (dead?)" : !mark.visible() ? " (hidden)" : "");
+			float scale = (float) Math.max(0.6, Math.min(4.0, 0.4 + distance * 0.05));
+			Gizmos.billboardText(text, new Vec3(mark.x(), mark.eyeY() + 0.9, mark.z()), TextGizmo.Style.forColorAndCentered(color).withScale(scale)).setAlwaysOnTop();
+			Gizmos.cuboid(new net.minecraft.world.phys.AABB(mark.x() - 0.4, mark.y(), mark.z() - 0.4, mark.x() + 0.4, mark.eyeY() + 0.3, mark.z() + 0.4),
+				GizmoStyle.stroke(color, 2.0F)).setAlwaysOnTop();
+		}
 	}
 
 	private static final int TRAIL_COLOR = 0xFFFFAA00;

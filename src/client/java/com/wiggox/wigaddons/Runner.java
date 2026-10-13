@@ -76,6 +76,17 @@ public final class Runner {
 	/** The tick before which the next right click has to wait: the weapon's cooldown. */
 	private static long nextClickTick;
 	/** What each recognised mob was called, and when it last was seen with its name tag. */
+	/** A mob the hunt knows about, for drawing its own name tag over it. */
+	public record HuntMark(double x, double y, double z, double eyeY, String name, boolean special, boolean target, boolean dead, boolean visible) {
+	}
+
+	private static volatile java.util.List<HuntMark> huntMarks = java.util.List.of();
+
+	/** The mobs being hunted right now, for drawing. Empty when not hunting. */
+	public static java.util.List<HuntMark> huntMarks() {
+		return huntMarks;
+	}
+
 	private static final java.util.Map<Integer, String> HUNT_NAME_OF = new java.util.HashMap<>();
 	private static final java.util.Map<Integer, Long> HUNT_NAMED_AT = new java.util.HashMap<>();
 	/** A mob stays recognised this long after its name tag was last seen, in ticks. */
@@ -344,6 +355,7 @@ public final class Runner {
 
 	private static void end() {
 		releaseClicks();
+		huntMarks = java.util.List.of();
 		hunting = false;
 		useTicksLeft = 0;
 		if (macroCountdown >= 0) {
@@ -486,6 +498,9 @@ public final class Runner {
 			pick = HUNTER.pick(all, view, cfg.killPickByCrosshair, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
 		}
 		int id = pick == null ? -1 : pick.id();
+		int markedTarget = pick == null ? -1 : pick.id();
+		huntMarks = all.stream().map(m -> new HuntMark(m.x(), m.y(), m.z(), m.eyeY(), m.name(),
+			ZealotHunter.matches(m.name(), cfg.killSpecialName), m.id() == markedTarget, HUNTER.isMarkedDead(m.id(), ticks), !cfg.killRequireSight || recentlySeen(m.id()))).toList();
 		if (pick != null && id != huntTargetId) {
 			// a new target: a fresh plan, so the old one's trail isn't walked
 			huntTargetId = id;

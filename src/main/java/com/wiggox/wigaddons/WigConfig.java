@@ -74,6 +74,8 @@ public final class WigConfig {
 	 * type below within the search radius counts as hunted, name tag or not. (It can't tell a special one apart without its tag.)
 	 */
 	public boolean killByType = false;
+	/** Draws the mod's own name tag and box over every mob it is hunting, through walls and from far away. */
+	public boolean killShowTags = true;
 	public String killType = "minecraft:enderman";
 	/** The least time between one right click and the next, in seconds: set it to the weapon's cooldown. A little extra is added at random so it isn't clockwork. */
 	public double killClickCooldownSeconds = 0.5;
