@@ -69,6 +69,8 @@ public final class WigConfig {
 	public int killClickTicks = 3;
 	/** How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. */
 	public int killSpecialClicks = 3;
+	/** The longest fall, in blocks, that hunting takes as a shortcut instead of walking a long way round. Falls over 3 blocks hurt. */
+	public int killMaxDrop = 6;
 	/**
 	 * Name tags are separate entities the server may not send, or only send when close. With this on, every mob of the
 	 * type below within the search radius counts as hunted, name tag or not. (It can't tell a special one apart without its tag.)
@@ -205,6 +207,9 @@ public final class WigConfig {
 		}
 		if (killType == null || killType.isBlank()) {
 			killType = d.killType;
+		}
+		if (killMaxDrop < 0) {
+			killMaxDrop = d.killMaxDrop;
 		}
 		if (killSpecialClicks < 1) {
 			killSpecialClicks = d.killSpecialClicks;

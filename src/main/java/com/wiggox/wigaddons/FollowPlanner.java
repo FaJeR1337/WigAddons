@@ -38,16 +38,16 @@ public final class FollowPlanner {
 	}
 
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
-		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval) {
+		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval, int maxDrop) {
 		/** For hunting: walk right up to the target, always look at it. */
 		public static Params forHunt(WigConfig c) {
 			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, 0.3), c.followNeverJump,
-				c.stuckTimeoutSeconds, c.killRequireSight, 0);
+				c.stuckTimeoutSeconds, c.killRequireSight, 0, c.killMaxDrop);
 		}
 
 		public static Params of(WigConfig c) {
 			return new Params(c.followStopDistance, c.followResumeDistance, c.followSprintDistance, c.followLostSeconds,
-				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval);
+				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval, 2);
 		}
 	}
 
@@ -81,6 +81,8 @@ public final class FollowPlanner {
 	static final double EYE_HEIGHT = 1.62;
 	/** Fewest ticks between two jumps, so a staircase isn't bunny hopped. */
 	static final int JUMP_GAP_TICKS = 8;
+	/** Pressed against a wall for longer than this many ticks (one second) and it jumps. */
+	static final int WALL_JUMP_TICKS = 20;
 	static final int REPLAN_EVERY = 10;
 	/** How long the view has to be blocked, or clear, before the look switches. */
 	static final int LOOK_SWITCH_TICKS = 10;
@@ -98,6 +100,7 @@ public final class FollowPlanner {
 	private ObstacleAvoider.Terrain terrain;
 	private int shortcutCooldown;
 	private int jumpCooldown;
+	private int wallTicks;
 	private List<double[]> detour;
 	private double[] detourGoal;
 	private int replanCooldown;
@@ -200,7 +203,10 @@ public final class FollowPlanner {
 			if (horizontalCollision && !blockedByStep) {
 				replanCooldown = 0; // rubbing along a wall that can't be jumped: plan the way again, now
 			}
-			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead);
+			// pressed against something that can't be stepped over (a wall two blocks or higher) for over a second: try jumping at it
+			wallTicks = horizontalCollision && !blockedByStep ? wallTicks + 1 : 0;
+			boolean stuckAtWall = wallTicks > WALL_JUMP_TICKS;
+			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead || stuckAtWall);
 			if (jump) {
 				jumpCooldown = JUMP_GAP_TICKS;
 			}
@@ -285,7 +291,7 @@ public final class FollowPlanner {
 			replanCooldown = REPLAN_EVERY;
 			detourGoal = next;
 			detour = GridPath.find(terrain, (int) Math.floor(px), (int) Math.floor(py + 0.01), (int) Math.floor(pz),
-				(int) Math.floor(next[0]), (int) Math.floor(next[1] + 0.01), (int) Math.floor(next[2]), !params.neverJump());
+				(int) Math.floor(next[0]), (int) Math.floor(next[1] + 0.01), (int) Math.floor(next[2]), !params.neverJump(), params.maxDrop());
 		}
 		if (detour == null || detour.isEmpty()) {
 			return next;
@@ -378,36 +384,48 @@ public final class FollowPlanner {
 		return cy + terrain.top(cx, cy, cz) - py > STEP_UP;
 	}
 
-	/** Whether a body can walk from one spot to another in a straight line: room to stand all along and ground, or at most a one block drop, underfoot. */
+	/**
+	 * Whether a body can walk from one spot to another in a straight line: it stays at its height while there is ground,
+	 * and where the ground ends it drops (down to the longest drop allowed) and carries on, with room to stand all along.
+	 */
 	private boolean clearLine(double x0, double y0, double z0, double x1, double y1, double z1) {
 		double length = Math.hypot(x1 - x0, z1 - z0);
 		int steps = Math.max(1, (int) Math.ceil(length / 0.4));
 		// the direction sideways to the line
 		double px = length < 1e-6 ? 0 : -(z1 - z0) / length;
 		double pz = length < 1e-6 ? 0 : (x1 - x0) / length;
+		int level = (int) Math.floor(y0 + 0.01);
 		for (int i = 1; i <= steps; i++) {
 			double t = i / (double) steps;
-			int cx = (int) Math.floor(x0 + (x1 - x0) * t);
-			int cz = (int) Math.floor(z0 + (z1 - z0) * t);
-			int cy = (int) Math.floor(y0 + (y1 - y0) * t + 0.01);
-			if (terrain.solid(cx, cy, cz) || terrain.solid(cx, cy + 1, cz)) {
-				return false;
-			}
-			// the body is wider than the line: leave room either side so the path doesn't scrape along corners
 			double sx = x0 + (x1 - x0) * t;
 			double sz = z0 + (z1 - z0) * t;
-			for (int side = -1; side <= 1; side += 2) {
-				int ox = (int) Math.floor(sx + side * px * BODY_MARGIN);
-				int oz = (int) Math.floor(sz + side * pz * BODY_MARGIN);
-				if ((ox != cx || oz != cz) && (terrain.solid(ox, cy, oz) || terrain.solid(ox, cy + 1, oz))) {
+			int cx = (int) Math.floor(sx);
+			int cz = (int) Math.floor(sz);
+			if (terrain.solid(cx, level, cz) || terrain.solid(cx, level + 1, cz)) {
+				return false;
+			}
+			// no ground here: fall through free air until there is some, within the longest drop
+			int landed = level;
+			int drop = 0;
+			while (!terrain.supports(cx, landed - 1, cz)) {
+				landed--;
+				drop++;
+				if (drop > params.maxDrop() || terrain.solid(cx, landed, cz)) {
 					return false;
 				}
 			}
-			if (!terrain.supports(cx, cy - 1, cz) && !terrain.supports(cx, cy - 2, cz)) {
-				return false;
+			// the body is wider than the line: leave room either side so the path doesn't scrape along corners
+			for (int side = -1; side <= 1; side += 2) {
+				int ox = (int) Math.floor(sx + side * px * BODY_MARGIN);
+				int oz = (int) Math.floor(sz + side * pz * BODY_MARGIN);
+				if ((ox != cx || oz != cz) && (terrain.solid(ox, level, oz) || terrain.solid(ox, level + 1, oz))) {
+					return false;
+				}
 			}
+			level = landed;
 		}
-		return true;
+		// it has to end up where the goal is, not on some other level
+		return Math.abs(level - (int) Math.floor(y1 + 0.01)) <= 1;
 	}
 
 	/** Drops trail points up to the furthest one that has been reached, so the player doesn't walk back to them. */

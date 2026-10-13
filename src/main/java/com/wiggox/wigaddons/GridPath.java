@@ -36,6 +36,11 @@ public final class GridPath {
 	 * @return the cell centres to walk through, start excluded, or null when no way was found within the search limits
 	 */
 	public static List<double[]> find(ObstacleAvoider.Terrain t, int sx, int sy, int sz, int gx, int gy, int gz, boolean allowStepUp) {
+		return find(t, sx, sy, sz, gx, gy, gz, allowStepUp, 2);
+	}
+
+	/** @param maxDrop the longest fall that is taken as a shortcut, in blocks */
+	public static List<double[]> find(ObstacleAvoider.Terrain t, int sx, int sy, int sz, int gx, int gy, int gz, boolean allowStepUp, int maxDrop) {
 		PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f(), b.f()));
 		Map<Long, Double> best = new HashMap<>();
 		Node start = new Node(sx, sy, sz, 0, heuristic(sx, sy, sz, gx, gy, gz), null);
@@ -57,7 +62,7 @@ public final class GridPath {
 					continue;
 				}
 				boolean diagonal = d[0] != 0 && d[1] != 0;
-				for (int dy = allowStepUp ? 1 : 0; dy >= -2; dy--) {
+				for (int dy = allowStepUp ? 1 : 0; dy >= -maxDrop; dy--) {
 					int ny = n.y() + dy;
 					if (!standable(t, nx, ny, nz)) {
 						continue;
@@ -65,13 +70,13 @@ public final class GridPath {
 					if (dy == 1 && !free(t, n.x(), n.y() + 1, n.z())) {
 						continue; // no headroom to jump up from here
 					}
-					if (dy < 0 && !free(t, nx, n.y(), nz)) {
+					if (dy < 0 && !fallsFree(t, nx, n.y(), ny, nz)) {
 						continue; // the way out over the edge is blocked
 					}
 					if (diagonal && !(free(t, n.x() + d[0], ny > n.y() ? ny : n.y(), n.z()) && free(t, n.x(), ny > n.y() ? ny : n.y(), n.z() + d[1]))) {
 						continue; // would clip a corner
 					}
-					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy != 0 ? 0.6 : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
+					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy != 0 ? 0.6 + (dy < -1 ? 0.4 * (-dy - 1) : 0) : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
 					long k = key(nx, ny, nz);
 					if (g < best.getOrDefault(k, Double.MAX_VALUE)) {
 						best.put(k, g);
@@ -82,6 +87,16 @@ public final class GridPath {
 			}
 		}
 		return null;
+	}
+
+	/** Whether the body can fall straight down the column from standing height to landing height: feet and head room all the way. */
+	private static boolean fallsFree(ObstacleAvoider.Terrain t, int x, int fromY, int toY, int z) {
+		for (int y = fromY; y >= toY; y--) {
+			if (!free(t, x, y, z)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** A cell next to a wall: the body brushes it, so paths prefer cells with room. */

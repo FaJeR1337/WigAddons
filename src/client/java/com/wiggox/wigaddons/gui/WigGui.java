@@ -298,8 +298,8 @@ public final class WigGui {
 				WigState.saveConfig();
 			});
 		followNumber(b, "wanderradius", "Wander radius", "How far from the home spot to stroll, in blocks.", () -> config.killWanderRadius, v -> config.killWanderRadius = v, 0, 50);
-		followNumber(b, "radius", "Search radius", "How many blocks away to look for something to hunt.", () -> config.killSearchRadius, v -> config.killSearchRadius = v, 1, 128);
-		followNumber(b, "range", "Click range", "You right click once you are looking at the mob and it is within this many blocks.", () -> config.killRange, v -> config.killRange = v, 1, 30);
+		followNumber(b, "radius", "Search radius", "How many blocks away to look for something to hunt.", () -> config.killSearchRadius, v -> config.killSearchRadius = v, 1, 500);
+		followNumber(b, "range", "Click range", "You right click once you are looking at the mob and it is within this many blocks.", () -> config.killRange, v -> config.killRange = v, 1, 500);
 		followNumber(b, "markmin", "Dead for at least (s)", "After attacking, the mob is assumed dead and ignored for a random time between this and the next number, in seconds.",
 			() -> config.killMarkMinSeconds, v -> config.killMarkMinSeconds = v, 0, 300);
 		followNumber(b, "markmax", "Dead for at most (s)", "The longest the mob is ignored after an attack, in seconds.",
@@ -326,6 +326,8 @@ public final class WigGui {
 					WigState.saveConfig();
 				}
 			});
+		followNumber(b, "maxdrop", "Longest drop (blocks)", "The longest fall hunting takes as a shortcut, instead of walking a long way round by stairs or slopes. Falls over 3 blocks hurt. 0 never drops more than a step.",
+			() -> config.killMaxDrop, v -> config.killMaxDrop = (int) Math.round(v), 0, 40);
 		followNumber(b, "specialclicks", "Clicks on a special mob", "How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. Ordinary mobs are assumed dead after one.",
 			() -> config.killSpecialClicks, v -> config.killSpecialClicks = (int) Math.round(v), 1, 50);
 		followNumber(b, "cooldown", "Click cooldown (s)", "The least time between one right click and the next, in seconds. Set it to your weapon's cooldown. A little extra is added at random so it isn't clockwork.",

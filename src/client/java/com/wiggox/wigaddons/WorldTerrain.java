@@ -11,6 +11,8 @@ import net.minecraft.world.level.block.state.BlockState;
 final class WorldTerrain implements ObstacleAvoider.Terrain {
 	/** Collision tops up to this high are stepped onto without jumping (the player steps up 0.6). */
 	private static final double STEP = 0.6;
+	/** Collision this low or lower (carpets, a thin layer of snow) is treated as not being there at all. */
+	private static final double THIN = 0.2;
 
 	@Override
 	public boolean solid(int x, int y, int z) {
@@ -21,13 +23,13 @@ final class WorldTerrain implements ObstacleAvoider.Terrain {
 	@Override
 	public boolean supports(int x, int y, int z) {
 		VoxelShape shape = shape(x, y, z);
-		return shape != null && !shape.isEmpty();
+		return shape != null && !shape.isEmpty() && shape.max(Direction.Axis.Y) > THIN;
 	}
 
 	@Override
 	public double top(int x, int y, int z) {
 		VoxelShape shape = shape(x, y, z);
-		return shape == null || shape.isEmpty() ? 0.0 : shape.max(Direction.Axis.Y);
+		return shape == null || shape.isEmpty() || shape.max(Direction.Axis.Y) <= THIN ? 0.0 : shape.max(Direction.Axis.Y);
 	}
 
 	private static VoxelShape shape(int x, int y, int z) {

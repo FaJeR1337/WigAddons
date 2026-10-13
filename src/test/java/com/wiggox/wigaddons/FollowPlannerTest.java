@@ -461,4 +461,51 @@ class FollowPlannerTest {
 		// standing half a block up, on a slab: the same block is only a half block step
 		assertFalse(onSlab.tick(0.5, -59.5, 0.5, 0, at(0.5, 14), true, true).jump(), "half a block is stepped up without jumping");
 	}
+
+	@Test
+	void hunting_dropsOffALedgeInsteadOfWalkingRoundByTheStairs() {
+		// a plateau at y=-60 ground top (cells <= -61 solid) for z < 5; beyond z=5 the ground is 5 blocks lower. The only other way down is a
+		// stair 30 blocks along at x=30.
+		ObstacleAvoider.Terrain ledge = (x, y, z) -> z < 5 ? y <= -61 : (y <= -66 || (x >= 30 && y <= -61 - (z - 5 < 5 ? 0 : 0)));
+		WigConfig cfg = new WigConfig();
+		cfg.killMaxDrop = 6;
+		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random(1));
+		f.setTerrain(ledge);
+		FollowPlanner.Output out = null;
+		for (int i = 0; i < 5; i++) {
+			out = f.tick(0.5, -60, 0.5, 0, new FollowPlanner.Target(0.5, -65, 12, -63.4), true, false);
+		}
+		double[] next = f.snapshot().next();
+		assertTrue(Math.abs(next[0] - 0.5) < 1.5, "heads straight for the edge, x=" + next[0]);
+		// the grid search agrees: a short way down with long drops allowed, a long way round (or none) without
+		java.util.List<double[]> shortWay = GridPath.find(ledge, 0, -60, 0, 0, -65, 12, true, 6);
+		java.util.List<double[]> noDrop = GridPath.find(ledge, 0, -60, 0, 0, -65, 12, true, 2);
+		assertTrue(shortWay != null && shortWay.size() < 20, "short way down");
+		assertTrue(noDrop == null || noDrop.size() > 40, "long way round without drops");
+	}
+
+	@Test
+	void jumpsAtAWallAfterBeingPressedAgainstItForASecond() {
+		ObstacleAvoider.Terrain tallWall = (x, y, z) -> y <= -61 || (z == 1 && y <= -57);
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		f.setTerrain(tallWall);
+		boolean jumped = false;
+		for (int i = 0; i < 18; i++) {
+			jumped |= f.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, true).jump();
+		}
+		assertFalse(jumped, "a tall wall is not jumped at straight away");
+		for (int i = 0; i < 6; i++) {
+			jumped |= f.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, true).jump();
+		}
+		assertTrue(jumped, "after a second against it, it tries a jump");
+		WigConfig never = new WigConfig();
+		never.followNeverJump = true;
+		FollowPlanner n = new FollowPlanner(FollowPlanner.Params.of(never), new Random(1));
+		n.setTerrain(tallWall);
+		boolean neverJumped = false;
+		for (int i = 0; i < 60; i++) {
+			neverJumped |= n.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, true).jump();
+		}
+		assertFalse(neverJumped, "never jump still means never");
+	}
 }
