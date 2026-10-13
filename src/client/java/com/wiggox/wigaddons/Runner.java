@@ -63,11 +63,9 @@ public final class Runner {
 	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
 	private static double[] idleGoal;
 	private static int idlePauseTicks;
-	private static double idleLookYaw;
+	private static int idleLookStep;
 	private static double idleLookPitch;
 	private static int idleLookTicks;
-	/** While walking home or wandering the view stays within this many degrees of the way to the goal. */
-	private static final double IDLE_LOOK_SPREAD_DEGREES = 90.0;
 	/** The names attacked so far this hunt, in order (kept for the dev test). */
 	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
 	private static boolean huntWaitingTold;
@@ -605,14 +603,18 @@ public final class Runner {
 		sprintOn = false;
 		jump = out.jump();
 		if (cfg.killIdleLookAround) {
-			// the view wanders on its own; the planner already picks W, A, S and D relative to it, so the way round things is sidestepped or backed into
+			// the view sits a whole number of 45 degree steps (up to two) off the way being walked, so the keys (W, A, D, or two together)
+			// point exactly the way the path goes; it moves to another step every second or two for variety
 			if (--idleLookTicks <= 0) {
-				// somewhere within 90 degrees either side of the way to the goal: the keys vary, but the view never faces away
-				idleLookYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), goal[0], goal[2]) + (HUNT_RANDOM.nextDouble() * 2 - 1) * IDLE_LOOK_SPREAD_DEGREES;
+				idleLookStep = HUNT_RANDOM.nextInt(5) - 2;
 				idleLookPitch = (HUNT_RANDOM.nextDouble() * 2 - 1) * 2.0;
 				idleLookTicks = 60 + HUNT_RANDOM.nextInt(100);
 			}
-			aimYaw = idleLookYaw;
+			double[] way = planner.snapshot().next();
+			double base = way != null
+				? FollowPlanner.yawToward(player.getX(), player.getZ(), way[0], way[2])
+				: FollowPlanner.yawToward(player.getX(), player.getZ(), goal[0], goal[2]);
+			aimYaw = base + idleLookStep * 45.0;
 			pitchTarget = idleLookPitch;
 		} else {
 			aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());

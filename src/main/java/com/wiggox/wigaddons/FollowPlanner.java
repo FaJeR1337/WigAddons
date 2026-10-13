@@ -38,16 +38,16 @@ public final class FollowPlanner {
 	}
 
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
-		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval, int maxDrop) {
+		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval, int maxDrop, boolean direct) {
 		/** For hunting: walk right up to the target, always look at it. */
 		public static Params forHunt(WigConfig c) {
 			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, 0.3), c.followNeverJump,
-				c.stuckTimeoutSeconds, c.killRequireSight, 0, c.killMaxDrop);
+				c.stuckTimeoutSeconds, c.killRequireSight, 0, c.killMaxDrop, true);
 		}
 
 		public static Params of(WigConfig c) {
 			return new Params(c.followStopDistance, c.followResumeDistance, c.followSprintDistance, c.followLostSeconds,
-				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval, 2);
+				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval, 2, false);
 		}
 	}
 
@@ -184,7 +184,9 @@ public final class FollowPlanner {
 
 		if (moving && terrain != null && --shortcutCooldown <= 0) {
 			shortcutCooldown = SHORTCUT_EVERY;
-			cutCorner(px, py, pz);
+			if (!params.direct()) {
+				cutCorner(px, py, pz);
+			}
 		}
 		double[] next = detourAround(px, py, pz, nextPoint(target, dist));
 		lastNext = moving ? next : null;
@@ -468,7 +470,8 @@ public final class FollowPlanner {
 	}
 
 	private double[] nextPoint(Target target, double dist) {
-		if (target != null && dist <= STRAIGHT_DISTANCE) {
+		if (target != null && (params.direct() || dist <= STRAIGHT_DISTANCE)) {
+			// hunting goes for where the mob is now, however far; following walks the trail until close
 			return new double[] {target.x(), target.y(), target.z()};
 		}
 		if (!trail.isEmpty()) {

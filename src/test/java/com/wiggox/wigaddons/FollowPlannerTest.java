@@ -481,7 +481,7 @@ class FollowPlannerTest {
 		java.util.List<double[]> shortWay = GridPath.find(ledge, 0, -60, 0, 0, -65, 12, true, 6);
 		java.util.List<double[]> noDrop = GridPath.find(ledge, 0, -60, 0, 0, -65, 12, true, 2);
 		assertTrue(shortWay != null && shortWay.size() < 20, "short way down");
-		assertTrue(noDrop == null || noDrop.size() > 40, "long way round without drops");
+		assertTrue(noDrop == null || noDrop.size() > 40 || noDrop.get(noDrop.size() - 1)[1] > -65, "no way down without long drops: a long way round, or only partway");
 	}
 
 	@Test
@@ -522,5 +522,30 @@ class FollowPlannerTest {
 			}
 			assertEquals(wall == five, jumped, wall == five ? "a five block wall is jumped at" : "a nine block wall is not");
 		}
+	}
+
+	@Test
+	void huntingPathsToTheMobsPositionNotItsOldTrailEvenFarAway() {
+		ObstacleAvoider.Terrain flat = (x, y, z) -> y <= -61;
+		WigConfig cfg = new WigConfig();
+		FollowPlanner f = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random(1));
+		f.setTerrain(flat);
+		// a far mob that wanders: the aim is always where it is now
+		f.tick(0.5, -60, 0.5, 0, at(0.5, 30), true, false);
+		f.tick(0.5, -60, 0.5, 0, at(20, 30), true, false);
+		FollowPlanner.Output out = f.tick(0.5, -60, 0.5, 0, at(20, 40), true, false);
+		double[] next = f.snapshot().next();
+		assertEquals(20, next[0], 1e-9);
+		assertEquals(40, next[2], 1e-9);
+		assertTrue(out.forward() >= 0);
+	}
+
+	@Test
+	void aFarGoalGetsAPartialPathTowardIt() {
+		ObstacleAvoider.Terrain wall = (x, y, z) -> y <= -61 || (z == 30 && x >= -20 && x <= 20 && y <= -58);
+		java.util.List<double[]> path = GridPath.find(wall, 0, -60, 0, 0, -60, 150, true, 2);
+		assertTrue(path != null && !path.isEmpty(), "heads toward a goal beyond the search area");
+		double[] last = path.get(path.size() - 1);
+		assertTrue(last[2] > 20, "got a good way along, z=" + last[2]);
 	}
 }

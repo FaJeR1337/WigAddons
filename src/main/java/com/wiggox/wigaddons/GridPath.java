@@ -9,8 +9,8 @@ import java.util.PriorityQueue;
 
 /** A* over the block grid: finds a way around walls for something that walks, steps up one block and drops at most two. */
 public final class GridPath {
-	static final int MAX_NODES = 3000;
-	static final int MAX_RADIUS = 40;
+	static final int MAX_NODES = 4000;
+	static final int MAX_RADIUS = 64;
 	private static final int[][] DIRS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
 	private GridPath() {
@@ -47,6 +47,8 @@ public final class GridPath {
 		open.add(start);
 		best.put(key(sx, sy, sz), 0.0);
 		int expanded = 0;
+		Node closest = start;
+		double closestH = heuristic(sx, sy, sz, gx, gy, gz);
 		while (!open.isEmpty() && expanded++ < MAX_NODES) {
 			Node n = open.poll();
 			if (n.g() > best.getOrDefault(key(n.x(), n.y(), n.z()), Double.MAX_VALUE)) {
@@ -54,6 +56,11 @@ public final class GridPath {
 			}
 			if (Math.abs(n.x() - gx) <= 1 && Math.abs(n.z() - gz) <= 1 && Math.abs(n.y() - gy) <= 1) {
 				return build(n);
+			}
+			double h = heuristic(n.x(), n.y(), n.z(), gx, gy, gz);
+			if (h < closestH) {
+				closestH = h;
+				closest = n;
 			}
 			for (int[] d : DIRS) {
 				int nx = n.x() + d[0];
@@ -85,6 +92,10 @@ public final class GridPath {
 					break; // one level per direction: the first that fits
 				}
 			}
+		}
+		// the goal is too far to reach in one search (or walled in): head for the nearest the search got, then search again from there
+		if (closest != start && closestH < heuristic(sx, sy, sz, gx, gy, gz) - 2) {
+			return build(closest);
 		}
 		return null;
 	}
