@@ -305,6 +305,18 @@ public final class WigGui {
 		followNumber(b, "markmax", "Dead for at most (s)", "The longest the mob is ignored after an attack, in seconds.",
 			() -> config.killMarkMaxSeconds, v -> config.killMarkMaxSeconds = v, 0, 300);
 		followNumber(b, "click", "Click length (ticks)", "How long the right click button is held for each attack.", () -> config.killClickTicks, v -> config.killClickTicks = (int) Math.round(v), 1, 40);
+		b.toggle("bytype", "Hunt by mob type (no name tag needed)", "Name tags are separate entities, and the server may not send them or may only send them when you are close. With this on, every mob of the type below within the search radius is hunted whether or not its name tag is there. It can't tell special mobs apart without their tag, and it will also go for any other mob of that type.",
+			() -> config.killByType, v -> {
+				config.killByType = v;
+				WigState.saveConfig();
+			});
+		b.text("type", "Mob type", "The type to hunt when the option above is on, as the game names it, for example minecraft:enderman.",
+			() -> config.killType, v -> {
+				if (!v.isBlank()) {
+					config.killType = v.trim();
+					WigState.saveConfig();
+				}
+			});
 		followNumber(b, "specialclicks", "Clicks on a special mob", "How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. Ordinary mobs are assumed dead after one.",
 			() -> config.killSpecialClicks, v -> config.killSpecialClicks = (int) Math.round(v), 1, 50);
 		followNumber(b, "cooldown", "Click cooldown (s)", "The least time between one right click and the next, in seconds. Set it to your weapon's cooldown. A little extra is added at random so it isn't clockwork.",

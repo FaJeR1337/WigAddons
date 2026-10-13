@@ -69,6 +69,12 @@ public final class WigConfig {
 	public int killClickTicks = 3;
 	/** How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. */
 	public int killSpecialClicks = 3;
+	/**
+	 * Name tags are separate entities the server may not send, or only send when close. With this on, every mob of the
+	 * type below within the search radius counts as hunted, name tag or not. (It can't tell a special one apart without its tag.)
+	 */
+	public boolean killByType = false;
+	public String killType = "minecraft:enderman";
 	/** The least time between one right click and the next, in seconds: set it to the weapon's cooldown. A little extra is added at random so it isn't clockwork. */
 	public double killClickCooldownSeconds = 0.5;
 	/** How much bigger than the target's hitbox counts as looking at it, in blocks. */
@@ -184,6 +190,9 @@ public final class WigConfig {
 		}
 		if (!(killClickCooldownSeconds >= 0)) {
 			killClickCooldownSeconds = d.killClickCooldownSeconds;
+		}
+		if (killType == null || killType.isBlank()) {
+			killType = d.killType;
 		}
 		if (killSpecialClicks < 1) {
 			killSpecialClicks = d.killSpecialClicks;

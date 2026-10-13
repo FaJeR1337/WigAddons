@@ -710,6 +710,22 @@ public final class Runner {
 				found.put(entity.getId(), new ZealotHunter.Mob(entity.getId(), remembered, entity.getX(), entity.getY(), entity.getZ(), entity.getEyeY()));
 			}
 		}
+		if (cfg.killByType) {
+			// no name tag needed: anything of the hunted type within the radius counts
+			String type = cfg.killType.trim();
+			for (Entity entity : around) {
+				if (found.containsKey(entity.getId()) || !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity instanceof Player || !entity.isAlive()) {
+					continue;
+				}
+				if (!net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().equals(type)) {
+					continue;
+				}
+				if (entity.hasCustomName() && !ZealotHunter.matches(entity.getCustomName().getString(), cfg.killName)) {
+					continue; // it has a name, and not the hunted one
+				}
+				found.put(entity.getId(), new ZealotHunter.Mob(entity.getId(), cfg.killName, entity.getX(), entity.getY(), entity.getZ(), entity.getEyeY()));
+			}
+		}
 		java.util.List<ZealotHunter.Mob> mobs = new java.util.ArrayList<>(found.values());
 		if (cfg.killRequireSight) {
 			for (ZealotHunter.Mob mob : mobs) {

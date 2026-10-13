@@ -114,8 +114,9 @@ final class SmokeTest {
 			case 18 -> wanderCheck(mc);
 			case 19 -> sightCheck(mc);
 			case 20 -> crowdCheck(mc);
-			case 21 -> hudPosition(mc);
-			case 22 -> {
+			case 21 -> typeCheck(mc);
+			case 22 -> hudPosition(mc);
+			case 23 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -363,6 +364,28 @@ final class SmokeTest {
 			log("crowd ended: attacked " + Runner.huntOrder().size() + ", me " + fmt(mc));
 			Runner.stop("smoke test over");
 			WigState.config.killStandWhenCrowded = false;
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	/** An unnamed golem with "hunt by mob type" on is attacked without any name tag. */
+	private static void typeCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			WigState.config.killByType = true;
+			WigState.config.killType = "minecraft:iron_golem";
+		}
+		if (phaseTick == 10) {
+			command(mc, "summon minecraft:iron_golem 0.5 -60 6.5 {NoAI:1b,Silent:1b,Invulnerable:1b}");
+		}
+		if (phaseTick == 40) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 300) {
+			log("by type: me " + fmt(mc) + ", attacked " + Runner.huntOrder());
+			Runner.stop("smoke test over");
+			WigState.config.killByType = false;
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
 		}
