@@ -91,4 +91,13 @@ class ZealotHunterTest {
 		assertFalse(h.clickLanded(7, 3)); // counting starts again
 		assertTrue(h.clickLanded(8, 1)); // an ordinary one is done at once
 	}
+
+	@Test
+	void aTargetAboveCountsAsFurtherThanOneLevelWithYou() {
+		ZealotHunter.View view = new ZealotHunter.View(0, 1.62, 0, 0, 0); // looking level, south
+		ZealotHunter.Mob above = new ZealotHunter.Mob(1, "Zealot", 0, 8, 0, 9.0); // straight ahead but about 36 degrees up
+		ZealotHunter.Mob level = new ZealotHunter.Mob(2, "Zealot", 8, 0, 0, 1.62); // to the side, 45 degrees round
+		assertEquals(1, new ZealotHunter().pick(List.of(above, level), view, true, 0, 40, 0, "Zealot", "Special Zealot").id());
+		assertEquals(2, new ZealotHunter().pick(List.of(above, level), view, true, 1.5, 40, 0, "Zealot", "Special Zealot").id());
+	}
 }

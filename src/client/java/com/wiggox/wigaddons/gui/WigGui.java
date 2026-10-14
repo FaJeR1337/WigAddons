@@ -365,6 +365,8 @@ public final class WigGui {
 			() -> config.killStandLimitSeconds, v -> config.killStandLimitSeconds = v, 1, 600);
 		followNumber(b, "maxup", "Ignore above pitch", "Targets that would need you to look up steeper than this many degrees (a pitch from minus this to -90) are ignored, so the view never ends up pointing straight up. 90 ignores none.",
 			() -> config.killMaxLookUp, v -> config.killMaxLookUp = v, 1, 90);
+		followNumber(b, "uppenalty", "Prefer targets level with me", "How much worse a target counts for being above you, so one you don't have to look up at is gone for first. Each degree you would have to pitch up counts as this many extra degrees away from your crosshair (blocks, when picking by distance). 0 ignores height. Special mobs still come first, but only among themselves.",
+			() -> config.killUpPenalty, v -> config.killUpPenalty = v, 0, 10);
 		b.toggle("part", "Aim at the visible part (test)", "A test option. When only one part of a mob can be seen, say its head over a ledge or its body past a corner, aim at that part instead of the middle of it, so shots aren't wasted on the part behind something.",
 			() -> config.killAimVisiblePart, v -> {
 				config.killAimVisiblePart = v;

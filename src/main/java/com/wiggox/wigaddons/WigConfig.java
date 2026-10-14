@@ -104,6 +104,8 @@ public final class WigConfig {
 	public double killMaxLookUp = 65;
 	/** Go for the target nearest to where the view already points, so the view turns as little as possible; off goes for the nearest to you. */
 	public boolean killPickByCrosshair = true;
+	/** How much worse a target counts for being above you: this many extra degrees (blocks when picking by distance) per degree (block) above level. 0 ignores height. */
+	public double killUpPenalty = 1.5;
 	/** Only right click when nothing solid is between you and where the view meets the target. */
 	public boolean killRequireSight = true;
 	/** Test option: when only one part of a mob can be seen (head, body or legs, the rest behind something), aim at that part. */
@@ -216,6 +218,9 @@ public final class WigConfig {
 		}
 		if (!(killTurnSmoothing >= 0)) {
 			killTurnSmoothing = d.killTurnSmoothing;
+		}
+		if (!(killUpPenalty >= 0)) {
+			killUpPenalty = d.killUpPenalty;
 		}
 		if (!(killCloseSmoothing >= 0)) {
 			killCloseSmoothing = d.killCloseSmoothing;

@@ -97,6 +97,11 @@ public final class ZealotHunter {
 	 *         best of them); otherwise the one already being gone for is kept, else the best.
 	 */
 	public Mob pick(List<Mob> mobs, View view, boolean byCrosshair, double radius, long nowTick, String name, String special) {
+		return pick(mobs, view, byCrosshair, 0, radius, nowTick, name, special);
+	}
+
+	/** @param upPenalty how much worse a target counts for needing the view pitched up: this many extra degrees (or, going by distance, blocks) per degree (per block) above level */
+	public Mob pick(List<Mob> mobs, View view, boolean byCrosshair, double upPenalty, double radius, long nowTick, String name, String special) {
 		deadUntil.values().removeIf(until -> nowTick >= until);
 		Mob bestSpecial = null;
 		Mob best = null;
@@ -113,6 +118,11 @@ public final class ZealotHunter {
 				continue;
 			}
 			double score = byCrosshair ? view.angleTo(mob.x(), mob.eyeY(), mob.z()) : dist;
+			// something above needs the view pitched up: it counts as further away, so a level one is gone for first
+			double up = byCrosshair
+				? Math.max(0, -FollowPlanner.pitchToward(view.x(), view.eyeY(), view.z(), mob.x(), mob.eyeY(), mob.z()))
+				: Math.max(0, mob.eyeY() - view.eyeY());
+			score += upPenalty * up;
 			if (isSpecial && score < specialScore) {
 				specialScore = score;
 				bestSpecial = mob;

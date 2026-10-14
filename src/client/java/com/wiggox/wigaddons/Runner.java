@@ -542,9 +542,9 @@ public final class Runner {
 			standingGround = false;
 		}
 		ZealotHunter.View view = new ZealotHunter.View(player.getX(), player.getEyeY(), player.getZ(), player.getYRot(), player.getXRot());
-		ZealotHunter.Mob pick = HUNTER.pick(inSight, view, cfg.killPickByCrosshair, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		ZealotHunter.Mob pick = HUNTER.pick(inSight, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
 		if (pick == null && inSight.size() < all.size()) {
-			pick = HUNTER.pick(all, view, cfg.killPickByCrosshair, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+			pick = HUNTER.pick(all, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
 		}
 		int id = pick == null ? -1 : pick.id();
 		int markedTarget = pick == null ? -1 : pick.id();
