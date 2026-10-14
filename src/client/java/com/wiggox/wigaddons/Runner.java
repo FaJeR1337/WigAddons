@@ -113,6 +113,7 @@ public final class Runner {
 	private static boolean huntFirstScan;
 	/** Ticks the only targets there are have been behind the view. */
 	private static int huntBehindTicks;
+	private static int huntBehindBypass;
 	private static final java.util.Map<Integer, Long> HUNT_SEEN = new java.util.HashMap<>();
 	/** A mob that has just stepped out of sight is still gone for this many ticks, so a pillar edge doesn't make the target flicker. */
 	private static final int SIGHT_GRACE_TICKS = 15;
@@ -318,6 +319,7 @@ public final class Runner {
 		HUNT_SEEN.clear();
 		HUNT_FIRST_SEEN.clear();
 		huntBehindTicks = 0;
+		huntBehindBypass = 0;
 		huntFirstScan = true;
 		HUNT_PART_Y.clear();
 		HUNT_NAME_OF.clear();
@@ -491,6 +493,9 @@ public final class Runner {
 	private static void huntTick(Minecraft mc, LocalPlayer player) {
 		var cfg = WigState.config;
 		huntPrecise = false;
+		if (huntBehindBypass > 0) {
+			huntBehindBypass--;
+		}
 		if (useTicksLeft > 0 && --useTicksLeft == 0) {
 			mc.options.keyUse.setDown(false);
 			holdingRight = false;
@@ -504,6 +509,7 @@ public final class Runner {
 			}
 			if (huntReactSpotted && elapsed >= Math.round(cfg.killReactEarlySeconds * 20)) {
 				huntReactTicks = 0;
+				huntBehindBypass = 60; // it was spotted: turn straight back to it, however far round the look has gone
 			} else {
 				standStill();
 				// all the way round once over the time, a little up and down as it goes
@@ -520,10 +526,6 @@ public final class Runner {
 		}
 		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
 		// a mob that has only just appeared can't be targeted for a moment (the ones there when the hunt starts are not new)
-		for (ZealotHunter.Mob m : all) {
-			HUNT_FIRST_SEEN.putIfAbsent(m.id(), huntFirstScan ? (long) ticks - 100000 : (long) ticks);
-		}
-		huntFirstScan = false;
 		long spawnTicks = Math.round(cfg.killSpawnCooldownSeconds * 20);
 		all = all.stream().filter(m -> ticks - HUNT_FIRST_SEEN.getOrDefault(m.id(), -100000L) >= spawnTicks).toList();
 		// a target almost straight above can't be looked at: leave it alone
@@ -561,7 +563,7 @@ public final class Runner {
 				behind = HUNTER.pick(allCandidates, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
 			}
 			if (behind != null) {
-				if (++huntBehindTicks > Math.round(cfg.killBehindDelaySeconds * 20)) {
+				if (huntBehindBypass > 0 || ++huntBehindTicks > Math.round(cfg.killBehindDelaySeconds * 20)) {
 					pick = behind;
 				} else {
 					waitingForBehind = true;
@@ -881,6 +883,11 @@ public final class Runner {
 			}
 		}
 		java.util.List<ZealotHunter.Mob> mobs = new java.util.ArrayList<>(found.values());
+		// when each mob was first noticed, for the spawn cooldown (the ones there when the hunt starts are not new)
+		for (ZealotHunter.Mob m : mobs) {
+			HUNT_FIRST_SEEN.putIfAbsent(m.id(), huntFirstScan ? (long) ticks - 100000 : (long) ticks);
+		}
+		huntFirstScan = false;
 		if (cfg.killRequireSight) {
 			for (ZealotHunter.Mob mob : mobs) {
 				Entity body = mc.level.getEntity(mob.id());
