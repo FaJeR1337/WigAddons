@@ -26,6 +26,7 @@ public class WigAddonsClient implements ClientModInitializer {
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			Runner.stop("you disconnected");
+			Runner.resetPing();
 			WigState.editing = null;
 		});
 	}

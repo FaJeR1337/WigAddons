@@ -383,9 +383,10 @@ public final class Runner {
 		huntMarks = java.util.List.of();
 		hunting = false;
 		useTicksLeft = 0;
-		if (macroCountdown >= 0) {
+		if (macroCountdown >= 0 || lagWarningTicks > 0) {
 			clearWarning();
 		}
+		lagWarningTicks = 0;
 		macroCountdown = -1;
 		partyCountdown = -1;
 		follower = null;
@@ -407,6 +408,7 @@ public final class Runner {
 	 * slot changes, or the view is turned by something other than this mod.
 	 */
 	public static void tick(Minecraft mc) {
+		samplePing();
 		if (!active()) {
 			return;
 		}
@@ -418,6 +420,13 @@ public final class Runner {
 		if (partyCountdown > 0 && --partyCountdown == 0) {
 			leaveBecauseOfParty(mc);
 			return;
+		}
+		if (lagWarningTicks > 0) {
+			if (--lagWarningTicks == 0) {
+				clearWarning();
+			} else if (--warningTimer <= 0) {
+				showWarning(mc);
+			}
 		}
 		if (macroCountdown > 0) {
 			if (--macroCountdown == 0) {
@@ -986,6 +995,37 @@ public final class Runner {
 		}
 	}
 
+	/** Ping samples for the whole session, taken once a second, and the verdict on the macro check being shown. */
+	private static final PingTracker PING = new PingTracker();
+	private static int pingSampleTicks;
+	private static boolean macroHighPing;
+	/** Ticks left of the yellow high ping warning on screen. */
+	private static int lagWarningTicks;
+
+	/** The player's ping now, in milliseconds, or 0 when it isn't known. */
+	private static int currentPing() {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || mc.getConnection() == null) {
+			return 0;
+		}
+		net.minecraft.client.multiplayer.PlayerInfo info = mc.getConnection().getPlayerInfo(mc.player.getUUID());
+		return info == null ? 0 : info.getLatency();
+	}
+
+	/** Called every tick, running or not: keeps the session's average ping. */
+	private static void samplePing() {
+		if (++pingSampleTicks >= 20) {
+			pingSampleTicks = 0;
+			PING.add(currentPing());
+		}
+	}
+
+	/** A new connection is a new session. */
+	public static void resetPing() {
+		PING.reset();
+		pingSampleTicks = 0;
+	}
+
 	private static Vec3 lastTickPos;
 	private static double lastTickSpeed;
 	private static Object lastTickLevel;
@@ -1030,7 +1070,20 @@ public final class Runner {
 		if (macroCountdown >= 0) {
 			return;
 		}
+		if (lagWarningTicks > 0) {
+			return; // a yellow warning is already showing
+		}
 		macroReason = reason;
+		int ping = currentPing();
+		macroHighPing = PING.above(ping);
+		if (macroHighPing) {
+			// above the session's average ping it may be only lag: a yellow warning, no alarm, and the run carries on
+			lagWarningTicks = Math.max(1, (int) Math.round(WigState.config.macroWarningSeconds * 20));
+			Chat.info("Possible macro check (" + reason.toLowerCase(java.util.Locale.ROOT) + "), but your ping was " + ping
+				+ " ms, above your average of " + Math.round(PING.average()) + " ms. Carrying on.");
+			showWarning(Minecraft.getInstance());
+			return;
+		}
 		macroCountdown = Math.max(1, (int) Math.round(WigState.config.macroWarningSeconds * 20));
 		Chat.error("Macro check detected: " + reason.toLowerCase(java.util.Locale.ROOT) + ". Stopping in "
 			+ WigState.config.macroWarningSeconds + " seconds.");
@@ -1049,8 +1102,10 @@ public final class Runner {
 	private static void showWarning(Minecraft mc) {
 		warningTimer = WARNING_REFRESH_TICKS;
 		mc.gui.setTimes(0, WARNING_REFRESH_TICKS * 2, 0);
-		mc.gui.setTitle(Component.literal("WARNING").withColor(0xFF5555));
-		mc.gui.setSubtitle(Component.literal(macroReason).withColor(0xFF5555));
+		// yellow instead of red when the ping was above the session average: it may well be lag and not a real check
+		int color = macroHighPing ? 0xFFFF55 : 0xFF5555;
+		mc.gui.setTitle(Component.literal("WARNING").withColor(color));
+		mc.gui.setSubtitle(Component.literal(macroHighPing ? macroReason + " (high ping)" : macroReason).withColor(color));
 	}
 
 	private static void clearWarning() {
