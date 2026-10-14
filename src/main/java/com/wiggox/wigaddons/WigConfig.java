@@ -133,7 +133,7 @@ public final class WigConfig {
 	/** Never jump while following. */
 	public boolean followNeverJump = false;
 	/** How much a step up that needs a jump costs the path finder, in blocks of walking. The higher it is, the further it will go round to avoid jumping. */
-	public double pathJumpCost = 6.0;
+	public double pathJumpCost = 12.0;
 	/** The run stops if the player has hardly moved for this long. */
 	public double stuckTimeoutSeconds = 3.0;
 

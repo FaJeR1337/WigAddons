@@ -595,4 +595,17 @@ class FollowPlannerTest {
 		assertTrue(path != null && !path.isEmpty(), "found a way up the stairs");
 		assertTrue(path.get(path.size() - 1)[1] >= -58, "climbed to within a step of the top, y=" + path.get(path.size() - 1)[1]);
 	}
+
+	@Test
+	void jumpsJustBeforeAOneBlockStepNotAfterBumpingIntoIt() {
+		ObstacleAvoider.Terrain step = (x, y, z) -> y <= -61 || (z >= 3 && y <= -60); // a full block high ledge from z=3
+		WigConfig cfg = new WigConfig();
+		cfg.followSprintDistance = 0; // always sprinting
+		FollowPlanner far = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		far.setTerrain(step);
+		assertFalse(far.tick(0.5, -60, 0.5, 0, at(0.5, 14), true, false).jump(), "no jump while the block is still far");
+		FollowPlanner near = new FollowPlanner(FollowPlanner.Params.of(cfg), new Random(1));
+		near.setTerrain(step);
+		assertTrue(near.tick(0.5, -60, 1.7, 0, at(0.5, 14), true, false).jump(), "a jump about a block and a half before it, with no bump");
+	}
 }

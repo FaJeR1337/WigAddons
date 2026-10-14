@@ -81,6 +81,9 @@ public final class FollowPlanner {
 	static final double EYE_HEIGHT = 1.62;
 	/** Fewest ticks between two jumps, so a staircase isn't bunny hopped. */
 	static final int JUMP_GAP_TICKS = 8;
+	/** How far before a block that needs a jump the jump is made: further when running. */
+	static final double JUMP_REACH_WALK = 1.0;
+	static final double JUMP_REACH_SPRINT = 1.5;
 	/** Pressed against a wall for longer than this many ticks (one second) and it jumps. */
 	static final int WALL_JUMP_TICKS = 20;
 	/** Walls up to this many blocks high are jumped at; anything taller is not worth it. */
@@ -212,7 +215,9 @@ public final class FollowPlanner {
 			int wallHeight = wallTicks > WALL_JUMP_TICKS ? wallHeightAhead(px, py, pz, next) : 0;
 			// a wall of two to five blocks, or something that blocks but isn't counted as solid (the back of a stair): try jumping at it
 			boolean stuckAtWall = wallHeight <= WALL_JUMP_MAX && (wallHeight >= 2 || wallTicks > WALL_JUMP_TICKS * 2);
-			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead || stuckAtWall);
+			// a person jumps just before the block, running at it, not after bumping into it and stopping
+			boolean beforeBlock = forward > 0 && jumpableBlockAt(px, py, pz, next, sprint ? JUMP_REACH_SPRINT : JUMP_REACH_WALK);
+			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead || stuckAtWall || beforeBlock);
 			if (jump) {
 				jumpCooldown = JUMP_GAP_TICKS;
 			}
@@ -367,6 +372,26 @@ public final class FollowPlanner {
 			}
 		}
 		return target; // falling a long way, or over a void: leave it be
+	}
+
+	/** Whether, this far ahead in the direction of travel, there is a single block that needs a jump to get onto (and room above it to do it). */
+	private boolean jumpableBlockAt(double px, double py, double pz, double[] next, double reach) {
+		if (terrain == null) {
+			return false;
+		}
+		double dx = next[0] - px;
+		double dz = next[2] - pz;
+		double length = Math.hypot(dx, dz);
+		if (length < 1e-6) {
+			return false;
+		}
+		int cy = (int) Math.floor(py + 0.01);
+		int cx = (int) Math.floor(px + dx / length * reach);
+		int cz = (int) Math.floor(pz + dz / length * reach);
+		if (!terrain.solid(cx, cy, cz) || terrain.solid(cx, cy + 1, cz) || terrain.solid(cx, cy + 2, cz)) {
+			return false;
+		}
+		return cy + terrain.top(cx, cy, cz) - py > STEP_UP;
 	}
 
 	/** How many blocks tall the wall ahead is (counting up from the feet, in the direction of travel), at most one more than the jump limit. */
