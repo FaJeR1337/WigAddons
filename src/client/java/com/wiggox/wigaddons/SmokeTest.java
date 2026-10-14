@@ -31,6 +31,7 @@ final class SmokeTest {
 		{"routes", "routes.route.farm.tabs", "waypoints"},
 		{"hud", "", ""},
 		{"safety", "safety.macro", ""},
+		{"safety", "safety.alarm", ""},
 	};
 	private static final int TOUR_STEP_TICKS = 25;
 	/** Flat world: grass is at y -61, so the player stands at y -60. */
