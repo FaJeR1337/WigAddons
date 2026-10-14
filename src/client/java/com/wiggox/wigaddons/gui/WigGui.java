@@ -722,8 +722,8 @@ public final class WigGui {
 				config.macroWarningSeconds = v;
 				WigState.saveConfig();
 			});
-		b.slider("alarm", "Alarm volume", "How loud the alarm is when a macro check is raised: the wither spawning, whether the check was the view being turned, the hotbar being changed or being teleported. 0 is silent.",
-			0, 100, 1, () -> config.macroSoundVolume, v -> {
+		b.slider("alarm", "Alarm volume", "How loud the alarm is when a macro check is raised: the wither spawning, whether the check was the view being turned, the hotbar being changed or being teleported. 100 is the sound at the game's full volume, and above that it is layered on itself to be louder, up to three times. 0 is silent. The game's own Master volume still applies.",
+			0, 300, 1, () -> config.macroSoundVolume, v -> {
 				config.macroSoundVolume = v;
 				WigState.saveConfig();
 			});

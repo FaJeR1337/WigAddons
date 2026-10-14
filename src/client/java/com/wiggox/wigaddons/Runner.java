@@ -1093,9 +1093,12 @@ public final class Runner {
 
 	/** The wither spawning, at the configured volume, whenever a macro check is raised. */
 	private static void playAlarm() {
-		float volume = (float) (WigState.config.macroSoundVolume / 100.0);
-		if (volume > 0) {
-			Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.WITHER_SPAWN, 1.0F, volume));
+		// the game won't play a sound above full volume, so anything louder is the same sound played again on top of itself
+		double remaining = WigState.config.macroSoundVolume / 100.0;
+		while (remaining > 0.001) {
+			float layer = (float) Math.min(1.0, remaining);
+			Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.WITHER_SPAWN, 1.0F, layer));
+			remaining -= 1.0;
 		}
 	}
 

@@ -26,7 +26,7 @@ public final class WigConfig {
 	public double humanizeOffset = 0.4;
 	/** When the view is turned or the hotbar slot changed by something else, the run keeps going this long, with a warning on screen, then stops. */
 	public double macroWarningSeconds = 3.0;
-	/** How loud the alarm (the wither spawning) is when a macro check is raised, 0 to 100 percent. 0 is silent. */
+	/** How loud the alarm (the wither spawning) is when a macro check is raised, 0 to 300 percent. 0 is silent, 100 is the game's full volume for that sound, and above that the sound is layered on itself to be louder. */
 	public double macroSoundVolume = 100.0;
 	/** A chat line matching one of these (regular expressions, from the start of the line) means a party member left. */
 	public List<String> partyLeavePatterns = new ArrayList<>(PartyLeave.DEFAULT_PATTERNS);
@@ -176,7 +176,7 @@ public final class WigConfig {
 		if (!(macroSoundVolume >= 0)) {
 			macroSoundVolume = d.macroSoundVolume;
 		}
-		macroSoundVolume = Math.min(100.0, macroSoundVolume);
+		macroSoundVolume = Math.min(300.0, macroSoundVolume);
 		if (!(macroWarningSeconds >= 0)) {
 			macroWarningSeconds = d.macroWarningSeconds;
 		}
