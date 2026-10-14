@@ -69,6 +69,8 @@ public final class WigConfig {
 	public int killClickTicks = 3;
 	/** How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. */
 	public int killSpecialClicks = 3;
+	/** A mob that has just appeared can't be targeted for this many seconds. */
+	public double killSpawnCooldownSeconds = 1;
 	/** The longest fall, in blocks, that hunting takes as a shortcut instead of walking a long way round. Falls over 3 blocks hurt. */
 	public int killMaxDrop = 6;
 	/**
@@ -104,6 +106,8 @@ public final class WigConfig {
 	public boolean killPickByCrosshair = true;
 	/** Only right click when nothing solid is between you and where the view meets the target. */
 	public boolean killRequireSight = true;
+	/** Test option: when only one part of a mob can be seen (head, body or legs, the rest behind something), aim at that part. */
+	public boolean killAimVisiblePart = false;
 	/** With two or more targets in sight within click range, stand still and deal with them from where you are, until the last one is marked. */
 	public boolean killStandWhenCrowded = false;
 	/** Standing still gives up after this many seconds, in case nothing manages to get clicked. */
@@ -239,6 +243,9 @@ public final class WigConfig {
 		}
 		if (killType == null || killType.isBlank()) {
 			killType = d.killType;
+		}
+		if (!(killSpawnCooldownSeconds >= 0)) {
+			killSpawnCooldownSeconds = d.killSpawnCooldownSeconds;
 		}
 		if (killMaxDrop < 0) {
 			killMaxDrop = d.killMaxDrop;

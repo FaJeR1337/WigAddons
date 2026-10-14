@@ -106,6 +106,11 @@ public final class Runner {
 	private static boolean standingGround;
 	private static long standingSince;
 	/** The tick each mob was last in clear sight, for the depth check. */
+	/** For each mob in sight: the height of the only part that can be seen, or NaN when all of it can. */
+	private static final java.util.Map<Integer, Double> HUNT_PART_Y = new java.util.HashMap<>();
+	/** The tick each mob was first noticed, for the spawn cooldown. */
+	private static final java.util.Map<Integer, Long> HUNT_FIRST_SEEN = new java.util.HashMap<>();
+	private static boolean huntFirstScan;
 	private static final java.util.Map<Integer, Long> HUNT_SEEN = new java.util.HashMap<>();
 	/** A mob that has just stepped out of sight is still gone for this many ticks, so a pillar edge doesn't make the target flicker. */
 	private static final int SIGHT_GRACE_TICKS = 15;
@@ -309,6 +314,9 @@ public final class Runner {
 		huntReactTicks = 0;
 		standingGround = false;
 		HUNT_SEEN.clear();
+		HUNT_FIRST_SEEN.clear();
+		huntFirstScan = true;
+		HUNT_PART_Y.clear();
 		HUNT_NAME_OF.clear();
 		HUNT_NAMED_AT.clear();
 		HUNT_ORDER.clear();
@@ -508,6 +516,13 @@ public final class Runner {
 			}
 		}
 		java.util.List<ZealotHunter.Mob> all = scanMobs(mc, player);
+		// a mob that has only just appeared can't be targeted for a moment (the ones there when the hunt starts are not new)
+		for (ZealotHunter.Mob m : all) {
+			HUNT_FIRST_SEEN.putIfAbsent(m.id(), huntFirstScan ? (long) ticks - 100000 : (long) ticks);
+		}
+		huntFirstScan = false;
+		long spawnTicks = Math.round(cfg.killSpawnCooldownSeconds * 20);
+		all = all.stream().filter(m -> ticks - HUNT_FIRST_SEEN.getOrDefault(m.id(), -100000L) >= spawnTicks).toList();
 		// a target almost straight above can't be looked at: leave it alone
 		all = all.stream().filter(m -> !ZealotHunter.tooSteepUp(player.getX(), player.getEyeY(), player.getZ(), m, cfg.killMaxLookUp)).toList();
 		// mobs in sight come first; ones behind walls are only walked toward when nothing is in sight
@@ -580,8 +595,14 @@ public final class Runner {
 				pitchTarget = 0;
 			}
 		}
+		// test option: with only part of the mob in sight, aim at that part
+		double partY = seenNow && cfg.killAimVisiblePart ? HUNT_PART_Y.getOrDefault(id, Double.NaN) : Double.NaN;
+		if (!Double.isNaN(partY)) {
+			aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), pick.x(), pick.z());
+			pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), pick.x(), partY, pick.z());
+		}
 		if (cfg.killPreciseAim && strafe != 0 && (seenNow || !cfg.killRequireSight)) {
-			double aimY = pick.y() + (pick.eyeY() - pick.y()) * 0.6;
+			double aimY = !Double.isNaN(partY) ? partY : pick.y() + (pick.eyeY() - pick.y()) * 0.6;
 			ZealotHunter.View now = new ZealotHunter.View(player.getX(), player.getEyeY(), player.getZ(), player.getYRot(), player.getXRot());
 			if (now.angleTo(pick.x(), aimY, pick.z()) <= cfg.killPreciseAngle) {
 				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), pick.x(), pick.z());
@@ -705,16 +726,32 @@ public final class Runner {
 
 	/** Whether a line from the eyes to the mob's eyes, middle or lower body is free of blocks. */
 	private static boolean inSight(Minecraft mc, LocalPlayer player, Entity mob) {
+		return !Double.isInfinite(visiblePartY(mc, player, mob));
+	}
+
+	/**
+	 * The height to aim at: NaN when the mob can be seen all over (aim where you like), the height of the one part that is clear
+	 * (the middle, else the head, else the legs) when only some of it can be seen, or negative infinity when none of it can.
+	 */
+	private static double visiblePartY(Minecraft mc, LocalPlayer player, Entity mob) {
 		Vec3 eye = player.getEyePosition();
-		double[] heights = {mob.getEyeY(), mob.getY() + mob.getBbHeight() * 0.5, mob.getY() + 0.3};
+		double[] heights = {mob.getY() + mob.getBbHeight() * 0.5, mob.getEyeY(), mob.getY() + 0.3};
+		double firstClear = Double.NaN;
+		int clear = 0;
 		for (double y : heights) {
 			net.minecraft.world.phys.BlockHitResult block = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, new Vec3(mob.getX(), y, mob.getZ()),
 				net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, player));
 			if (block.getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
-				return true;
+				if (clear == 0) {
+					firstClear = y;
+				}
+				clear++;
 			}
 		}
-		return false;
+		if (clear == 0) {
+			return Double.NEGATIVE_INFINITY;
+		}
+		return clear == heights.length ? Double.NaN : firstClear;
 	}
 
 	/** Whether a special mob is in sight and within the angle either side of where the view points. */
@@ -817,8 +854,12 @@ public final class Runner {
 		if (cfg.killRequireSight) {
 			for (ZealotHunter.Mob mob : mobs) {
 				Entity body = mc.level.getEntity(mob.id());
-				if (body != null && inSight(mc, player, body)) {
-					HUNT_SEEN.put(mob.id(), (long) ticks);
+				if (body != null) {
+					double part = visiblePartY(mc, player, body);
+					if (!Double.isInfinite(part)) {
+						HUNT_SEEN.put(mob.id(), (long) ticks);
+						HUNT_PART_Y.put(mob.id(), part);
+					}
 				}
 			}
 		}

@@ -350,6 +350,8 @@ public final class WigGui {
 			});
 		followNumber(b, "maxdrop", "Longest drop (blocks)", "The longest fall hunting takes as a shortcut, instead of walking a long way round by stairs or slopes. Falls over 3 blocks hurt. 0 never drops more than a step.",
 			() -> config.killMaxDrop, v -> config.killMaxDrop = (int) Math.round(v), 0, 40);
+		followNumber(b, "spawncooldown", "Spawn cooldown (s)", "A mob that has just appeared can't be targeted for this many seconds. The mobs already there when you start hunting are not counted as new.",
+			() -> config.killSpawnCooldownSeconds, v -> config.killSpawnCooldownSeconds = v, 0, 60);
 		followNumber(b, "specialclicks", "Clicks on a special mob", "How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. Ordinary mobs are assumed dead after one.",
 			() -> config.killSpecialClicks, v -> config.killSpecialClicks = (int) Math.round(v), 1, 50);
 		followNumber(b, "cooldown", "Click cooldown (s)", "The least time between one right click and the next, in seconds. Set it to your weapon's cooldown. A little extra is added at random so it isn't clockwork.",
@@ -363,6 +365,11 @@ public final class WigGui {
 			() -> config.killStandLimitSeconds, v -> config.killStandLimitSeconds = v, 1, 600);
 		followNumber(b, "maxup", "Ignore above pitch", "Targets that would need you to look up steeper than this many degrees (a pitch from minus this to -90) are ignored, so the view never ends up pointing straight up. 90 ignores none.",
 			() -> config.killMaxLookUp, v -> config.killMaxLookUp = v, 1, 90);
+		b.toggle("part", "Aim at the visible part (test)", "A test option. When only one part of a mob can be seen, say its head over a ledge or its body past a corner, aim at that part instead of the middle of it, so shots aren't wasted on the part behind something.",
+			() -> config.killAimVisiblePart, v -> {
+				config.killAimVisiblePart = v;
+				WigState.saveConfig();
+			});
 		b.toggle("crosshair", "Pick nearest the crosshair", "Go for the target nearest to where you are already looking, so the view turns as little as possible and doesn't spin round. Off goes for the nearest to you. Special mobs still come first.",
 			() -> config.killPickByCrosshair, v -> {
 				config.killPickByCrosshair = v;

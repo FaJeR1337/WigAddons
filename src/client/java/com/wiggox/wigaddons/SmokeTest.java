@@ -117,8 +117,10 @@ final class SmokeTest {
 			case 21 -> typeCheck(mc);
 			case 22 -> reactCheck(mc);
 			case 23 -> reactEarlyCheck(mc);
-			case 24 -> hudPosition(mc);
-			case 25 -> {
+			case 24 -> partCheck(mc);
+			case 25 -> spawnCooldownCheck(mc);
+			case 26 -> hudPosition(mc);
+			case 27 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -459,6 +461,67 @@ final class SmokeTest {
 		if (phaseTick == 160) {
 			log("react early: no attack in 120 ticks");
 			Runner.stop("smoke test over");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	/** Only the legs of a golem show through a gap under a wall: with the test option on, the view should aim down at them. */
+	private static void partCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			command(mc, "fill -30 -59 6 30 -55 6 stone");
+			WigState.config.killAimVisiblePart = true;
+			WigState.config.killStandWhenCrowded = false;
+		}
+		if (phaseTick == 10) {
+			command(mc, "summon minecraft:iron_golem 3.5 -60 8.5 {CustomName:\"Zealot\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}");
+		}
+		if (phaseTick == 40) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 38) {
+			net.minecraft.world.phys.Vec3 eye = mc.player.getEyePosition();
+			for (double y : new double[] {-59.7, -58.65, -57.7}) {
+				var hit = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, new net.minecraft.world.phys.Vec3(3.5, y, 8.5),
+					net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player));
+				log("part probe eye=" + eye + " to y=" + y + ": " + hit.getType() + " at " + hit.getLocation());
+			}
+		}
+		if (phaseTick == 43 || phaseTick == 46 || phaseTick == 50 || phaseTick == 56) {
+			log("part: view pitch " + String.format("%.1f", mc.player.getXRot()) + " (positive is down), me " + fmt(mc) + ", marks " + Runner.huntMarks());
+		}
+		if (phaseTick == 80) {
+			Runner.stop("smoke test over");
+			WigState.config.killAimVisiblePart = false;
+			command(mc, "fill -30 -59 6 30 -55 6 air");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	/** A golem that appears while hunting can't be attacked until the spawn cooldown (3 s here) has passed. */
+	private static void spawnCooldownCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			WigState.config.killSpawnCooldownSeconds = 3;
+			WigState.config.killAimVisiblePart = false;
+		}
+		if (phaseTick == 20) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 40) {
+			command(mc, "summon minecraft:iron_golem 0.5 -60 3.5 {CustomName:\"Zealot\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}");
+		}
+		if (phaseTick > 40 && phaseTick < 200 && !Runner.huntOrder().isEmpty()) {
+			log("spawn cooldown: first attack " + (phaseTick - 41) + " ticks after it appeared (cooldown 60)");
+			phaseTick = 200;
+		}
+		if (phaseTick >= 200) {
+			Runner.stop("smoke test over");
+			WigState.config.killSpawnCooldownSeconds = 1;
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
 		}
