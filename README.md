@@ -2,6 +2,10 @@
 
 A client-side Fabric mod for Minecraft 26.1.2. Record routes of waypoints with right-clicks, then have the player run them automatically.
 
+## Macro checks
+
+A macro check is raised (a red WARNING with the reason, the run carrying on for `macroWarningSeconds`, then stopping, and the wither-spawn alarm at `macroSoundVolume` percent, 100 by default, 0 for silent) when: the hotbar slot is changed by something else, the view is turned by `rotationStopDegrees` or more by something else, or you are teleported. Being teleported means being moved more than 3 blocks in one tick that your own movement, a fall or knockback can't explain, or ending up in another world: other islands, aspect of the end, void, Hyperion, and so on. None of these can be switched off; the alarm volume is the only setting.
+
 ## Requirements
 
 - Minecraft 26.1.2, Fabric Loader 0.19.5 or newer, Java 25

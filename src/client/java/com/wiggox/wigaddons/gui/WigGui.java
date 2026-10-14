@@ -722,6 +722,11 @@ public final class WigGui {
 				config.macroWarningSeconds = v;
 				WigState.saveConfig();
 			});
+		b.slider("alarm", "Alarm volume", "How loud the alarm is when a macro check is raised: the wither spawning, whether the check was the view being turned, the hotbar being changed or being teleported. 0 is silent.",
+			0, 100, 1, () -> config.macroSoundVolume, v -> {
+				config.macroSoundVolume = v;
+				WigState.saveConfig();
+			});
 		b.slider("stuck", "Stuck timeout", "Seconds of hardly moving after which the run stops.",
 			1, 30, 1, () -> config.stuckTimeoutSeconds, v -> {
 				config.stuckTimeoutSeconds = v;

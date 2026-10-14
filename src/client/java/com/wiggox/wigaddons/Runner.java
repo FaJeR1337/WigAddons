@@ -251,6 +251,7 @@ public final class Runner {
 		turnPerTick = 0;
 		haveAim = false;
 		lastFrameNanos = System.nanoTime();
+		resetTeleportCheck();
 	}
 
 	/**
@@ -300,6 +301,7 @@ public final class Runner {
 		turnPerTick = 0;
 		haveAim = false;
 		lastFrameNanos = System.nanoTime();
+		resetTeleportCheck();
 	}
 
 	/**
@@ -441,6 +443,7 @@ public final class Runner {
 			macroCheck("The hotbar slot was changed");
 		}
 		checkView(player);
+		checkTeleport(mc, player);
 		ticks++;
 		holdClicks(mc);
 
@@ -983,6 +986,29 @@ public final class Runner {
 		}
 	}
 
+	private static Vec3 lastTickPos;
+	private static double lastTickSpeed;
+	private static Object lastTickLevel;
+
+	/** Forgets where the player was, so the next tick isn't compared with an old position. */
+	private static void resetTeleportCheck() {
+		lastTickPos = null;
+	}
+
+	/** Raises a macro check when the player is moved further than three blocks in one tick, or ends up in another world, by something other than itself. */
+	private static void checkTeleport(Minecraft mc, LocalPlayer player) {
+		Vec3 now = player.position();
+		if (lastTickPos != null) {
+			boolean otherWorld = mc.level != lastTickLevel;
+			if (otherWorld || Teleport.teleported(now.distanceTo(lastTickPos), lastTickSpeed)) {
+				macroCheck("You were teleported");
+			}
+		}
+		lastTickPos = now;
+		lastTickLevel = mc.level;
+		lastTickSpeed = player.getDeltaMovement().length();
+	}
+
 	/** Raises a macro check when the view differs from where this mod left it by the configured angle or more. */
 	private static void checkView(LocalPlayer player) {
 		double limit = WigState.config.rotationStopDegrees;
@@ -1009,6 +1035,15 @@ public final class Runner {
 		Chat.error("Macro check detected: " + reason.toLowerCase(java.util.Locale.ROOT) + ". Stopping in "
 			+ WigState.config.macroWarningSeconds + " seconds.");
 		showWarning(Minecraft.getInstance());
+		playAlarm();
+	}
+
+	/** The wither spawning, at the configured volume, whenever a macro check is raised. */
+	private static void playAlarm() {
+		float volume = (float) (WigState.config.macroSoundVolume / 100.0);
+		if (volume > 0) {
+			Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.WITHER_SPAWN, 1.0F, volume));
+		}
 	}
 
 	private static void showWarning(Minecraft mc) {

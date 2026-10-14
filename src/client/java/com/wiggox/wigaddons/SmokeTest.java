@@ -119,8 +119,9 @@ final class SmokeTest {
 			case 23 -> reactEarlyCheck(mc);
 			case 24 -> partCheck(mc);
 			case 25 -> spawnCooldownCheck(mc);
-			case 26 -> hudPosition(mc);
-			case 27 -> {
+			case 26 -> teleportCheck(mc);
+			case 27 -> hudPosition(mc);
+			case 28 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -523,6 +524,25 @@ final class SmokeTest {
 			Runner.stop("smoke test over");
 			WigState.config.killSpawnCooldownSeconds = 1;
 			command(mc, "kill @e[type=minecraft:iron_golem]");
+			next();
+		}
+	}
+
+	/** Being teleported during a run raises a macro check; walking and a short push don't. */
+	private static void teleportCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+		}
+		if (phaseTick == 20) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 40) {
+			log("teleport: about to tp 20 blocks");
+			command(mc, "tp @s 20.5 -60 20.5");
+		}
+		if (phaseTick == 80) {
+			Runner.stop("smoke test over");
 			next();
 		}
 	}

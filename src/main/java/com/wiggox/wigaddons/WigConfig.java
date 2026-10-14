@@ -26,6 +26,8 @@ public final class WigConfig {
 	public double humanizeOffset = 0.4;
 	/** When the view is turned or the hotbar slot changed by something else, the run keeps going this long, with a warning on screen, then stops. */
 	public double macroWarningSeconds = 3.0;
+	/** How loud the alarm (the wither spawning) is when a macro check is raised, 0 to 100 percent. 0 is silent. */
+	public double macroSoundVolume = 100.0;
 	/** A chat line matching one of these (regular expressions, from the start of the line) means a party member left. */
 	public List<String> partyLeavePatterns = new ArrayList<>(PartyLeave.DEFAULT_PATTERNS);
 	/** After a party member leaves, the run stops this many seconds later and the command below is sent. */
@@ -171,6 +173,10 @@ public final class WigConfig {
 		if (!(humanizeOffset >= 0)) {
 			humanizeOffset = d.humanizeOffset;
 		}
+		if (!(macroSoundVolume >= 0)) {
+			macroSoundVolume = d.macroSoundVolume;
+		}
+		macroSoundVolume = Math.min(100.0, macroSoundVolume);
 		if (!(macroWarningSeconds >= 0)) {
 			macroWarningSeconds = d.macroWarningSeconds;
 		}
