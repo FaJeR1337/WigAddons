@@ -29,15 +29,16 @@ class PingTrackerTest {
 	}
 
 	@Test
-	void aboveMeansMoreThanTwentyPercentOverTheAverage() {
+	void aboveMeansMoreThanFortyPercentOverTheAverage() {
 		PingTracker t = new PingTracker();
 		for (int i = 0; i < 20; i++) {
 			t.add(100);
 		}
 		assertFalse(t.above(100));
 		assertFalse(t.above(60));
-		assertFalse(t.above(120)); // exactly 20 percent over is not more than that
-		assertTrue(t.above(121));
+		assertFalse(t.above(120));
+		assertFalse(t.above(140)); // exactly 40 percent over is not more than that
+		assertTrue(t.above(141));
 		t.reset();
 		assertFalse(t.above(500));
 	}
