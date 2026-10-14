@@ -38,16 +38,16 @@ public final class FollowPlanner {
 	}
 
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
-		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval, int maxDrop, boolean direct) {
+		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval, int maxDrop, boolean direct, double jumpCost) {
 		/** For hunting: walk right up to the target, always look at it. */
 		public static Params forHunt(WigConfig c) {
 			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, 0.3), c.followNeverJump,
-				c.stuckTimeoutSeconds, c.killRequireSight, 0, c.killMaxDrop, true);
+				c.stuckTimeoutSeconds, c.killRequireSight, 0, c.killMaxDrop, true, c.pathJumpCost);
 		}
 
 		public static Params of(WigConfig c) {
 			return new Params(c.followStopDistance, c.followResumeDistance, c.followSprintDistance, c.followLostSeconds,
-				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval, 2, false);
+				c.followLookRadius, c.followNeverJump, c.stuckTimeoutSeconds, c.followLookOnlyWhenVisible, c.followLookInterval, 2, false, c.pathJumpCost);
 		}
 	}
 
@@ -296,7 +296,7 @@ public final class FollowPlanner {
 			replanCooldown = REPLAN_EVERY;
 			detourGoal = next;
 			detour = GridPath.find(terrain, (int) Math.floor(px), (int) Math.floor(py + 0.01), (int) Math.floor(pz),
-				(int) Math.floor(next[0]), (int) Math.floor(next[1] + 0.01), (int) Math.floor(next[2]), !params.neverJump(), params.maxDrop());
+				(int) Math.floor(next[0]), (int) Math.floor(next[1] + 0.01), (int) Math.floor(next[2]), !params.neverJump(), params.maxDrop(), params.jumpCost());
 		}
 		if (detour == null || detour.isEmpty()) {
 			return next;

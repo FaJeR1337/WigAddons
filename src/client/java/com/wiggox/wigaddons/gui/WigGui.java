@@ -251,6 +251,8 @@ public final class WigGui {
 				config.followLookOnlyWhenVisible = v;
 				WigState.saveConfig();
 			});
+		followNumber(b, "jumpcost", "Jump cost (blocks)", "How much a step up that needs a jump counts against a path, in blocks of walking. The higher it is, the further the path goes round to avoid jumping, so it only jumps when there is no walk of about that many extra blocks that avoids it. Used when following and hunting.",
+			() -> config.pathJumpCost, v -> config.pathJumpCost = v, 0, 50);
 		b.toggle("nojump", "Never jump", "Never jump while following.", () -> config.followNeverJump, v -> {
 			config.followNeverJump = v;
 			WigState.saveConfig();

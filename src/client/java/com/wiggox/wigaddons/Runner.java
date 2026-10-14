@@ -63,6 +63,7 @@ public final class Runner {
 	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
 	private static double[] idleGoal;
 	private static int idlePauseTicks;
+	private static boolean idleGoingHome;
 	/** Ticks left of looking around and jumping after the message that something special spawned, and the ticks to the next look and the next jump. */
 	private static int huntReactTicks;
 	/** Aiming straight at the target with little easing (see huntTick). */
@@ -690,12 +691,14 @@ public final class Runner {
 		if (goal == null) {
 			if (toHome > Math.max(3.0, cfg.killWander ? cfg.killWanderRadius + 2 : 3.0)) {
 				goal = new double[] {cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ}; // too far from home: go back
+				idleGoingHome = true;
 			} else if (cfg.killWander) {
 				if (idlePauseTicks > 0) {
 					idlePauseTicks--;
 					standStill();
 					return;
 				}
+				idleGoingHome = false;
 				goal = Wander.pick(new WorldTerrain(), cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ, cfg.killWanderRadius, 3.0, HUNT_RANDOM);
 				if (goal == null) {
 					standStill();
@@ -722,7 +725,8 @@ public final class Runner {
 		}
 		moveForward = out.forward();
 		strafe = out.strafe();
-		sprintOn = false;
+		// the trip back home is run; the strolls round it are walked
+		sprintOn = idleGoingHome && out.forward() > 0;
 		jump = out.jump();
 		if (cfg.killIdleLookAround) {
 			// the view sits a random angle within 30 degrees either side of the way being walked (60 degrees in all), and moves to

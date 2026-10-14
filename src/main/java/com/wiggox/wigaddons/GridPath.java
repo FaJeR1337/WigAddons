@@ -41,6 +41,11 @@ public final class GridPath {
 
 	/** @param maxDrop the longest fall that is taken as a shortcut, in blocks */
 	public static List<double[]> find(ObstacleAvoider.Terrain t, int sx, int sy, int sz, int gx, int gy, int gz, boolean allowStepUp, int maxDrop) {
+		return find(t, sx, sy, sz, gx, gy, gz, allowStepUp, maxDrop, 0.6);
+	}
+
+	/** @param jumpCost what a step up that needs a jump costs, in blocks of walking: a high one sends the path the long way round to avoid jumping */
+	public static List<double[]> find(ObstacleAvoider.Terrain t, int sx, int sy, int sz, int gx, int gy, int gz, boolean allowStepUp, int maxDrop, double jumpCost) {
 		PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f(), b.f()));
 		Map<Long, Double> best = new HashMap<>();
 		Node start = new Node(sx, sy, sz, 0, heuristic(sx, sy, sz, gx, gy, gz), null);
@@ -83,7 +88,7 @@ public final class GridPath {
 					if (diagonal && !(free(t, n.x() + d[0], ny > n.y() ? ny : n.y(), n.z()) && free(t, n.x(), ny > n.y() ? ny : n.y(), n.z() + d[1]))) {
 						continue; // would clip a corner
 					}
-					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy != 0 ? 0.6 + (dy < -1 ? 0.4 * (-dy - 1) : 0) : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
+					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy > 0 ? jumpCost : dy < 0 ? 0.6 + (dy < -1 ? 0.4 * (-dy - 1) : 0) : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
 					long k = key(nx, ny, nz);
 					if (g < best.getOrDefault(k, Double.MAX_VALUE)) {
 						best.put(k, g);

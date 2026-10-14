@@ -548,4 +548,17 @@ class FollowPlannerTest {
 		double[] last = path.get(path.size() - 1);
 		assertTrue(last[2] > 20, "got a good way along, z=" + last[2]);
 	}
+
+	@Test
+	void theRouteSearchGoesRoundALedgeInsteadOfJumpingWhenItCostsLess() {
+		// a one block high ledge across x -3..3 at z=5; walking round the end of it at x=4 costs a few blocks
+		ObstacleAvoider.Terrain ledge = (x, y, z) -> y <= -61 || (z == 5 && x >= -3 && x <= 3 && y <= -60);
+		java.util.List<double[]> cheap = GridPath.find(ledge, 0, -60, 0, 0, -60, 10, true, 2, 0.6);
+		java.util.List<double[]> costly = GridPath.find(ledge, 0, -60, 0, 0, -60, 10, true, 2, 6.0);
+		assertTrue(cheap != null && costly != null);
+		boolean cheapClimbs = cheap.stream().anyMatch(n -> n[1] > -60);
+		boolean costlyClimbs = costly.stream().anyMatch(n -> n[1] > -60);
+		assertTrue(cheapClimbs, "with jumps cheap it climbs the ledge");
+		assertFalse(costlyClimbs, "with jumps costly it walks round");
+	}
 }
