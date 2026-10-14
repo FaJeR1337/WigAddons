@@ -111,6 +111,8 @@ public final class Runner {
 	/** The tick each mob was first noticed, for the spawn cooldown. */
 	private static final java.util.Map<Integer, Long> HUNT_FIRST_SEEN = new java.util.HashMap<>();
 	private static boolean huntFirstScan;
+	/** Ticks the only targets there are have been behind the view. */
+	private static int huntBehindTicks;
 	private static final java.util.Map<Integer, Long> HUNT_SEEN = new java.util.HashMap<>();
 	/** A mob that has just stepped out of sight is still gone for this many ticks, so a pillar edge doesn't make the target flicker. */
 	private static final int SIGHT_GRACE_TICKS = 15;
@@ -315,6 +317,7 @@ public final class Runner {
 		standingGround = false;
 		HUNT_SEEN.clear();
 		HUNT_FIRST_SEEN.clear();
+		huntBehindTicks = 0;
 		huntFirstScan = true;
 		HUNT_PART_Y.clear();
 		HUNT_NAME_OF.clear();
@@ -542,9 +545,32 @@ public final class Runner {
 			standingGround = false;
 		}
 		ZealotHunter.View view = new ZealotHunter.View(player.getX(), player.getEyeY(), player.getZ(), player.getYRot(), player.getXRot());
-		ZealotHunter.Mob pick = HUNTER.pick(inSight, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
-		if (pick == null && inSight.size() < all.size()) {
-			pick = HUNTER.pick(all, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		// targets behind you aren't gone for at once (that would just spin the view round): the one already being gone for is kept,
+		// the rest wait unless they have been all there is for a moment
+		final java.util.List<ZealotHunter.Mob> allCandidates = all;
+		final java.util.List<ZealotHunter.Mob> sightCandidates = inSight;
+		java.util.function.Predicate<ZealotHunter.Mob> inFront = m -> m.id() == huntTargetId || !ZealotHunter.isBehind(view, m, cfg.killBehindAngle);
+		ZealotHunter.Mob pick = HUNTER.pick(sightCandidates.stream().filter(inFront).toList(), view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		if (pick == null && sightCandidates.size() < allCandidates.size()) {
+			pick = HUNTER.pick(allCandidates.stream().filter(inFront).toList(), view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+		}
+		boolean waitingForBehind = false;
+		if (pick == null) {
+			ZealotHunter.Mob behind = HUNTER.pick(sightCandidates, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+			if (behind == null && sightCandidates.size() < allCandidates.size()) {
+				behind = HUNTER.pick(allCandidates, view, cfg.killPickByCrosshair, cfg.killUpPenalty, cfg.killSearchRadius, ticks, cfg.killName, cfg.killSpecialName);
+			}
+			if (behind != null) {
+				if (++huntBehindTicks > Math.round(cfg.killBehindDelaySeconds * 20)) {
+					pick = behind;
+				} else {
+					waitingForBehind = true;
+				}
+			} else {
+				huntBehindTicks = 0;
+			}
+		} else {
+			huntBehindTicks = 0;
 		}
 		int id = pick == null ? -1 : pick.id();
 		int markedTarget = pick == null ? -1 : pick.id();
@@ -555,6 +581,10 @@ public final class Runner {
 			huntTargetId = id;
 			planner = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random());
 			planner.setTerrain(new WorldTerrain());
+		}
+		if (waitingForBehind) {
+			standStill(); // something behind: give it a moment before spinning round
+			return;
 		}
 		if (pick == null) {
 			idleTick(mc, player, cfg);

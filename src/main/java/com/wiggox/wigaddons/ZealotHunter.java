@@ -35,6 +35,12 @@ public final class ZealotHunter {
 		return FollowPlanner.pitchToward(px, eyeY, pz, mob.x(), mob.eyeY(), mob.z()) < -maxUpDegrees;
 	}
 
+	/** Whether the mob is behind the view: more than this many degrees round to either side of where the view points, sideways only. */
+	public static boolean isBehind(View view, Mob mob, double maxAngleDegrees) {
+		double toMob = FollowPlanner.yawToward(view.x(), view.z(), mob.x(), mob.z());
+		return Math.abs(RouteFollower.wrapDegrees(toMob - view.yaw())) > maxAngleDegrees;
+	}
+
 	/** Assumes the mob is going to die: it is left alone for a random time between the two limits, in seconds. */
 	public void markDead(int id, long nowTick, double minSeconds, double maxSeconds, Random random) {
 		double lo = Math.min(minSeconds, maxSeconds);

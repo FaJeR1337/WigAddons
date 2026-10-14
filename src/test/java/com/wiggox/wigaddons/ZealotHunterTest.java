@@ -100,4 +100,13 @@ class ZealotHunterTest {
 		assertEquals(1, new ZealotHunter().pick(List.of(above, level), view, true, 0, 40, 0, "Zealot", "Special Zealot").id());
 		assertEquals(2, new ZealotHunter().pick(List.of(above, level), view, true, 1.5, 40, 0, "Zealot", "Special Zealot").id());
 	}
+
+	@Test
+	void knowsWhichTargetsAreBehindTheView() {
+		ZealotHunter.View south = new ZealotHunter.View(0, 1.62, 0, 0, 0); // facing +z
+		assertFalse(ZealotHunter.isBehind(south, mob(1, "Zealot", 0, 10), 100));
+		assertFalse(ZealotHunter.isBehind(south, mob(2, "Zealot", 10, 3), 100)); // well off to the side, but not behind
+		assertTrue(ZealotHunter.isBehind(south, mob(3, "Zealot", 1, -10), 100));
+		assertTrue(ZealotHunter.isBehind(south, mob(4, "Zealot", -10, -3), 100));
+	}
 }

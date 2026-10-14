@@ -367,6 +367,10 @@ public final class WigGui {
 			() -> config.killMaxLookUp, v -> config.killMaxLookUp = v, 1, 90);
 		followNumber(b, "uppenalty", "Prefer targets level with me", "How much worse a target counts for being above you, so one you don't have to look up at is gone for first. Each degree you would have to pitch up counts as this many extra degrees away from your crosshair (blocks, when picking by distance). 0 ignores height. Special mobs still come first, but only among themselves.",
 			() -> config.killUpPenalty, v -> config.killUpPenalty = v, 0, 10);
+		followNumber(b, "behindangle", "Behind me means beyond (deg)", "A target more than this many degrees round to either side of where you are facing counts as behind you. Targets behind you are only gone for when none in front is left and they have been the only ones for the delay below, so you don't spin round at once.",
+			() -> config.killBehindAngle, v -> config.killBehindAngle = v, 30, 180);
+		followNumber(b, "behinddelay", "Wait before turning round (s)", "How long targets behind you have to be the only ones left before you turn round to them. The target you are already going for is never dropped for this.",
+			() -> config.killBehindDelaySeconds, v -> config.killBehindDelaySeconds = v, 0, 30);
 		b.toggle("part", "Aim at the visible part (test)", "A test option. When only one part of a mob can be seen, say its head over a ledge or its body past a corner, aim at that part instead of the middle of it, so shots aren't wasted on the part behind something.",
 			() -> config.killAimVisiblePart, v -> {
 				config.killAimVisiblePart = v;

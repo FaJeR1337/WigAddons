@@ -104,6 +104,9 @@ public final class WigConfig {
 	public double killMaxLookUp = 65;
 	/** Go for the target nearest to where the view already points, so the view turns as little as possible; off goes for the nearest to you. */
 	public boolean killPickByCrosshair = true;
+	/** A target more than this many degrees round to either side counts as behind you. Those wait while there are others, and when they are all there is, for the delay below, so the view doesn't spin round at once. */
+	public double killBehindAngle = 100;
+	public double killBehindDelaySeconds = 1.5;
 	/** How much worse a target counts for being above you: this many extra degrees (blocks when picking by distance) per degree (block) above level. 0 ignores height. */
 	public double killUpPenalty = 1.5;
 	/** Only right click when nothing solid is between you and where the view meets the target. */
@@ -218,6 +221,12 @@ public final class WigConfig {
 		}
 		if (!(killTurnSmoothing >= 0)) {
 			killTurnSmoothing = d.killTurnSmoothing;
+		}
+		if (!(killBehindAngle > 0)) {
+			killBehindAngle = d.killBehindAngle;
+		}
+		if (!(killBehindDelaySeconds >= 0)) {
+			killBehindDelaySeconds = d.killBehindDelaySeconds;
 		}
 		if (!(killUpPenalty >= 0)) {
 			killUpPenalty = d.killUpPenalty;
