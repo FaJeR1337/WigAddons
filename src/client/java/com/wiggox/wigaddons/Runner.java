@@ -1091,13 +1091,17 @@ public final class Runner {
 		playAlarm();
 	}
 
-	/** The wither spawning, at the configured volume, whenever a macro check is raised. */
+	/** The wither's idle sound (mob/wither/idle1.ogg), registered by this mod's sounds.json so it plays that one file and not a random one of the four. */
+	private static final net.minecraft.sounds.SoundEvent ALARM_SOUND = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(
+		net.minecraft.resources.Identifier.fromNamespaceAndPath("wigaddons", "alarm"));
+
+	/** The wither idle sound, at the configured volume, whenever a macro check is raised. */
 	private static void playAlarm() {
 		// the game won't play a sound above full volume, so anything louder is the same sound played again on top of itself
 		double remaining = WigState.config.macroSoundVolume / 100.0;
 		while (remaining > 0.001) {
 			float layer = (float) Math.min(1.0, remaining);
-			Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.WITHER_SPAWN, 1.0F, layer));
+			Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ALARM_SOUND, 1.0F, layer));
 			remaining -= 1.0;
 		}
 	}

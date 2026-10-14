@@ -77,6 +77,15 @@ final class OptionBuilder {
 		put(option, new GuiOptionEditorBoolean(option, -1, config));
 	}
 
+	/** A slider whose number box is wide enough for three digits. */
+	void wideSlider(String key, String name, String description, double min, double max, double step, DoubleSupplier getter, DoubleConsumer setter) {
+		DynOption option = add(key, name, description, float.class, () -> (float) getter.getAsDouble(), v -> {
+			setter.accept(((Number) v).doubleValue());
+			return true;
+		});
+		put(option, new WideSliderEditor(option, (float) min, (float) max, (float) step));
+	}
+
 	void slider(String key, String name, String description, double min, double max, double step, DoubleSupplier getter, DoubleConsumer setter) {
 		// the slider hands floats around, so the value has to be one
 		DynOption option = add(key, name, description, float.class, () -> (float) getter.getAsDouble(), v -> {

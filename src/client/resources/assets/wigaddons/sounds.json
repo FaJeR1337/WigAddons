@@ -1,0 +1,7 @@
+{
+	"alarm": {
+		"sounds": [
+			{ "name": "minecraft:mob/wither/idle1" }
+		]
+	}
+}

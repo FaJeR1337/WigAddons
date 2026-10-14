@@ -89,7 +89,10 @@ final class SmokeTest {
 					next();
 				}
 			}
-			case 1 -> setupAndOpenGui(mc);
+			case 1 -> {
+				WigState.config.macroSoundVolume = 300;
+				setupAndOpenGui(mc);
+			}
 			case 2 -> tour(mc);
 			case 3 -> showBoxes(mc);
 			case 4 -> runRoute(mc, "farm", false, 5);
