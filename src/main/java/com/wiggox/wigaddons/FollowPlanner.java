@@ -210,7 +210,8 @@ public final class FollowPlanner {
 			// pressed against something that can't be stepped over (a wall two blocks or higher) for over a second: try jumping at it
 			wallTicks = horizontalCollision && !blockedByStep ? wallTicks + 1 : 0;
 			int wallHeight = wallTicks > WALL_JUMP_TICKS ? wallHeightAhead(px, py, pz, next) : 0;
-			boolean stuckAtWall = wallHeight >= 2 && wallHeight <= WALL_JUMP_MAX;
+			// a wall of two to five blocks, or something that blocks but isn't counted as solid (the back of a stair): try jumping at it
+			boolean stuckAtWall = wallHeight <= WALL_JUMP_MAX && (wallHeight >= 2 || wallTicks > WALL_JUMP_TICKS * 2);
 			jump = !params.neverJump() && onGround && jumpCooldown <= 0 && (blockedByStep || riseAhead || stuckAtWall);
 			if (jump) {
 				jumpCooldown = JUMP_GAP_TICKS;

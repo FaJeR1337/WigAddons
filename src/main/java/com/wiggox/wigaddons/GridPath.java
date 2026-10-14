@@ -74,12 +74,19 @@ public final class GridPath {
 					continue;
 				}
 				boolean diagonal = d[0] != 0 && d[1] != 0;
-				for (int dy = allowStepUp ? 1 : 0; dy >= -maxDrop; dy--) {
+				for (int dy = 1; dy >= -maxDrop; dy--) {
 					int ny = n.y() + dy;
 					if (!standable(t, nx, ny, nz)) {
 						continue;
 					}
-					if (dy == 1 && !free(t, n.x(), n.y() + 1, n.z())) {
+					// the real height gained: a slab or stair is half a block, a step the walk makes by itself; only more than that is a jump
+					double rise = standHeight(t, nx, ny, nz) - standHeight(t, n.x(), n.y(), n.z());
+					boolean viaStairs = t.stairs(nx, ny, nz) || t.stairs(n.x(), n.y(), n.z());
+					boolean needsJump = dy >= 0 && rise > (viaStairs ? STEP_BY_STAIRS : STEP_BY_WALKING);
+					if (needsJump && !allowStepUp) {
+						continue;
+					}
+					if (needsJump && dy > 0 && !free(t, n.x(), n.y() + 1, n.z())) {
 						continue; // no headroom to jump up from here
 					}
 					if (dy < 0 && !fallsFree(t, nx, n.y(), ny, nz)) {
@@ -88,7 +95,7 @@ public final class GridPath {
 					if (diagonal && !(free(t, n.x() + d[0], ny > n.y() ? ny : n.y(), n.z()) && free(t, n.x(), ny > n.y() ? ny : n.y(), n.z() + d[1]))) {
 						continue; // would clip a corner
 					}
-					double g = n.g() + (diagonal ? 1.41 : 1.0) + (dy > 0 ? jumpCost : dy < 0 ? 0.6 + (dy < -1 ? 0.4 * (-dy - 1) : 0) : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
+					double g = n.g() + (diagonal ? 1.41 : 1.0) + (needsJump ? jumpCost : dy > 0 ? 0.3 : dy < 0 ? 0.6 + (dy < -1 ? 0.4 * (-dy - 1) : 0) : 0) + (hugsWall(t, nx, ny, nz) ? 0.7 : 0);
 					long k = key(nx, ny, nz);
 					if (g < best.getOrDefault(k, Double.MAX_VALUE)) {
 						best.put(k, g);
@@ -113,6 +120,20 @@ public final class GridPath {
 			}
 		}
 		return true;
+	}
+
+	/** Walking steps up anything up to this high by itself. */
+	static final double STEP_BY_WALKING = 0.6;
+	/** Going up stairs a whole block takes two half steps, so it is walked too. */
+	static final double STEP_BY_STAIRS = 1.05;
+
+	/** How high the feet are when standing at the cell: on top of what is underneath, whose top may be a half block. */
+	private static double standHeight(ObstacleAvoider.Terrain t, int x, int y, int z) {
+		double inCell = t.top(x, y, z);
+		if (inCell > 0 && !t.solid(x, y, z)) {
+			return y + inCell; // a slab or stair in the cell itself: standing on it
+		}
+		return (y - 1) + t.top(x, y - 1, z);
 	}
 
 	/** A cell next to a wall: the body brushes it, so paths prefer cells with room. */

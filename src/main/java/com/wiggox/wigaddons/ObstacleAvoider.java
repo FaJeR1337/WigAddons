@@ -20,6 +20,11 @@ public final class ObstacleAvoider {
 			return solid(x, y, z);
 		}
 
+		/** Whether the cell is a stair: walked up half a block at a time, so a whole block of climb over two of them needs no jump. */
+		default boolean stairs(int x, int y, int z) {
+			return false;
+		}
+
 		/** How high the cell's collision reaches within the cell, from 0 (nothing) to 1 (a full block). */
 		default double top(int x, int y, int z) {
 			return solid(x, y, z) ? 1.0 : supports(x, y, z) ? 0.5 : 0.0;

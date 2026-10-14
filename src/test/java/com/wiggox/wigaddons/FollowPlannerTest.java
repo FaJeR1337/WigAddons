@@ -561,4 +561,38 @@ class FollowPlannerTest {
 		assertTrue(cheapClimbs, "with jumps cheap it climbs the ledge");
 		assertFalse(costlyClimbs, "with jumps costly it walks round");
 	}
+
+	@Test
+	void aFlightOfStairsIsWalkedUpWithoutCountingAsJumps() {
+		// four stairs at x=3..6, each a block higher than the last, on solid blocks; ground below x=3
+		ObstacleAvoider.Terrain stairs = new ObstacleAvoider.Terrain() {
+			private boolean stair(int x, int y) {
+				return x >= 3 && x <= 6 && y == -60 + (x - 3);
+			}
+
+			@Override
+			public boolean solid(int x, int y, int z) {
+				return y <= -61 || (x >= 3 && x <= 6 && y < -60 + (x - 3));
+			}
+
+			@Override
+			public boolean supports(int x, int y, int z) {
+				return solid(x, y, z) || stair(x, y);
+			}
+
+			@Override
+			public boolean stairs(int x, int y, int z) {
+				return stair(x, y);
+			}
+
+			@Override
+			public double top(int x, int y, int z) {
+				return stair(x, y) ? 0.5 : solid(x, y, z) ? 1.0 : 0.0;
+			}
+		};
+		// no jumping allowed at all, and jumps would cost a fortune: the stairs still get climbed
+		java.util.List<double[]> path = GridPath.find(stairs, 0, -60, 0, 6, -57, 0, false, 2, 100.0);
+		assertTrue(path != null && !path.isEmpty(), "found a way up the stairs");
+		assertTrue(path.get(path.size() - 1)[1] >= -58, "climbed to within a step of the top, y=" + path.get(path.size() - 1)[1]);
+	}
 }

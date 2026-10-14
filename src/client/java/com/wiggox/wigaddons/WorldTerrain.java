@@ -5,6 +5,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 /** The loaded world as the obstacle avoider sees it: a cell is solid when its block has something to bump into. */
@@ -16,6 +17,9 @@ final class WorldTerrain implements ObstacleAvoider.Terrain {
 
 	@Override
 	public boolean solid(int x, int y, int z) {
+		if (stairs(x, y, z)) {
+			return false; // stairs are walked up, half a block at a time
+		}
 		VoxelShape shape = shape(x, y, z);
 		return shape != null && !shape.isEmpty() && shape.max(Direction.Axis.Y) > STEP;
 	}
@@ -28,8 +32,17 @@ final class WorldTerrain implements ObstacleAvoider.Terrain {
 
 	@Override
 	public double top(int x, int y, int z) {
+		if (stairs(x, y, z)) {
+			return 0.5; // the first step of a stair, which is the one stepped onto
+		}
 		VoxelShape shape = shape(x, y, z);
 		return shape == null || shape.isEmpty() || shape.max(Direction.Axis.Y) <= THIN ? 0.0 : shape.max(Direction.Axis.Y);
+	}
+
+	@Override
+	public boolean stairs(int x, int y, int z) {
+		ClientLevel level = Minecraft.getInstance().level;
+		return level != null && level.getBlockState(new BlockPos(x, y, z)).getBlock() instanceof StairBlock;
 	}
 
 	private static VoxelShape shape(int x, int y, int z) {
