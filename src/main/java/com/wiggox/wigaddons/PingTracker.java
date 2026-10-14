@@ -4,6 +4,8 @@ package com.wiggox.wigaddons;
 public final class PingTracker {
 	/** Fewest samples before the average means anything. */
 	static final int MIN_SAMPLES = 10;
+	/** A ping counts as high once it is this much above the average (20 percent), so ordinary ups and downs aren't. */
+	static final double MARGIN = 1.2;
 
 	private long total;
 	private int count;
@@ -29,8 +31,8 @@ public final class PingTracker {
 		return count == 0 ? 0 : (double) total / count;
 	}
 
-	/** Whether this ping is above the session average (never, until enough has been sampled to have one). */
+	/** Whether this ping is well above the session average (never, until enough has been sampled to have one). */
 	public boolean above(int pingMillis) {
-		return count >= MIN_SAMPLES && pingMillis > average();
+		return count >= MIN_SAMPLES && pingMillis > average() * MARGIN;
 	}
 }

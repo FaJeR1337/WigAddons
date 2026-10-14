@@ -1080,7 +1080,7 @@ public final class Runner {
 			// above the session's average ping it may be only lag: a yellow warning, no alarm, and the run carries on
 			lagWarningTicks = Math.max(1, (int) Math.round(WigState.config.macroWarningSeconds * 20));
 			Chat.info("Possible macro check (" + reason.toLowerCase(java.util.Locale.ROOT) + "), but your ping was " + ping
-				+ " ms, above your average of " + Math.round(PING.average()) + " ms. Carrying on.");
+				+ " ms, well above your average of " + Math.round(PING.average()) + " ms. Carrying on.");
 			showWarning(Minecraft.getInstance());
 			return;
 		}
