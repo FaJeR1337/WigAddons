@@ -973,12 +973,14 @@ public final class Runner {
 		}
 		checkView(player);
 		boolean following = followSource != null;
+		// hunting can have its own fastest turn, apart from the one routes (and following) use
+		double turnSpeed = hunting ? WigState.config.killTurnSpeed : runTurnSpeed;
 		double smoothing = !hunting ? WigState.config.followTurnSmoothing : huntPrecise ? WigState.config.killCloseSmoothing : WigState.config.killTurnSmoothing;
 		if (haveAim) {
 			double before = player.getYRot();
 			float yaw = (float) (following
-				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, smoothing, runTurnSpeed)
-				: RouteFollower.stepYaw(before, aimYaw, runTurnSpeed * frameTicks));
+				? before + yawSmoother.step(RouteFollower.wrapDegrees(aimYaw - before), frameTicks, smoothing, turnSpeed)
+				: RouteFollower.stepYaw(before, aimYaw, turnSpeed * frameTicks));
 			player.setYRot(yaw);
 			// no blending between ticks: the view is set exactly, every frame
 			player.yRotO = yaw;
@@ -987,8 +989,8 @@ public final class Runner {
 		}
 		if (!Double.isNaN(pitchTarget)) {
 			float pitch = (float) (following
-				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, smoothing, runTurnSpeed)
-				: RouteFollower.stepToward(player.getXRot(), pitchTarget, runTurnSpeed * frameTicks));
+				? player.getXRot() + pitchSmoother.step(pitchTarget - player.getXRot(), frameTicks, smoothing, turnSpeed)
+				: RouteFollower.stepToward(player.getXRot(), pitchTarget, turnSpeed * frameTicks));
 			player.setXRot(pitch);
 			player.xRotO = pitch;
 		}

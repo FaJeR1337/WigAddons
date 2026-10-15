@@ -90,6 +90,8 @@ public final class WigConfig {
 	/** Draws the mod's own name tag and box over every mob it is hunting, through walls and from far away. */
 	/** Like followTurnSmoothing, for hunting: about how many ticks the view takes to settle a turn. 0 turns at full speed. */
 	public double killTurnSmoothing = 4;
+	/** Hunting's own fastest turn, in degrees per tick, apart from the default turn speed that routes and following use. */
+	public double killTurnSpeed = 10.0;
 	/** While sidestepping with A or D with the target within killPreciseAngle of the crosshair: aim straight at it with this little turn smoothing, so the view doesn't lag behind. */
 	public boolean killPreciseAim = true;
 	public double killCloseSmoothing = 0;
@@ -241,6 +243,9 @@ public final class WigConfig {
 		}
 		if (!(killUpPenalty >= 0)) {
 			killUpPenalty = d.killUpPenalty;
+		}
+		if (!(killTurnSpeed > 0)) {
+			killTurnSpeed = d.killTurnSpeed;
 		}
 		if (!(killCloseSmoothing >= 0)) {
 			killCloseSmoothing = d.killCloseSmoothing;
