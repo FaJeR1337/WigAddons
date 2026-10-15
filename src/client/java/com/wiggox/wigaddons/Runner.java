@@ -1346,6 +1346,44 @@ public final class Runner {
 		return false;
 	}
 
+	private static int backStrafe;
+	private static int backStrafeTicks;
+
+	/** Closer than three blocks to the protector: back up, or slide left or right (A or D) when something is in the way behind. */
+	private static void backAwayFrom(LocalPlayer player, Entity mob) {
+		double dx = player.getX() - mob.getX();
+		double dz = player.getZ() - mob.getZ();
+		double flat = Math.hypot(dx, dz);
+		if (flat >= 3.0 || flat < 0.01) {
+			return;
+		}
+		WorldTerrain terrain = new WorldTerrain();
+		double ax = dx / flat; // away from it
+		double az = dz / flat;
+		int y = (int) Math.floor(player.getY() + 0.01);
+		boolean blocked = player.horizontalCollision
+			|| terrain.solid((int) Math.floor(player.getX() + ax * 0.9), y, (int) Math.floor(player.getZ() + az * 0.9))
+			|| terrain.solid((int) Math.floor(player.getX() + ax * 0.9), y + 1, (int) Math.floor(player.getZ() + az * 0.9));
+		sprintOn = false;
+		if (!blocked) {
+			moveForward = -1;
+			strafe = 0;
+			backStrafeTicks = 0;
+			return;
+		}
+		// left of the player when facing the protector is (az', -ax'): facing (fx, fz) = (-ax, -az) gives left = (fz, -fx) = (-az, ax)
+		if (--backStrafeTicks <= 0) {
+			double lx = -az;
+			double lz = ax;
+			boolean leftClear = !terrain.solid((int) Math.floor(player.getX() + lx * 0.9), y, (int) Math.floor(player.getZ() + lz * 0.9));
+			boolean rightClear = !terrain.solid((int) Math.floor(player.getX() - lx * 0.9), y, (int) Math.floor(player.getZ() - lz * 0.9));
+			backStrafe = leftClear && (!rightClear || HUNT_RANDOM.nextBoolean()) ? 1 : rightClear ? -1 : (HUNT_RANDOM.nextBoolean() ? 1 : -1);
+			backStrafeTicks = 15 + HUNT_RANDOM.nextInt(15);
+		}
+		moveForward = 0;
+		strafe = backStrafe;
+	}
+
 	/** How far from a known spawn location a head can be and still be taken for the formation's. */
 	private static final double HEAD_NEAR_SPOT = 5.0;
 
@@ -1466,6 +1504,7 @@ public final class Runner {
 				protDeath = new double[] {mob.getX(), mob.getY(), mob.getZ()};
 				// three to four blocks away, on its level
 				protWalk(player, PROT_MOB_GOAL, !near, 3.2, 4.2);
+				backAwayFrom(player, mob);
 				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), mob.getX(), mob.getZ());
 				pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), mob.getX(), mob.getY() + 0.15, mob.getZ()); // at its feet
 				haveAim = true;
