@@ -1299,37 +1299,65 @@ public final class Runner {
 		if (protHeadFound || protTicks % 20 != 0) {
 			return false;
 		}
-		double cx = protSpot != null ? protSpot[0] : player.getX();
-		double cz = protSpot != null ? protSpot[2] : player.getZ();
 		java.util.List<HeadScanner.Head> heads = HeadScanner.scan(mc, player.getX(), player.getZ(), 200); // everything loaded around the player
-		if (protTicks % 100 == 0) {
-			Chat.info("Looking for the formation's head: " + heads.size() + " player head(s) loaded around you, none of them the formation's yet"
-				+ (heads.isEmpty() ? "." : " (nearest: " + heads.get(0).pos().getX() + " " + heads.get(0).pos().getY() + " " + heads.get(0).pos().getZ()
-				+ ", skin " + heads.get(0).textureId() + ")."));
-		}
+		String wanted = cfg.protectorHeadTexture.isBlank() ? new WigConfig().protectorHeadTexture : cfg.protectorHeadTexture;
+		// the formation's own skin, wherever it is
 		for (HeadScanner.Head head : heads) {
-			if (!HeadScanner.matches(head, (cfg.protectorHeadTexture.isBlank() ? new WigConfig().protectorHeadTexture : cfg.protectorHeadTexture))) {
-				continue;
+			if (HeadScanner.matches(head, wanted)) {
+				useHead(player, head, "Found the formation's head");
+				return true;
 			}
-			// the ground under the formation: down from the head until there is something to stand on
-			WorldTerrain terrain = new WorldTerrain();
-			int x = head.pos().getX();
-			int z = head.pos().getZ();
-			int ground = head.pos().getY() - 3;
-			for (int y = head.pos().getY(); y > head.pos().getY() - 8; y--) {
-				if (terrain.supports(x, y - 1, z) && !terrain.solid(x, y, z)) {
-					ground = y;
+		}
+		// otherwise any head close to one of the places it is known to spawn
+		HeadScanner.Head near = null;
+		int nearSpot = -1;
+		for (HeadScanner.Head head : heads) {
+			for (int i = 0; i < cfg.protectorSpots.length; i++) {
+				double[] spot = cfg.protectorSpots[i];
+				if (Math.hypot(head.pos().getX() + 0.5 - spot[0], head.pos().getZ() + 0.5 - spot[2]) <= HEAD_NEAR_SPOT) {
+					near = head;
+					nearSpot = i;
 					break;
 				}
 			}
-			protSpot = new double[] {x, ground, z};
-			protHeadFound = true;
-			protWait = null;
-			Chat.info("Found the formation's head at " + x + " " + head.pos().getY() + " " + z + " ("
-				+ Math.round(Math.hypot(x + 0.5 - player.getX(), z + 0.5 - player.getZ())) + " blocks away, skin " + head.textureId() + ").");
+			if (near != null) {
+				break;
+			}
+		}
+		if (near != null) {
+			Chat.info("No head with the formation's skin (" + wanted.substring(0, Math.min(8, wanted.length())) + "...) found. Taking the head at "
+				+ near.pos().getX() + " " + near.pos().getY() + " " + near.pos().getZ() + ", near spawn location " + (nearSpot + 1) + ", skin " + near.textureId() + ".");
+			useHead(player, near, "Using that head");
 			return true;
 		}
+		if (protTicks % 100 == 0) {
+			Chat.info("Looking for the formation's head: " + heads.size() + " player head(s) loaded around you, none with its skin and none near a spawn location"
+				+ (heads.isEmpty() ? "." : " (nearest: " + heads.get(0).pos().getX() + " " + heads.get(0).pos().getY() + " " + heads.get(0).pos().getZ()
+				+ ", skin " + heads.get(0).textureId() + ")."));
+		}
 		return false;
+	}
+
+	/** How far from a known spawn location a head can be and still be taken for the formation's. */
+	private static final double HEAD_NEAR_SPOT = 15.0;
+
+	/** Takes the formation to be under this head: the ground below it is where to go and look. */
+	private static void useHead(LocalPlayer player, HeadScanner.Head head, String message) {
+		WorldTerrain terrain = new WorldTerrain();
+		int x = head.pos().getX();
+		int z = head.pos().getZ();
+		int ground = head.pos().getY() - 3;
+		for (int y = head.pos().getY(); y > head.pos().getY() - 8; y--) {
+			if (terrain.supports(x, y - 1, z) && !terrain.solid(x, y, z)) {
+				ground = y;
+				break;
+			}
+		}
+		protSpot = new double[] {x, ground, z};
+		protHeadFound = true;
+		protWait = null;
+		Chat.info(message + " at " + x + " " + head.pos().getY() + " " + z + " ("
+			+ Math.round(Math.hypot(x + 0.5 - player.getX(), z + 0.5 - player.getZ())) + " blocks away, skin " + head.textureId() + ").");
 	}
 
 	/** One tick of the protector sequence (see the Kill Protectors option). */
