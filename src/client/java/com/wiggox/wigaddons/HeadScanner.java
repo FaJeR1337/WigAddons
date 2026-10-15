@@ -24,6 +24,25 @@ final class HeadScanner {
 	private static final java.util.regex.Pattern BASE64 = java.util.regex.Pattern.compile("[A-Za-z0-9+/=_-]{60,}");
 	private static final java.util.regex.Pattern TEXTURE = java.util.regex.Pattern.compile("texture/([0-9a-fA-F]{16,})");
 
+	/** The head's profile as text: its name, id and every property (the textures one holds the skin), falling back to the profile's own text. */
+	static String describe(SkullBlockEntity skull) {
+		var owner = skull.getOwnerProfile();
+		if (owner == null) {
+			return "no owner";
+		}
+		StringBuilder text = new StringBuilder();
+		try {
+			var profile = owner.partialProfile();
+			text.append("name=").append(profile.name()).append(" id=").append(profile.id());
+			for (var property : profile.properties().values()) {
+				text.append(' ').append(property.name()).append('=').append(property.value());
+			}
+		} catch (RuntimeException | LinkageError e) {
+			// fall through to the plain text below
+		}
+		return text.append(' ').append(owner).toString();
+	}
+
 	/** Digs the texture id out of a head's profile text: the profile holds a base64 blob that says where the skin is. */
 	static String textureId(String profile) {
 		java.util.regex.Matcher direct = TEXTURE.matcher(profile);
@@ -74,7 +93,7 @@ final class HeadScanner {
 					if (entity instanceof SkullBlockEntity skull) {
 						BlockPos pos = skull.getBlockPos();
 						if (Math.hypot(pos.getX() + 0.5 - x, pos.getZ() + 0.5 - z) <= radius) {
-							found.add(new Head(pos, String.valueOf(skull.getOwnerProfile())));
+							found.add(new Head(pos, describe(skull)));
 						}
 					}
 				}
@@ -113,6 +132,10 @@ final class HeadScanner {
 		org.slf4j.LoggerFactory.getLogger("wigaddons").info("Nearest head {} profile: {}", head.pos(), head.profile());
 		Chat.info("Nearest head " + head.pos().getX() + " " + head.pos().getY() + " " + head.pos().getZ() + ", skin id: " + (head.textureId().isEmpty() ? "none found" : head.textureId()));
 		Chat.info("Its full profile text is in the game log (latest.log) under 'Nearest head'.");
+		String text = head.profile();
+		for (int i = 0; i < Math.min(text.length(), 600); i += 120) {
+			Chat.info(text.substring(i, Math.min(text.length(), i + 120)));
+		}
 	}
 
 	/** Prints what /wig heads sees to chat, nearest first. */
