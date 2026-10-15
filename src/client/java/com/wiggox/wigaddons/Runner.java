@@ -461,7 +461,13 @@ public final class Runner {
 			startSlot = slot;
 			macroCheck("The hotbar slot was changed");
 		}
-		checkView(player);
+		if (expectTeleportTicks > 0) {
+			// a warp this mod sent: the server sets the view as well as the position, so carry on from wherever it is
+			expectedYaw = player.getYRot();
+			expectedPitch = player.getXRot();
+		} else {
+			checkView(player);
+		}
 		checkTeleport(mc, player);
 		ticks++;
 		holdClicks(mc);
@@ -1437,6 +1443,10 @@ public final class Runner {
 		Vec3 now = player.position();
 		if (expectTeleportTicks > 0) {
 			expectTeleportTicks--; // a warp this mod sent: the teleport is expected
+			if (lastTickPos != null && expectTeleportTicks > 60
+				&& (mc.level != lastTickLevel || Teleport.teleported(now.distanceTo(lastTickPos), lastTickSpeed))) {
+				expectTeleportTicks = 60; // it has happened: a few more seconds for the view and the world to settle, then back to watching
+			}
 		} else if (lastTickPos != null) {
 			boolean otherWorld = mc.level != lastTickLevel;
 			if (otherWorld || Teleport.teleported(now.distanceTo(lastTickPos), lastTickSpeed)) {
