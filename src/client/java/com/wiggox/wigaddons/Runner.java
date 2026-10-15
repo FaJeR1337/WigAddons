@@ -1123,7 +1123,16 @@ public final class Runner {
 		return sneaking && active();
 	}
 
+	/** Ticks until a queued warp is sent: a second's pause first, so the warp isn't sent while the message that asked for it is still landing. */
+	private static int warpDelay;
+
 	private static void sendWarp(Minecraft mc) {
+		warpDelay = 20;
+		expectTeleportTicks = 300;
+		warpGraceTicks = 300;
+	}
+
+	private static void sendWarpNow(Minecraft mc) {
 		String command = WigState.config.protectorWarpCommand.trim();
 		if (command.startsWith("/")) {
 			command = command.substring(1).trim();
@@ -1169,6 +1178,7 @@ public final class Runner {
 	}
 
 	private static void protectorReset() {
+		warpDelay = 0;
 		protState = Prot.NONE;
 		sneaking = false;
 		protPlanner = null;
@@ -1293,6 +1303,13 @@ public final class Runner {
 	private static void protectorTick(Minecraft mc, LocalPlayer player) {
 		WigConfig cfg = WigState.config;
 		protTicks++;
+		if (warpDelay > 0) {
+			if (--warpDelay == 0) {
+				sendWarpNow(mc);
+			}
+			standStill();
+			return;
+		}
 		switch (protState) {
 			case APPROACH -> {
 				if (protTicks < 80) {
