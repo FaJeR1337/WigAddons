@@ -464,6 +464,11 @@ public final class Runner {
 			}
 		}
 
+		if (SafeZones.inside(player.getX(), player.getY(), player.getZ(), safeZones(), WigState.config.safeZoneRadius + 5.0)) {
+			// at a portal (or where it puts you), about to be teleported: the new world's first position may not be inside the zone yet
+			macroSuppressTicks = Math.max(macroSuppressTicks, 100);
+			expectTeleportTicks = Math.max(expectTeleportTicks, 300);
+		}
 		if (macroSuppressTicks > 0) {
 			macroSuppressTicks--; // the protector just spawned: free to teleport for a moment
 			expectedYaw = player.getYRot();
