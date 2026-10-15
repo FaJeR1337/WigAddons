@@ -1446,9 +1446,9 @@ public final class Runner {
 		Vec3 now = player.position();
 		if (expectTeleportTicks > 0) {
 			expectTeleportTicks--; // a warp this mod sent: the teleport is expected
-			if (lastTickPos != null && expectTeleportTicks > 60
+			if (lastTickPos != null && expectTeleportTicks > 120
 				&& (mc.level != lastTickLevel || Teleport.teleported(now.distanceTo(lastTickPos), lastTickSpeed))) {
-				expectTeleportTicks = 60; // it has happened: a few more seconds for the view and the world to settle, then back to watching
+				expectTeleportTicks = 120; // it has happened: six more seconds for the view and the world to settle, then back to watching
 			}
 		} else if (lastTickPos != null) {
 			boolean otherWorld = mc.level != lastTickLevel;
