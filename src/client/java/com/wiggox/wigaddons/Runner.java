@@ -1301,9 +1301,11 @@ public final class Runner {
 		}
 		double cx = protSpot != null ? protSpot[0] : player.getX();
 		double cz = protSpot != null ? protSpot[2] : player.getZ();
-		java.util.List<HeadScanner.Head> heads = HeadScanner.scan(mc, (cx + player.getX()) / 2, (cz + player.getZ()) / 2, 70);
+		java.util.List<HeadScanner.Head> heads = HeadScanner.scan(mc, player.getX(), player.getZ(), 200); // everything loaded around the player
 		if (protTicks % 100 == 0) {
-			Chat.info("Looking for the formation's head: " + heads.size() + " player head(s) loaded nearby, none of them the formation's yet.");
+			Chat.info("Looking for the formation's head: " + heads.size() + " player head(s) loaded around you, none of them the formation's yet"
+				+ (heads.isEmpty() ? "." : " (nearest: " + heads.get(0).pos().getX() + " " + heads.get(0).pos().getY() + " " + heads.get(0).pos().getZ()
+				+ ", skin " + heads.get(0).textureId() + ")."));
 		}
 		for (HeadScanner.Head head : heads) {
 			if (!HeadScanner.matches(head, (cfg.protectorHeadTexture.isBlank() ? new WigConfig().protectorHeadTexture : cfg.protectorHeadTexture))) {
