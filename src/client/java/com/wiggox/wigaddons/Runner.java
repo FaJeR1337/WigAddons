@@ -464,7 +464,11 @@ public final class Runner {
 			}
 		}
 
-		if (expectTeleportTicks > 0) {
+		if (macroSuppressTicks > 0) {
+			macroSuppressTicks--; // the protector just spawned: free to teleport for a moment
+			expectedYaw = player.getYRot();
+			expectedPitch = player.getXRot();
+		} else if (expectTeleportTicks > 0) {
 			// a warp this mod sent: the server sets the view as well as the position, so carry on from wherever it is
 			expectedYaw = player.getYRot();
 			expectedPitch = player.getXRot();
@@ -1125,6 +1129,8 @@ public final class Runner {
 
 	/** Ticks until a queued warp is sent: a second's pause first, so the warp isn't sent while the message that asked for it is still landing. */
 	private static int warpDelay;
+	/** Ticks left in which macro checks are off: three seconds from a protector spawning, to teleport freely. */
+	private static int macroSuppressTicks;
 
 	private static void sendWarp(Minecraft mc) {
 		warpDelay = 20;
@@ -1157,6 +1163,7 @@ public final class Runner {
 		protSpotIndex = 0;
 		protSpot = cfg.protectorSpots[0];
 		protHeadFound = false;
+		macroSuppressTicks = 60;
 		sendWarp(mc);
 		Chat.info("An End Stone Protector is rising: warping to it.");
 	}
@@ -1496,7 +1503,7 @@ public final class Runner {
 	 * moment it is noticed, with a warning on screen, and then stops.
 	 */
 	private static void macroCheck(String reason) {
-		if (macroCountdown >= 0) {
+		if (macroCountdown >= 0 || macroSuppressTicks > 0) {
 			return;
 		}
 		Minecraft here = Minecraft.getInstance();
