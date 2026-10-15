@@ -537,36 +537,33 @@ public final class FollowPlanner {
 		lookDz = z * r;
 	}
 
-	/** Up to this many degrees either side of straight ahead is W alone. */
+	/** Up to this many degrees either side of straight ahead is W alone; past it the direction is snapped to the eight a keyboard gives. */
 	static final double KEYS_W_ONLY = 10.0;
-	/** Up to this many degrees is W with A or D; past it A or D alone, until the direction is more than 112.5 round. */
-	static final double KEYS_W_DIAGONAL = 35.0;
-	/** Past this many degrees round it is backwards: S with A or D, and S alone behind. */
-	static final double KEYS_SIDE_END = 112.5;
-	static final double KEYS_BACK_DIAGONAL_END = 157.5;
 
 	/**
 	 * The keys to press to walk toward a direction that is this many degrees to the right (positive) or left of
-	 * where the view points: W alone within 10 degrees, W with A or D to 35, A or D alone to 112.5, S with A or D to
-	 * 157.5, and S alone beyond. Returns {forward (1 W, -1 S), strafe (1 A, -1 D)}.
+	 * where the view points: W alone within 10 degrees, otherwise snapped to the eight directions a keyboard gives
+	 * (45 degree steps, so W with A or D up to 67.5, A or D alone to 112.5, S with A or D to 157.5, S alone beyond).
+	 * Returns {forward (1 W, -1 S), strafe (1 A, -1 D)}.
 	 */
 	public static int[] keysFor(double relativeDegrees) {
 		double rel = RouteFollower.wrapDegrees(relativeDegrees);
-		double abs = Math.abs(rel);
-		int side = rel > 0 ? -1 : 1; // to the right is D (-1), to the left is A (+1)
-		if (abs <= KEYS_W_ONLY) {
+		if (Math.abs(rel) <= KEYS_W_ONLY) {
 			return new int[] {1, 0};
 		}
-		if (abs <= KEYS_W_DIAGONAL) {
-			return new int[] {1, side};
+		int sector = (int) Math.round(rel / 45.0);
+		if (sector == 0) {
+			sector = rel > 0 ? 1 : -1; // past the W alone band but not yet halfway to the next step: the diagonal
 		}
-		if (abs <= KEYS_SIDE_END) {
-			return new int[] {0, side};
-		}
-		if (abs <= KEYS_BACK_DIAGONAL_END) {
-			return new int[] {-1, side};
-		}
-		return new int[] {-1, 0};
+		return switch (sector) {
+			case 1 -> new int[] {1, -1};
+			case 2 -> new int[] {0, -1};
+			case 3 -> new int[] {-1, -1};
+			case -1 -> new int[] {1, 1};
+			case -2 -> new int[] {0, 1};
+			case -3 -> new int[] {-1, 1};
+			default -> new int[] {-1, 0}; // 4 and -4: straight behind
+		};
 	}
 
 	/** Yaw to look at a point from an eye position. */

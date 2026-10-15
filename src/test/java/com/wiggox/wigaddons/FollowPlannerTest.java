@@ -22,18 +22,18 @@ class FollowPlannerTest {
 	}
 
 	@Test
-	void keysFollowTheTunedBands() {
+	void keysSnapToTheEightDirectionsWithANarrowWAloneBand() {
 		assertArrayEquals(new int[] {1, 0}, FollowPlanner.keysFor(0));
 		assertArrayEquals(new int[] {1, 0}, FollowPlanner.keysFor(10)); // W alone to 10 degrees
 		assertArrayEquals(new int[] {1, 0}, FollowPlanner.keysFor(-10));
-		assertArrayEquals(new int[] {1, -1}, FollowPlanner.keysFor(10.5)); // W and D from there to 35
-		assertArrayEquals(new int[] {1, -1}, FollowPlanner.keysFor(35));
-		assertArrayEquals(new int[] {1, 1}, FollowPlanner.keysFor(-20)); // W and A on the left
-		assertArrayEquals(new int[] {1, 1}, FollowPlanner.keysFor(-35));
-		assertArrayEquals(new int[] {0, -1}, FollowPlanner.keysFor(36)); // D alone beyond that
+		assertArrayEquals(new int[] {1, -1}, FollowPlanner.keysFor(10.5)); // then the diagonal, as far as 67.5
+		assertArrayEquals(new int[] {1, -1}, FollowPlanner.keysFor(45)); // ahead and to the right: W and D
+		assertArrayEquals(new int[] {1, -1}, FollowPlanner.keysFor(67));
+		assertArrayEquals(new int[] {1, 1}, FollowPlanner.keysFor(-20)); // ahead and to the left: W and A
+		assertArrayEquals(new int[] {1, 1}, FollowPlanner.keysFor(-45));
 		assertArrayEquals(new int[] {0, -1}, FollowPlanner.keysFor(90));
 		assertArrayEquals(new int[] {0, 1}, FollowPlanner.keysFor(-90));
-		assertArrayEquals(new int[] {-1, -1}, FollowPlanner.keysFor(135)); // backing up to the right
+		assertArrayEquals(new int[] {-1, -1}, FollowPlanner.keysFor(135));
 		assertArrayEquals(new int[] {-1, 1}, FollowPlanner.keysFor(-135));
 		assertArrayEquals(new int[] {-1, 0}, FollowPlanner.keysFor(180));
 		assertArrayEquals(new int[] {-1, 0}, FollowPlanner.keysFor(-180));
