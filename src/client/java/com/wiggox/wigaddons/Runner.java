@@ -1147,6 +1147,7 @@ public final class Runner {
 		if (!command.isEmpty() && mc.player != null) {
 			mc.player.connection.sendCommand(command);
 		}
+		macroSuppressTicks = Math.max(macroSuppressTicks, 60);
 		expectTeleportTicks = 300;
 		warpGraceTicks = 300;
 	}
@@ -1495,9 +1496,10 @@ public final class Runner {
 		Vec3 now = player.position();
 		if (expectTeleportTicks > 0) {
 			expectTeleportTicks--; // a warp this mod sent: the teleport is expected
-			if (lastTickPos != null && expectTeleportTicks > 120
+			if (lastTickPos != null && expectTeleportTicks > 200
 				&& (mc.level != lastTickLevel || Teleport.teleported(now.distanceTo(lastTickPos), lastTickSpeed))) {
-				expectTeleportTicks = 120; // it has happened: six more seconds for the view and the world to settle, then back to watching
+				macroSuppressTicks = Math.max(macroSuppressTicks, 60); // and three seconds with nothing checked at all
+				expectTeleportTicks = 200; // it has happened: six more seconds for the view and the world to settle, then back to watching
 			}
 		} else if (lastTickPos != null) {
 			boolean otherWorld = mc.level != lastTickLevel;
