@@ -1135,6 +1135,7 @@ public final class Runner {
 	/** Ticks until a queued warp is sent: a second's pause first, so the warp isn't sent while the message that asked for it is still landing. */
 	private static int warpDelay;
 	private static int protStuckTicks;
+	private static boolean protNearPortal;
 	/** Ticks left in which macro checks are off: three seconds from a protector spawning, to teleport freely. */
 	private static int macroSuppressTicks;
 
@@ -1193,6 +1194,7 @@ public final class Runner {
 
 	private static void protectorReset() {
 		warpDelay = 0;
+		protNearPortal = false;
 		protState = Prot.NONE;
 		sneaking = false;
 		protPlanner = null;
@@ -1474,6 +1476,7 @@ public final class Runner {
 					double[] portal = cfg.bruiserPortals[HUNT_RANDOM.nextInt(cfg.bruiserPortals.length)];
 					protPortal = new double[] {portal[0] + 0.5, portal[1], portal[2] + 0.5};
 					protState = Prot.RETURN;
+					protNearPortal = false;
 					protTicks = 0;
 					protPlanner = null;
 					protGoalRef = null;
@@ -1499,7 +1502,13 @@ public final class Runner {
 					standStill(); // the warp takes a moment
 					return;
 				}
-				if (SafeZones.inside(player.getX(), player.getY(), player.getZ(), new double[][] {cfg.bruiserArrival}, cfg.safeZoneRadius)
+				double toPortal = Math.hypot(player.getX() - protPortal[0], player.getZ() - protPortal[2]);
+				if (toPortal <= 6.0) {
+					protNearPortal = true;
+				}
+				// through the portal: in the arrival area, or simply far from the portal it was walked into
+				boolean through = protNearPortal && toPortal > 25.0;
+				if (through || SafeZones.inside(player.getX(), player.getY(), player.getZ(), new double[][] {cfg.bruiserArrival}, Math.max(cfg.safeZoneRadius, 8.0))
 					|| protTicks > 20 * 180) {
 					// through the portal (or taking far too long): back to hunting
 					protectorReset();
