@@ -92,6 +92,8 @@ public final class WigConfig {
 	public double killTurnSmoothing = 4;
 	/** Hunting's own fastest turn, in degrees per tick, apart from the default turn speed that routes and following use. */
 	public double killTurnSpeed = 10.0;
+	/** While the view isn't on a target (walking home, wandering, a target behind a wall): look up this many degrees at most when the way goes up, and down when it goes down. 0 turns it off. */
+	public double killPathPitch = 8.0;
 	/** While sidestepping with A or D with the target within killPreciseAngle of the crosshair: aim straight at it with this little turn smoothing, so the view doesn't lag behind. */
 	public boolean killPreciseAim = true;
 	public double killCloseSmoothing = 0;
@@ -243,6 +245,9 @@ public final class WigConfig {
 		}
 		if (!(killUpPenalty >= 0)) {
 			killUpPenalty = d.killUpPenalty;
+		}
+		if (!(killPathPitch >= 0)) {
+			killPathPitch = d.killPathPitch;
 		}
 		if (!(killTurnSpeed > 0)) {
 			killTurnSpeed = d.killTurnSpeed;

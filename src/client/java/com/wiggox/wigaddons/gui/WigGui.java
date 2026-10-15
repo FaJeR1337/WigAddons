@@ -283,6 +283,11 @@ public final class WigGui {
 				config.killTurnSpeed = v;
 				WigState.saveConfig();
 			});
+		b.slider("pathpitch", "Look with the path (deg)", "While the view isn't on a target (walking home, wandering, or a target behind a wall), look slightly up when the way goes up and slightly down when it goes down, by at most this many degrees. 0 turns it off.",
+			0, 30, 1, () -> config.killPathPitch, v -> {
+				config.killPathPitch = v;
+				WigState.saveConfig();
+			});
 		b.text("name", "Mob name", "Mobs whose name contains this text are hunted, ignoring capitals, so Zealot also finds Zealot Bruiser.",
 			() -> config.killName, v -> {
 				config.killName = v.trim();

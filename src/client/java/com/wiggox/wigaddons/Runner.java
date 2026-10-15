@@ -628,6 +628,7 @@ public final class Runner {
 		}
 		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
 		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		pitchTarget = closeLookPitch(player, out.lookX(), out.lookZ(), pitchTarget);
 		// sidestepping with A or D with the target near the crosshair: aim right at it with next to no easing, or the view lags behind a
 		// moving target and keeps pointing a block or two ahead of it, never lining up to shoot
 		huntPrecise = false;
@@ -637,7 +638,7 @@ public final class Runner {
 			double[] way = planner.snapshot().next();
 			if (way != null) {
 				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), way[0], way[2]);
-				pitchTarget = 0;
+				pitchTarget = pathPitchBias(player, way);
 			}
 		}
 		// test option: with only part of the mob in sight, aim at that part
@@ -672,6 +673,31 @@ public final class Runner {
 			huntKills++;
 			HUNT_ORDER.add(pick.name());
 		}
+	}
+
+	/** Standing right by what is looked at, a small sideways move of the look spot would swing the pitch wildly: keep it near level there. */
+	private static double closeLookPitch(LocalPlayer player, double lookX, double lookZ, double pitch) {
+		double horizontal = Math.hypot(lookX - player.getX(), lookZ - player.getZ());
+		if (horizontal >= 1.5) {
+			return pitch;
+		}
+		double limit = 3.0 + 10.0 * (horizontal / 1.5); // 3 degrees at the very spot, 13 at 1.5 blocks
+		return RouteFollower.clamp(pitch, -limit, limit);
+	}
+
+	/** A little up when the way goes up, a little down when it goes down: at most killPathPitch degrees, reached at a 45 degree slope. */
+	private static double pathPitchBias(LocalPlayer player, double[] way) {
+		double max = WigState.config.killPathPitch;
+		if (max <= 0 || way == null) {
+			return 0;
+		}
+		double rise = way[1] - player.getY();
+		if (Math.abs(rise) < 0.5) {
+			return 0; // level, or just a slab's worth
+		}
+		double horizontal = Math.max(0.5, Math.hypot(way[0] - player.getX(), way[2] - player.getZ()));
+		double slope = Math.toDegrees(Math.atan2(rise, horizontal));
+		return -RouteFollower.clamp(slope / 45.0 * max, -max, max); // pitch is negative looking up
 	}
 
 	/** Nothing to hunt: go to the home spot if there is one, then stroll around it until something turns up. */
@@ -741,7 +767,7 @@ public final class Runner {
 				? FollowPlanner.yawToward(player.getX(), player.getZ(), way[0], way[2])
 				: FollowPlanner.yawToward(player.getX(), player.getZ(), goal[0], goal[2]);
 			aimYaw = base + idleLookOffset;
-			pitchTarget = idleLookPitch;
+			pitchTarget = idleLookPitch + pathPitchBias(player, way);
 		} else {
 			aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
 			pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
@@ -947,6 +973,7 @@ public final class Runner {
 		jump = out.jump();
 		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), out.lookX(), out.lookZ());
 		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), out.lookX(), out.lookY(), out.lookZ());
+		pitchTarget = closeLookPitch(player, out.lookX(), out.lookZ(), pitchTarget);
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
