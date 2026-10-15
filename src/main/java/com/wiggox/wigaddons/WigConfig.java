@@ -92,6 +92,8 @@ public final class WigConfig {
 	 */
 	public double[][] protectorSpots = {{-665, 8, -276}};
 	public double protectorSearchSeconds = 10.0;
+	/** The formation has a custom placed head on top. Part of its texture (see /wig kill heads) to tell it from other heads; blank takes the nearest head of any kind. */
+	public String protectorHeadTexture = "";
 	/** The portals to the Zealot Bruisers (one is picked at random), and where they put you. Macro checks are ignored within safeZoneRadius of these. */
 	public double[][] bruiserPortals = {{-617, 5, -269}, {-617, 5, -282}};
 	public double[] bruiserArrival = {618, 85, -203};
@@ -297,6 +299,9 @@ public final class WigConfig {
 		}
 		if (protectorDeathMessage == null) {
 			protectorDeathMessage = d.protectorDeathMessage;
+		}
+		if (protectorHeadTexture == null) {
+			protectorHeadTexture = d.protectorHeadTexture;
 		}
 		if (protectorName == null) {
 			protectorName = d.protectorName;

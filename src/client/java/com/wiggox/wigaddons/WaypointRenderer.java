@@ -30,6 +30,9 @@ public final class WaypointRenderer {
 					Gizmos.cuboid(new BlockPos((int) Math.floor(cfg.killHomeX), (int) Math.floor(cfg.killHomeY) - 1, (int) Math.floor(cfg.killHomeZ)), GizmoStyle.stroke(0xFF55FF55, 3.0F));
 					Gizmos.billboardText("Hunt home", new Vec3(cfg.killHomeX, cfg.killHomeY + 0.9, cfg.killHomeZ), TextGizmo.Style.forColorAndCentered(0xFF55FF55).withScale(1.2F)).setAlwaysOnTop();
 				}
+				if (HeadScanner.showing) {
+					drawHeads();
+				}
 				if (Runner.isHunting() && WigState.config.killShowTags) {
 					drawHuntTags();
 				}
@@ -40,6 +43,17 @@ public final class WaypointRenderer {
 				// no gizmo collector at this point of the frame; nothing to draw into
 			}
 		});
+	}
+
+	/** The player heads in the world, through walls with their coordinates, for finding out where a formation's head is. */
+	private static void drawHeads() {
+		net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+		for (HeadScanner.Head head : HeadScanner.cached(mc)) {
+			BlockPos pos = head.pos();
+			Gizmos.cuboid(pos, GizmoStyle.stroke(0xFFFF55FF, 3.0F)).setAlwaysOnTop();
+			Gizmos.billboardText("head " + pos.getX() + " " + pos.getY() + " " + pos.getZ(), new Vec3(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5),
+				TextGizmo.Style.forColorAndCentered(0xFFFF55FF).withScale(0.6F)).setAlwaysOnTop();
+		}
 	}
 
 	/** The mod's own name tag (white, like an ordinary one, but drawn over walls) and a box coloured by kind over every mob being hunted. */

@@ -1081,6 +1081,7 @@ public final class Runner {
 	/** The formation point, where to wait and look before the protector spawns. */
 	private static double[] protSpot;
 	private static int protSpotIndex;
+	private static boolean protHeadFound;
 	private static int protWaitTicks;
 	/** Where to stand while waiting, then the spot being hopped around after the kill. */
 	private static double[] protWait;
@@ -1137,6 +1138,7 @@ public final class Runner {
 		protGoalRef = null;
 		protSpotIndex = 0;
 		protSpot = cfg.protectorSpots[0];
+		protHeadFound = false;
 		sendWarp(mc);
 		Chat.info("An End Stone Protector is rising: warping to it.");
 	}
@@ -1243,6 +1245,41 @@ public final class Runner {
 		return golem;
 	}
 
+	/**
+	 * The formation has a custom head placed on top of it: once one is seen (matching protectorHeadTexture, if that is set), the formation
+	 * is taken to be under it, and that is where to go and look. Returns true the tick it is found.
+	 */
+	private static boolean lookForFormationHead(Minecraft mc, LocalPlayer player) {
+		WigConfig cfg = WigState.config;
+		if (protHeadFound || protTicks % 20 != 0) {
+			return false;
+		}
+		double cx = protSpot != null ? protSpot[0] : player.getX();
+		double cz = protSpot != null ? protSpot[2] : player.getZ();
+		for (HeadScanner.Head head : HeadScanner.scan(mc, (cx + player.getX()) / 2, (cz + player.getZ()) / 2, 70)) {
+			if (!HeadScanner.matches(head, cfg.protectorHeadTexture)) {
+				continue;
+			}
+			// the ground under the formation: down from the head until there is something to stand on
+			WorldTerrain terrain = new WorldTerrain();
+			int x = head.pos().getX();
+			int z = head.pos().getZ();
+			int ground = head.pos().getY() - 3;
+			for (int y = head.pos().getY(); y > head.pos().getY() - 8; y--) {
+				if (terrain.supports(x, y - 1, z) && !terrain.solid(x, y, z)) {
+					ground = y;
+					break;
+				}
+			}
+			protSpot = new double[] {x, ground, z};
+			protHeadFound = true;
+			protWait = null;
+			Chat.info("Found the formation's head at " + x + " " + head.pos().getY() + " " + z + ".");
+			return true;
+		}
+		return false;
+	}
+
 	/** One tick of the protector sequence (see the Kill Protectors option). */
 	private static void protectorTick(Minecraft mc, LocalPlayer player) {
 		WigConfig cfg = WigState.config;
@@ -1252,6 +1289,10 @@ public final class Runner {
 				if (protTicks < 80) {
 					standStill(); // the warp takes a moment
 					return;
+				}
+				if (lookForFormationHead(mc, player)) {
+					protPlanner = null;
+					protGoalRef = null;
 				}
 				Entity early = findProtector(mc, player);
 				if (early != null) {
@@ -1283,13 +1324,18 @@ public final class Runner {
 					pitchTarget = RouteFollower.clamp(FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), protSpot[0], protSpot[1] + 1.0, protSpot[2]), -20, 20);
 					haveAim = true;
 				}
+				if (lookForFormationHead(mc, player)) {
+					protState = Prot.APPROACH; // the head is somewhere else than where it was waiting: go there
+					protTicks = 100;
+					return;
+				}
 				Entity mob = findProtector(mc, player);
 				if (mob != null) {
 					protMobId = mob.getId();
 					protState = Prot.FIGHT;
 					protPlanner = null;
 					protGoalRef = null;
-				} else if (cfg.protectorSpots.length > 1 && ++protWaitTicks > Math.round(cfg.protectorSearchSeconds * 20)) {
+				} else if (!protHeadFound && cfg.protectorSpots.length > 1 && ++protWaitTicks > Math.round(cfg.protectorSearchSeconds * 20)) {
 					// not here: try the next place it can be
 					protSpotIndex = (protSpotIndex + 1) % cfg.protectorSpots.length;
 					protSpot = cfg.protectorSpots[protSpotIndex];

@@ -561,7 +561,8 @@ final class SmokeTest {
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 			WigState.config.killProtectors = true;
 			WigState.config.protectorWarpCommand = "say warp drag";
-			WigState.config.protectorSpots = new double[][] {{20, -60, 20}};
+			WigState.config.protectorSpots = new double[][] {{40, -60, 40}}; // a decoy: the head says where it really is
+			command(mc, "setblock 20 -57 20 minecraft:player_head");
 			protLast = "";
 		}
 		if (phaseTick == 20) {
@@ -569,6 +570,10 @@ final class SmokeTest {
 		}
 		if (phaseTick == 30) {
 			Runner.onChatLine("The ground begins to shake as an End Stone Protector rises from below!");
+		}
+		if (phaseTick == 200) {
+			command(mc, "wig kill heads");
+			photograph(mc, "heads");
 		}
 		if (phaseTick == 240) {
 			command(mc, "summon minecraft:iron_golem 20.5 -60 20.5 {CustomName:\"End Stone Protector\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}");
@@ -588,6 +593,7 @@ final class SmokeTest {
 			log("protector: end state " + Runner.protectorState() + ", me " + fmt(mc));
 			Runner.stop("smoke test over");
 			WigState.config.killProtectors = false;
+			command(mc, "setblock 20 -57 20 minecraft:air");
 			WigState.config.protectorSpots = new WigConfig().protectorSpots;
 			WigState.config.protectorWarpCommand = new WigConfig().protectorWarpCommand;
 			command(mc, "kill @e[type=minecraft:iron_golem]");

@@ -97,6 +97,14 @@ public final class WigCommands {
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
 			.then(ClientCommands.literal("kill")
+				.then(ClientCommands.literal("heads").executes(c -> {
+					HeadScanner.showing = !HeadScanner.showing;
+					Chat.info("Player heads are " + (HeadScanner.showing ? "marked through walls and listed below." : "no longer marked."));
+					if (HeadScanner.showing) {
+						HeadScanner.report(net.minecraft.client.Minecraft.getInstance());
+					}
+					return 1;
+				}))
 				.then(ClientCommands.literal("protector")
 					.then(ClientCommands.literal("here").executes(c -> addProtectorSpot()))
 					.then(ClientCommands.literal("reset").executes(c -> resetProtectorSpots())))
