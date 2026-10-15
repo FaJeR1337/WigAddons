@@ -76,7 +76,7 @@ public final class Runner {
 	private static double idleLookOffset;
 	private static double idleLookPitch;
 	/** While walking home or wandering the view stays within this many degrees either side of the way being walked. */
-	private static final double IDLE_LOOK_SPREAD_DEGREES = 30.0;
+	private static final double IDLE_LOOK_SPREAD_DEGREES = 15.0;
 	private static int idleLookTicks;
 	/** The names attacked so far this hunt, in order (kept for the dev test). */
 	private static final java.util.List<String> HUNT_ORDER = new java.util.ArrayList<>();
@@ -755,7 +755,7 @@ public final class Runner {
 		sprintOn = idleGoingHome && out.forward() > 0;
 		jump = out.jump();
 		if (cfg.killIdleLookAround) {
-			// the view sits a random angle within 30 degrees either side of the way being walked (60 degrees in all), and moves to
+			// the view sits a random angle within 15 degrees either side of the way being walked (30 degrees in all), and moves to
 			// another every second or two
 			if (--idleLookTicks <= 0) {
 				idleLookOffset = (HUNT_RANDOM.nextDouble() * 2 - 1) * IDLE_LOOK_SPREAD_DEGREES;
