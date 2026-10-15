@@ -572,7 +572,7 @@ final class SmokeTest {
 			Runner.onChatLine("The ground begins to shake as an End Stone Protector rises from below!");
 		}
 		if (phaseTick == 200) {
-			command(mc, "wig kill heads");
+			command(mc, "wig heads");
 			photograph(mc, "heads");
 		}
 		if (phaseTick == 240) {

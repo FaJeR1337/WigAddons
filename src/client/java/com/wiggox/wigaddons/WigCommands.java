@@ -97,14 +97,6 @@ public final class WigCommands {
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
 			.then(ClientCommands.literal("kill")
-				.then(ClientCommands.literal("heads").executes(c -> {
-					HeadScanner.showing = !HeadScanner.showing;
-					Chat.info("Player heads are " + (HeadScanner.showing ? "marked through walls and listed below." : "no longer marked."));
-					if (HeadScanner.showing) {
-						HeadScanner.report(net.minecraft.client.Minecraft.getInstance());
-					}
-					return 1;
-				}))
 				.then(ClientCommands.literal("protector")
 					.then(ClientCommands.literal("here").executes(c -> addProtectorSpot()))
 					.then(ClientCommands.literal("reset").executes(c -> resetProtectorSpots())))
@@ -123,6 +115,19 @@ public final class WigCommands {
 				.executes(c -> follow(null))
 				.then(ClientCommands.argument("player", StringArgumentType.word()).suggests(NEARBY_PLAYERS)
 					.executes(c -> follow(StringArgumentType.getString(c, "player")))))
+			.then(ClientCommands.literal("heads")
+				.executes(c -> {
+					HeadScanner.showing = !HeadScanner.showing;
+					Chat.info("Player heads are " + (HeadScanner.showing ? "marked through walls and listed below, with their skin ids." : "no longer marked."));
+					if (HeadScanner.showing) {
+						HeadScanner.report(net.minecraft.client.Minecraft.getInstance());
+					}
+					return 1;
+				})
+				.then(ClientCommands.literal("raw").executes(c -> {
+					HeadScanner.reportNearestRaw(net.minecraft.client.Minecraft.getInstance());
+					return 1;
+				})))
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug()))
