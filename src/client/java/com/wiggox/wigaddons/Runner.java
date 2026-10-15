@@ -1257,7 +1257,7 @@ public final class Runner {
 		double cx = protSpot != null ? protSpot[0] : player.getX();
 		double cz = protSpot != null ? protSpot[2] : player.getZ();
 		for (HeadScanner.Head head : HeadScanner.scan(mc, (cx + player.getX()) / 2, (cz + player.getZ()) / 2, 70)) {
-			if (!HeadScanner.matches(head, cfg.protectorHeadTexture)) {
+			if (!HeadScanner.matches(head, (cfg.protectorHeadTexture.isBlank() ? new WigConfig().protectorHeadTexture : cfg.protectorHeadTexture))) {
 				continue;
 			}
 			// the ground under the formation: down from the head until there is something to stand on
