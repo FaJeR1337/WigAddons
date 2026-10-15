@@ -37,11 +37,14 @@ public final class FollowPlanner {
 	public record Output(int forward, int strafe, boolean sprint, boolean jump, Status status, double distance, double lookX, double lookY, double lookZ) {
 	}
 
+	/** The most hunting varies where on the mob it looks, in blocks. */
+	static final double HUNT_LOOK_RADIUS = 0.1;
+
 	public record Params(double stopDistance, double resumeDistance, double sprintDistance, double lostSeconds, double lookRadius,
 		boolean neverJump, double stuckSeconds, boolean lookOnlyWhenVisible, double lookInterval, int maxDrop, boolean direct, double jumpCost) {
 		/** For hunting: walk right up to the target, always look at it. */
 		public static Params forHunt(WigConfig c) {
-			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, 0.3), c.followNeverJump,
+			return new Params(2.0, 2.5, c.followSprintDistance, 1.0, Math.min(c.followLookRadius, HUNT_LOOK_RADIUS), c.followNeverJump,
 				c.stuckTimeoutSeconds, c.killRequireSight, 0, c.killMaxDrop, true, c.pathJumpCost);
 		}
 
