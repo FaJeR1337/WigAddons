@@ -459,8 +459,11 @@ public final class Runner {
 		int slot = player.getInventory().getSelectedSlot();
 		if (slot != startSlot) {
 			startSlot = slot;
-			macroCheck("The hotbar slot was changed");
+			if (expectTeleportTicks <= 0) { // a new world after a warp resets the held slot: not a check
+				macroCheck("The hotbar slot was changed");
+			}
 		}
+
 		if (expectTeleportTicks > 0) {
 			// a warp this mod sent: the server sets the view as well as the position, so carry on from wherever it is
 			expectedYaw = player.getYRot();
