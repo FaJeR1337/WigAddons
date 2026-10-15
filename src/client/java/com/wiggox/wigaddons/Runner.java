@@ -1129,6 +1129,7 @@ public final class Runner {
 
 	/** Ticks until a queued warp is sent: a second's pause first, so the warp isn't sent while the message that asked for it is still landing. */
 	private static int warpDelay;
+	private static int protStuckTicks;
 	/** Ticks left in which macro checks are off: three seconds from a protector spawning, to teleport freely. */
 	private static int macroSuppressTicks;
 
@@ -1208,9 +1209,26 @@ public final class Runner {
 			return 1;
 		}
 		if (out.status() == FollowPlanner.Status.STUCK) {
-			standStill();
-			return 2;
+			// no path (too far for the path finder, or boxed in): head straight for it, jumping what is in the way, and plan again now and then
+			if (++protStuckTicks > 60) {
+				protStuckTicks = 0;
+				protPlanner = null;
+			}
+			double flat = Math.hypot(goal[0] - player.getX(), goal[2] - player.getZ());
+			if (flat <= stop) {
+				standStill();
+				return 1;
+			}
+			moveForward = 1;
+			strafe = 0;
+			sprintOn = sprint;
+			jump = player.horizontalCollision && player.onGround();
+			aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), goal[0], goal[2]);
+			pitchTarget = 0;
+			haveAim = true;
+			return 0;
 		}
+		protStuckTicks = 0;
 		moveForward = out.forward();
 		strafe = out.strafe();
 		sprintOn = sprint && out.forward() > 0;
@@ -1282,7 +1300,11 @@ public final class Runner {
 		}
 		double cx = protSpot != null ? protSpot[0] : player.getX();
 		double cz = protSpot != null ? protSpot[2] : player.getZ();
-		for (HeadScanner.Head head : HeadScanner.scan(mc, (cx + player.getX()) / 2, (cz + player.getZ()) / 2, 70)) {
+		java.util.List<HeadScanner.Head> heads = HeadScanner.scan(mc, (cx + player.getX()) / 2, (cz + player.getZ()) / 2, 70);
+		if (protTicks % 100 == 0) {
+			Chat.info("Looking for the formation's head: " + heads.size() + " player head(s) loaded nearby, none of them the formation's yet.");
+		}
+		for (HeadScanner.Head head : heads) {
 			if (!HeadScanner.matches(head, (cfg.protectorHeadTexture.isBlank() ? new WigConfig().protectorHeadTexture : cfg.protectorHeadTexture))) {
 				continue;
 			}
@@ -1300,7 +1322,8 @@ public final class Runner {
 			protSpot = new double[] {x, ground, z};
 			protHeadFound = true;
 			protWait = null;
-			Chat.info("Found the formation's head at " + x + " " + head.pos().getY() + " " + z + ".");
+			Chat.info("Found the formation's head at " + x + " " + head.pos().getY() + " " + z + " ("
+				+ Math.round(Math.hypot(x + 0.5 - player.getX(), z + 0.5 - player.getZ())) + " blocks away, skin " + head.textureId() + ").");
 			return true;
 		}
 		return false;
@@ -1388,20 +1411,22 @@ public final class Runner {
 						protMobId = mob.getId();
 					}
 				}
-				// sneaking and right clicking the whole fight
-				sneaking = true;
+				// right clicking the whole fight, and sneaking once it is within ten blocks
 				mc.options.keyUse.setDown(true);
 				holdingRight = true;
 				if (mob == null) {
+					sneaking = false;
 					standStill();
 					return;
 				}
+				boolean near = player.distanceTo(mob) <= 10.0;
+				sneaking = near;
 				PROT_MOB_GOAL[0] = mob.getX();
 				PROT_MOB_GOAL[1] = mob.getY();
 				PROT_MOB_GOAL[2] = mob.getZ();
 				protDeath = new double[] {mob.getX(), mob.getY(), mob.getZ()};
 				// three to four blocks away, on its level
-				protWalk(player, PROT_MOB_GOAL, false, 3.2, 4.2);
+				protWalk(player, PROT_MOB_GOAL, !near, 3.2, 4.2);
 				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), mob.getX(), mob.getZ());
 				pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), mob.getX(), mob.getY() + 0.15, mob.getZ()); // at its feet
 				haveAim = true;
