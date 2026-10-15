@@ -80,6 +80,22 @@ public final class WigConfig {
 	 * type below within the search radius counts as hunted, name tag or not. (It can't tell a special one apart without its tag.)
 	 */
 	public boolean killByType = false;
+	/** Kill Protectors: when the spawn message below arrives during a hunt, warp to the protector, kill it, and come back. */
+	public boolean killProtectors = false;
+	public String protectorSpawnMessage = "The ground begins to shake as an End Stone Protector rises from below!";
+	public String protectorDeathMessage = "END STONE PROTECTOR DOWN!";
+	public String protectorName = "End Stone Protector";
+	public String protectorWarpCommand = "warp drag";
+	/**
+	 * Where its formation can be: after the warp the player walks toward the first, looks for the formation (or the protector)
+	 * and, if nothing is found there after protectorSearchSeconds, goes on to the next. /wig kill protector here adds the spot you stand on.
+	 */
+	public double[][] protectorSpots = {{-665, 8, -276}};
+	public double protectorSearchSeconds = 10.0;
+	/** The portals to the Zealot Bruisers (one is picked at random), and where they put you. Macro checks are ignored within safeZoneRadius of these. */
+	public double[][] bruiserPortals = {{-617, 5, -269}, {-617, 5, -282}};
+	public double[] bruiserArrival = {618, 85, -203};
+	public double safeZoneRadius = 3.0;
 	/** When this chat message arrives while hunting, stand and look around while jumping for a few seconds before going for it. Blank turns it off. */
 	public String killReactMessage = "A special Zealot has spawned nearby!";
 	public double killReactMinSeconds = 2;
@@ -275,6 +291,33 @@ public final class WigConfig {
 		}
 		if (!(killReactSeeAngle > 0)) {
 			killReactSeeAngle = d.killReactSeeAngle;
+		}
+		if (protectorSpawnMessage == null) {
+			protectorSpawnMessage = d.protectorSpawnMessage;
+		}
+		if (protectorDeathMessage == null) {
+			protectorDeathMessage = d.protectorDeathMessage;
+		}
+		if (protectorName == null) {
+			protectorName = d.protectorName;
+		}
+		if (protectorWarpCommand == null) {
+			protectorWarpCommand = d.protectorWarpCommand;
+		}
+		if (protectorSpots == null || protectorSpots.length == 0) {
+			protectorSpots = d.protectorSpots;
+		}
+		if (!(protectorSearchSeconds >= 0)) {
+			protectorSearchSeconds = d.protectorSearchSeconds;
+		}
+		if (bruiserPortals == null || bruiserPortals.length == 0) {
+			bruiserPortals = d.bruiserPortals;
+		}
+		if (bruiserArrival == null || bruiserArrival.length < 3) {
+			bruiserArrival = d.bruiserArrival;
+		}
+		if (!(safeZoneRadius >= 0)) {
+			safeZoneRadius = d.safeZoneRadius;
 		}
 		if (killType == null || killType.isBlank()) {
 			killType = d.killType;

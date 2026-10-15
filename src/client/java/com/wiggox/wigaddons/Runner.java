@@ -323,6 +323,7 @@ public final class Runner {
 		HUNT_FIRST_SEEN.clear();
 		huntBehindTicks = 0;
 		huntBehindBypass = 0;
+		protectorReset();
 		huntFirstScan = true;
 		HUNT_PART_Y.clear();
 		HUNT_NAME_OF.clear();
@@ -381,6 +382,7 @@ public final class Runner {
 
 	private static void end() {
 		releaseClicks();
+		protectorReset();
 		huntMarks = java.util.List.of();
 		hunting = false;
 		useTicksLeft = 0;
@@ -415,8 +417,15 @@ public final class Runner {
 		}
 		LocalPlayer player = mc.player;
 		if (player == null || mc.level == null) {
+			if (warpGraceTicks > 0) {
+				warpGraceTicks--; // a world change after a warp: wait for the new one
+				return;
+			}
 			end();
 			return;
+		}
+		if (warpGraceTicks > 0) {
+			warpGraceTicks--;
 		}
 		if (partyCountdown > 0 && --partyCountdown == 0) {
 			leaveBecauseOfParty(mc);
@@ -508,6 +517,10 @@ public final class Runner {
 		huntPrecise = false;
 		if (huntBehindBypass > 0) {
 			huntBehindBypass--;
+		}
+		if (protState != Prot.NONE) {
+			protectorTick(mc, player);
+			return;
 		}
 		if (useTicksLeft > 0 && --useTicksLeft == 0) {
 			mc.options.keyUse.setDown(false);
@@ -1059,6 +1072,311 @@ public final class Runner {
 		pingSampleTicks = 0;
 	}
 
+	// ---- Kill Protectors ----
+
+	private enum Prot { NONE, APPROACH, WAIT, FIGHT, CELEBRATE, RETURN }
+
+	private static Prot protState = Prot.NONE;
+	private static int protTicks;
+	/** The formation point, where to wait and look before the protector spawns. */
+	private static double[] protSpot;
+	private static int protSpotIndex;
+	private static int protWaitTicks;
+	/** Where to stand while waiting, then the spot being hopped around after the kill. */
+	private static double[] protWait;
+	private static double[] protDeath;
+	private static double[] protPortal;
+	private static final double[] PROT_MOB_GOAL = new double[3];
+	private static int protMobId = -1;
+	private static FollowPlanner protPlanner;
+	private static double[] protGoalRef;
+	private static int protLookTicks;
+	private static double protLookOffset;
+	private static int protJumpTicks;
+	private static boolean sneaking;
+	/** Ticks left in which a teleport is expected (the warp commands this sends), so it isn't taken for a macro check. */
+	private static int expectTeleportTicks;
+	/** Ticks left in which the player or the world being gone for a moment (a world change) doesn't end the run. */
+	private static int warpGraceTicks;
+
+	/** The protector sequence's state, for the dev test. */
+	public static String protectorState() {
+		return protState.name();
+	}
+
+	public static boolean isSneaking() {
+		return sneaking;
+	}
+
+	/** True while the input mixin should hold sneak. */
+	public static boolean wantsSneak() {
+		return sneaking && active();
+	}
+
+	private static void sendWarp(Minecraft mc) {
+		String command = WigState.config.protectorWarpCommand.trim();
+		if (command.startsWith("/")) {
+			command = command.substring(1).trim();
+		}
+		if (!command.isEmpty() && mc.player != null) {
+			mc.player.connection.sendCommand(command);
+		}
+		expectTeleportTicks = 300;
+		warpGraceTicks = 300;
+	}
+
+	private static void protectorStart() {
+		Minecraft mc = Minecraft.getInstance();
+		WigConfig cfg = WigState.config;
+		protState = Prot.APPROACH;
+		protTicks = 0;
+		protWait = null;
+		protDeath = null;
+		protMobId = -1;
+		protPlanner = null;
+		protGoalRef = null;
+		protSpotIndex = 0;
+		protSpot = cfg.protectorSpots[0];
+		sendWarp(mc);
+		Chat.info("An End Stone Protector is rising: warping to it.");
+	}
+
+	private static void protectorDied() {
+		Minecraft mc = Minecraft.getInstance();
+		sneaking = false;
+		mc.options.keyUse.setDown(false);
+		holdingRight = false;
+		protState = Prot.CELEBRATE;
+		protTicks = 0;
+		protWait = null;
+		protPlanner = null;
+		protGoalRef = null;
+		if (protDeath == null && mc.player != null) {
+			protDeath = new double[] {mc.player.getX(), mc.player.getY(), mc.player.getZ()};
+		}
+		Chat.info("The End Stone Protector is down. Hopping about for a moment, then warping back.");
+	}
+
+	private static void protectorReset() {
+		protState = Prot.NONE;
+		sneaking = false;
+		protPlanner = null;
+		protGoalRef = null;
+	}
+
+	/** Walks toward the goal with the path finder: 0 still going, 1 arrived, 2 can't get there. */
+	private static int protWalk(LocalPlayer player, double[] goal, boolean sprint, double stop, double resume) {
+		WigConfig c = WigState.config;
+		if (protGoalRef != goal || protPlanner == null) {
+			protGoalRef = goal;
+			protPlanner = new FollowPlanner(new FollowPlanner.Params(stop, resume, 6.0, 1.0, 0, c.followNeverJump, c.stuckTimeoutSeconds, false, 0, 2, true, c.pathJumpCost), new Random());
+			protPlanner.setTerrain(new WorldTerrain());
+		}
+		FollowPlanner.Output out = protPlanner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
+			new FollowPlanner.Target(goal[0], goal[1], goal[2], goal[1] + 1.62), player.onGround(), player.horizontalCollision);
+		followDistance = out.distance();
+		if (out.status() == FollowPlanner.Status.CLOSE) {
+			standStill();
+			return 1;
+		}
+		if (out.status() == FollowPlanner.Status.STUCK) {
+			standStill();
+			return 2;
+		}
+		moveForward = out.forward();
+		strafe = out.strafe();
+		sprintOn = sprint && out.forward() > 0;
+		jump = out.jump();
+		double[] way = protPlanner.snapshot().next();
+		double[] look = way != null ? way : goal;
+		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), look[0], look[2]);
+		pitchTarget = pathPitchBias(player, way);
+		haveAim = true;
+		return 0;
+	}
+
+	/** The End Stone Protector near the spot (or the player): by name, on the mob or its name tag stand, else an unnamed iron golem. */
+	private static Entity findProtector(Minecraft mc, LocalPlayer player) {
+		WigConfig cfg = WigState.config;
+		// around the spot and around the player, so it is found on the way there too
+		double cx = protSpot != null ? protSpot[0] : player.getX();
+		double cy = protSpot != null ? protSpot[1] : player.getY();
+		double cz = protSpot != null ? protSpot[2] : player.getZ();
+		AABB area = new AABB(Math.min(cx, player.getX()) - 35, Math.min(cy, player.getY()) - 20, Math.min(cz, player.getZ()) - 35,
+			Math.max(cx, player.getX()) + 35, Math.max(cy, player.getY()) + 20, Math.max(cz, player.getZ()) + 35);
+		java.util.List<Entity> around = mc.level.getEntities((Entity) null, area);
+		Entity golem = null;
+		for (Entity entity : around) {
+			if (entity instanceof Player || !entity.isAlive()) {
+				continue;
+			}
+			String name = entity.hasCustomName() ? entity.getCustomName().getString() : "";
+			if (entity instanceof ArmorStand) {
+				if (!ZealotHunter.matches(name, cfg.protectorName)) {
+					continue;
+				}
+				Entity best = null;
+				double bestDist = 3.0;
+				for (Entity other : around) {
+					if (other instanceof LivingEntity && !(other instanceof ArmorStand) && !(other instanceof Player) && other.isAlive()) {
+						double flat = Math.hypot(other.getX() - entity.getX(), other.getZ() - entity.getZ());
+						double above = entity.getY() - other.getY();
+						if (flat < bestDist && above > -0.5 && above < 5.0) {
+							bestDist = flat;
+							best = other;
+						}
+					}
+				}
+				if (best != null) {
+					return best;
+				}
+			} else if (entity instanceof LivingEntity) {
+				if (ZealotHunter.matches(name, cfg.protectorName)) {
+					return entity;
+				}
+				if (name.isEmpty() && golem == null
+					&& net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().equals("minecraft:iron_golem")) {
+					golem = entity;
+				}
+			}
+		}
+		return golem;
+	}
+
+	/** One tick of the protector sequence (see the Kill Protectors option). */
+	private static void protectorTick(Minecraft mc, LocalPlayer player) {
+		WigConfig cfg = WigState.config;
+		protTicks++;
+		switch (protState) {
+			case APPROACH -> {
+				if (protTicks < 80) {
+					standStill(); // the warp takes a moment
+					return;
+				}
+				Entity early = findProtector(mc, player);
+				if (early != null) {
+					protMobId = early.getId();
+					protState = Prot.FIGHT;
+					protPlanner = null;
+					protGoalRef = null;
+					return;
+				}
+				protWaitTicks = 0;
+				if (protWait == null) {
+					double[] pick = Wander.pick(new WorldTerrain(), protSpot[0], protSpot[1], protSpot[2], 9.0, 6.0, HUNT_RANDOM);
+					protWait = pick != null ? pick : protSpot;
+				}
+				if (protWalk(player, protWait, true, 1.5, 2.5) != 0) {
+					protState = Prot.WAIT;
+					standStill();
+				}
+			}
+			case WAIT -> {
+				standStill();
+				// sit still looking toward the formation, within ten degrees of it
+				if (protSpot != null) {
+					if (--protLookTicks <= 0) {
+						protLookOffset = (HUNT_RANDOM.nextDouble() * 2 - 1) * 10.0;
+						protLookTicks = 30 + HUNT_RANDOM.nextInt(50);
+					}
+					aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), protSpot[0], protSpot[2]) + protLookOffset;
+					pitchTarget = RouteFollower.clamp(FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), protSpot[0], protSpot[1] + 1.0, protSpot[2]), -20, 20);
+					haveAim = true;
+				}
+				Entity mob = findProtector(mc, player);
+				if (mob != null) {
+					protMobId = mob.getId();
+					protState = Prot.FIGHT;
+					protPlanner = null;
+					protGoalRef = null;
+				} else if (cfg.protectorSpots.length > 1 && ++protWaitTicks > Math.round(cfg.protectorSearchSeconds * 20)) {
+					// not here: try the next place it can be
+					protSpotIndex = (protSpotIndex + 1) % cfg.protectorSpots.length;
+					protSpot = cfg.protectorSpots[protSpotIndex];
+					protWait = null;
+					protWaitTicks = 0;
+					protState = Prot.APPROACH;
+					protTicks = 100;
+					protPlanner = null;
+					protGoalRef = null;
+				}
+			}
+			case FIGHT -> {
+				Entity mob = protMobId >= 0 ? mc.level.getEntity(protMobId) : null;
+				if (mob == null || !mob.isAlive()) {
+					mob = findProtector(mc, player);
+					if (mob != null) {
+						protMobId = mob.getId();
+					}
+				}
+				// sneaking and right clicking the whole fight
+				sneaking = true;
+				mc.options.keyUse.setDown(true);
+				holdingRight = true;
+				if (mob == null) {
+					standStill();
+					return;
+				}
+				PROT_MOB_GOAL[0] = mob.getX();
+				PROT_MOB_GOAL[1] = mob.getY();
+				PROT_MOB_GOAL[2] = mob.getZ();
+				protDeath = new double[] {mob.getX(), mob.getY(), mob.getZ()};
+				// three to four blocks away, on its level
+				protWalk(player, PROT_MOB_GOAL, false, 3.2, 4.2);
+				aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), mob.getX(), mob.getZ());
+				pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), mob.getX(), mob.getY() + 0.15, mob.getZ()); // at its feet
+				haveAim = true;
+			}
+			case CELEBRATE -> {
+				if (protTicks >= 80) {
+					// four seconds of that: warp back and carry on to the portal to the Bruisers
+					double[] portal = cfg.bruiserPortals[HUNT_RANDOM.nextInt(cfg.bruiserPortals.length)];
+					protPortal = new double[] {portal[0] + 0.5, portal[1], portal[2] + 0.5};
+					protState = Prot.RETURN;
+					protTicks = 0;
+					protPlanner = null;
+					protGoalRef = null;
+					sendWarp(mc);
+					standStill();
+					return;
+				}
+				if (protWait == null) {
+					double[] around = protDeath != null ? protDeath : new double[] {player.getX(), player.getY(), player.getZ()};
+					double[] pick = Wander.pick(new WorldTerrain(), around[0], around[1], around[2], 3.0, 1.0, HUNT_RANDOM);
+					protWait = pick != null ? pick : around;
+				}
+				if (protWalk(player, protWait, false, 0.6, 1.0) != 0) {
+					protWait = null;
+				}
+				if (--protJumpTicks <= 0 && player.onGround()) {
+					jump = true;
+					protJumpTicks = 7 + HUNT_RANDOM.nextInt(6);
+				}
+			}
+			case RETURN -> {
+				if (protTicks < 80) {
+					standStill(); // the warp takes a moment
+					return;
+				}
+				if (SafeZones.inside(player.getX(), player.getY(), player.getZ(), new double[][] {cfg.bruiserArrival}, cfg.safeZoneRadius)
+					|| protTicks > 20 * 180) {
+					// through the portal (or taking far too long): back to hunting
+					protectorReset();
+					huntTargetId = -1;
+					return;
+				}
+				int r = protWalk(player, protPortal, true, 0.8, 1.2);
+				if (r == 2) {
+					double[] portal = cfg.bruiserPortals[HUNT_RANDOM.nextInt(cfg.bruiserPortals.length)];
+					protPortal = new double[] {portal[0] + 0.5, portal[1], portal[2] + 0.5};
+					protPlanner = null;
+				}
+			}
+			default -> {
+			}
+		}
+	}
+
 	private static Vec3 lastTickPos;
 	private static double lastTickSpeed;
 	private static Object lastTickLevel;
@@ -1071,7 +1389,9 @@ public final class Runner {
 	/** Raises a macro check when the player is moved further than three blocks in one tick, or ends up in another world, by something other than itself. */
 	private static void checkTeleport(Minecraft mc, LocalPlayer player) {
 		Vec3 now = player.position();
-		if (lastTickPos != null) {
+		if (expectTeleportTicks > 0) {
+			expectTeleportTicks--; // a warp this mod sent: the teleport is expected
+		} else if (lastTickPos != null) {
 			boolean otherWorld = mc.level != lastTickLevel;
 			if (otherWorld || Teleport.teleported(now.distanceTo(lastTickPos), lastTickSpeed)) {
 				macroCheck("You were teleported");
@@ -1103,6 +1423,10 @@ public final class Runner {
 		if (macroCountdown >= 0) {
 			return;
 		}
+		Minecraft here = Minecraft.getInstance();
+		if (here.player != null && (SafeZones.inside(here.player.getX(), here.player.getY(), here.player.getZ(), safeZones(), WigState.config.safeZoneRadius))) {
+			return; // at a portal or where it puts you: the teleport and the rest of it are expected
+		}
 		if (lagWarningTicks > 0) {
 			return; // a yellow warning is already showing
 		}
@@ -1127,6 +1451,15 @@ public final class Runner {
 	/** The wither's idle sound (mob/wither/idle1.ogg), registered by this mod's sounds.json so it plays that one file and not a random one of the four. */
 	private static final net.minecraft.sounds.SoundEvent ALARM_SOUND = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(
 		net.minecraft.resources.Identifier.fromNamespaceAndPath("wigaddons", "alarm"));
+
+	/** The portals and where they put you. */
+	private static double[][] safeZones() {
+		WigConfig c = WigState.config;
+		double[][] zones = new double[c.bruiserPortals.length + 1][];
+		System.arraycopy(c.bruiserPortals, 0, zones, 0, c.bruiserPortals.length);
+		zones[c.bruiserPortals.length] = c.bruiserArrival;
+		return zones;
+	}
 
 	/** The wither idle sound, at the configured volume, whenever a macro check is raised. */
 	private static void playAlarm() {
@@ -1157,6 +1490,14 @@ public final class Runner {
 	/** Called for every chat line the server sends. */
 	public static void onChatLine(String line) {
 		WigConfig reactCfg = WigState.config;
+		if (hunting && planner != null && reactCfg.killProtectors) {
+			if (protState == Prot.NONE && !reactCfg.protectorSpawnMessage.isBlank() && ZealotHunter.matches(line, reactCfg.protectorSpawnMessage)) {
+				protectorStart();
+			} else if ((protState == Prot.APPROACH || protState == Prot.WAIT || protState == Prot.FIGHT)
+				&& !reactCfg.protectorDeathMessage.isBlank() && ZealotHunter.matches(line, reactCfg.protectorDeathMessage)) {
+				protectorDied();
+			}
+		}
 		if (hunting && planner != null && !reactCfg.killReactMessage.isBlank() && ZealotHunter.matches(line, reactCfg.killReactMessage)) {
 			// something special has turned up: stop, look around and hop about for a moment before going for it
 			double seconds = reactCfg.killReactMinSeconds + HUNT_RANDOM.nextDouble() * (reactCfg.killReactMaxSeconds - reactCfg.killReactMinSeconds);

@@ -97,6 +97,9 @@ public final class WigCommands {
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
 			.then(ClientCommands.literal("kill")
+				.then(ClientCommands.literal("protector")
+					.then(ClientCommands.literal("here").executes(c -> addProtectorSpot()))
+					.then(ClientCommands.literal("reset").executes(c -> resetProtectorSpots())))
 				.then(ClientCommands.literal("home")
 					.executes(c -> setHuntHome(true))
 					.then(ClientCommands.literal("clear").executes(c -> setHuntHome(false))))
@@ -511,6 +514,27 @@ public final class WigCommands {
 		WigState.saveConfig();
 		Chat.info(set ? "Hunt home set here. With nothing to hunt you walk back here and wander around it."
 			: "Hunt home cleared. With nothing to hunt you stand still.");
+		return 1;
+	}
+
+	private static int addProtectorSpot() {
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		if (mc.player == null) {
+			return 0;
+		}
+		double[][] old = WigState.config.protectorSpots;
+		double[][] spots = java.util.Arrays.copyOf(old, old.length + 1);
+		spots[old.length] = new double[] {Math.floor(mc.player.getX()), Math.floor(mc.player.getY() + 0.01), Math.floor(mc.player.getZ())};
+		WigState.config.protectorSpots = spots;
+		WigState.saveConfig();
+		Chat.info("Added a place the End Stone Protector can be: now " + spots.length + " to look at, in order.");
+		return 1;
+	}
+
+	private static int resetProtectorSpots() {
+		WigState.config.protectorSpots = new WigConfig().protectorSpots;
+		WigState.saveConfig();
+		Chat.info("The places to look for the End Stone Protector are back to the default one.");
 		return 1;
 	}
 }

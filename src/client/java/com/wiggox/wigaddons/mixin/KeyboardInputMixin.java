@@ -18,7 +18,7 @@ public abstract class KeyboardInputMixin extends ClientInput {
 		if (Runner.wantsInput()) {
 			int strafe = Runner.strafe();
 			int forward = Runner.forward();
-			this.keyPresses = new Input(forward > 0, forward < 0, strafe > 0, strafe < 0, Runner.wantsJump(), false, Runner.sprint());
+			this.keyPresses = new Input(forward > 0, forward < 0, strafe > 0, strafe < 0, Runner.wantsJump(), Runner.wantsSneak(), Runner.sprint());
 			this.moveVector = strafe == 0 && forward == 0 ? Vec2.ZERO : new Vec2(strafe, forward).normalized();
 		}
 	}

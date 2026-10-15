@@ -124,8 +124,9 @@ final class SmokeTest {
 			case 24 -> partCheck(mc);
 			case 25 -> spawnCooldownCheck(mc);
 			case 26 -> teleportCheck(mc);
-			case 27 -> hudPosition(mc);
-			case 28 -> {
+			case 27 -> protectorCheck(mc);
+			case 28 -> hudPosition(mc);
+			case 29 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -547,6 +548,50 @@ final class SmokeTest {
 		}
 		if (phaseTick == 80) {
 			Runner.stop("smoke test over");
+			next();
+		}
+	}
+
+	private static String protLast = "";
+
+	/** The Kill Protectors sequence: message, wait near the spot, protector appears, fight at its feet sneaking, down message, hop about, warp back. */
+	private static void protectorCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			WigState.config.killProtectors = true;
+			WigState.config.protectorWarpCommand = "say warp drag";
+			WigState.config.protectorSpots = new double[][] {{20, -60, 20}};
+			protLast = "";
+		}
+		if (phaseTick == 20) {
+			Runner.startHunt();
+		}
+		if (phaseTick == 30) {
+			Runner.onChatLine("The ground begins to shake as an End Stone Protector rises from below!");
+		}
+		if (phaseTick == 240) {
+			command(mc, "summon minecraft:iron_golem 20.5 -60 20.5 {CustomName:\"End Stone Protector\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Invulnerable:1b}");
+		}
+		if (phaseTick > 30 && !Runner.protectorState().equals(protLast)) {
+			protLast = Runner.protectorState();
+			log("protector: state " + protLast + " at tick " + phaseTick + ", me " + fmt(mc) + ", sneaking " + Runner.isSneaking());
+		}
+		if (phaseTick == 480) {
+			log("protector: fighting state " + Runner.protectorState() + ", me " + fmt(mc) + ", sneaking " + Runner.isSneaking());
+			Runner.onChatLine("                    END STONE PROTECTOR DOWN!");
+		}
+		if (phaseTick == 520) {
+			log("protector: after the down message: " + Runner.protectorState() + ", me " + fmt(mc));
+		}
+		if (phaseTick == 720) {
+			log("protector: end state " + Runner.protectorState() + ", me " + fmt(mc));
+			Runner.stop("smoke test over");
+			WigState.config.killProtectors = false;
+			WigState.config.protectorSpots = new WigConfig().protectorSpots;
+			WigState.config.protectorWarpCommand = new WigConfig().protectorWarpCommand;
+			command(mc, "kill @e[type=minecraft:iron_golem]");
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			next();
 		}
 	}
