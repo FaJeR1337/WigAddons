@@ -90,7 +90,7 @@ public final class WigConfig {
 	 * Where its formation can be: after the warp the player walks toward the first, looks for the formation (or the protector)
 	 * and, if nothing is found there after protectorSearchSeconds, goes on to the next. /wig kill protector here adds the spot you stand on.
 	 */
-	public double[][] protectorSpots = {{-665, 8, -276}};
+	public double[][] protectorSpots = {{-665, 8, -276}, {-689, 7, -272}, {-639, 7, -328}, {-649, 7, -219}, {-678, 7, -332}, {-727, 7, -284}, {-643, 7, -270}};
 	public double protectorSearchSeconds = 10.0;
 	/** The formation has a custom placed head on top. Part of its texture (see /wig heads) to tell it from other heads; blank takes the nearest head of any kind. */
 	public String protectorHeadTexture = "a4e23d23e06f517326570bd0182333b56d410af3e86bad3dfd6eca3a7698473f";
@@ -309,7 +309,9 @@ public final class WigConfig {
 		if (protectorWarpCommand == null) {
 			protectorWarpCommand = d.protectorWarpCommand;
 		}
-		if (protectorSpots == null || protectorSpots.length == 0) {
+		if (protectorSpots == null || protectorSpots.length == 0
+			|| (protectorSpots.length == 1 && protectorSpots[0].length == 3 && protectorSpots[0][0] == -665 && protectorSpots[0][1] == 8 && protectorSpots[0][2] == -276)) {
+			// nothing set, or still only the one place it started with: the known spawn locations
 			protectorSpots = d.protectorSpots;
 		}
 		if (!(protectorSearchSeconds >= 0)) {

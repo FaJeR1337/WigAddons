@@ -1314,7 +1314,8 @@ public final class Runner {
 		for (HeadScanner.Head head : heads) {
 			for (int i = 0; i < cfg.protectorSpots.length; i++) {
 				double[] spot = cfg.protectorSpots[i];
-				if (Math.hypot(head.pos().getX() + 0.5 - spot[0], head.pos().getZ() + 0.5 - spot[2]) <= HEAD_NEAR_SPOT) {
+				if (Math.abs(head.pos().getX() + 0.5 - spot[0]) <= HEAD_NEAR_SPOT && Math.abs(head.pos().getZ() + 0.5 - spot[2]) <= HEAD_NEAR_SPOT
+					&& Math.abs(head.pos().getY() - spot[1]) <= HEAD_NEAR_SPOT) {
 					near = head;
 					nearSpot = i;
 					break;
@@ -1339,7 +1340,7 @@ public final class Runner {
 	}
 
 	/** How far from a known spawn location a head can be and still be taken for the formation's. */
-	private static final double HEAD_NEAR_SPOT = 15.0;
+	private static final double HEAD_NEAR_SPOT = 5.0;
 
 	/** Takes the formation to be under this head: the ground below it is where to go and look. */
 	private static void useHead(LocalPlayer player, HeadScanner.Head head, String message) {
