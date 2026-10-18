@@ -1386,16 +1386,14 @@ public final class Runner {
 
 	/** How far from a known spawn location a head can be and still be taken for the formation's. */
 	private static final double HEAD_NEAR_SPOT = 5.0;
-	/** How far above the ground the formation's head is. */
-	private static final int HEAD_ABOVE_FEET = 4;
 
 	/** Takes the formation to be under this head: the ground below it is where to go and look. */
 	private static void useHead(LocalPlayer player, HeadScanner.Head head, String message) {
 		WorldTerrain terrain = new WorldTerrain();
 		int x = head.pos().getX();
 		int z = head.pos().getZ();
-		// the head sits on top of the formation, whose feet are four blocks lower: walk to that level, not up onto the structure
-		int ground = head.pos().getY() - HEAD_ABOVE_FEET;
+		// the head sits on top of the formation: walk at the floor's level, not up onto the structure
+		int ground = WigState.config.protectorFloorY;
 		protSpot = new double[] {x, ground, z};
 		protHeadFound = true;
 		protWait = null;

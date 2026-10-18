@@ -91,6 +91,8 @@ public final class WigConfig {
 	 * and, if nothing is found there after protectorSearchSeconds, goes on to the next. /wig kill protector here adds the spot you stand on.
 	 */
 	public double[][] protectorSpots = {{-665, 8, -276}, {-689, 7, -272}, {-639, 7, -328}, {-649, 7, -219}, {-678, 7, -332}, {-727, 7, -284}, {-643, 7, -270}};
+	/** The level the player stands at (feet) round the formations: they are all on the same floor, with the heads four blocks above it. */
+	public int protectorFloorY = 5;
 	public double protectorSearchSeconds = 10.0;
 	/** The formation has a custom placed head on top. Part of its texture (see /wig heads) to tell it from other heads; blank takes the nearest head of any kind. */
 	public String protectorHeadTexture = "a4e23d23e06f517326570bd0182333b56d410af3e86bad3dfd6eca3a7698473f";
