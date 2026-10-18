@@ -582,7 +582,7 @@ public final class Runner {
 
 	public static FishTimer fishTimer() {
 		Minecraft mc = Minecraft.getInstance();
-		if (!isFishing() || mc.player == null || mc.player.fishing == null || mc.player.fishing != fishTracked) {
+		if (!isFishing() || !cfg().fishSlug || mc.player == null || mc.player.fishing == null || mc.player.fishing != fishTracked) {
 			return null;
 		}
 		var hook = mc.player.fishing;
