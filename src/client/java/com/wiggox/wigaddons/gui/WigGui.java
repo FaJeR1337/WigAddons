@@ -194,6 +194,8 @@ public final class WigGui {
 	/** Nothing in here yet: the tab is kept for later. */
 	private static void fillAbout(DynCategory category) {
 		reset(category);
+		// one blank line, so the screen doesn't say "No options found"
+		new OptionBuilder(category, CONFIG).info("blank", " ", " ");
 	}
 
 	// ---- Routes (to run) ----
