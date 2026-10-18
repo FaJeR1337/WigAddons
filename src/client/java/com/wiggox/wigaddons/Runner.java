@@ -635,7 +635,7 @@ public final class Runner {
 	}
 
 	/** The human pauses: before reeling in, and before casting again, in milliseconds. */
-	private static final double REEL_MIN_MS = 25;
+	private static final double REEL_MIN_MS = 50;
 	private static final double REEL_MAX_MS = 75;
 	private static final double RECAST_MIN_MS = 50;
 	private static final double RECAST_MAX_MS = 75;
