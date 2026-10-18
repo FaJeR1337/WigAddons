@@ -1386,19 +1386,16 @@ public final class Runner {
 
 	/** How far from a known spawn location a head can be and still be taken for the formation's. */
 	private static final double HEAD_NEAR_SPOT = 5.0;
+	/** How far above the ground the formation's head is. */
+	private static final int HEAD_ABOVE_FEET = 4;
 
 	/** Takes the formation to be under this head: the ground below it is where to go and look. */
 	private static void useHead(LocalPlayer player, HeadScanner.Head head, String message) {
 		WorldTerrain terrain = new WorldTerrain();
 		int x = head.pos().getX();
 		int z = head.pos().getZ();
-		int ground = head.pos().getY() - 3;
-		for (int y = head.pos().getY(); y > head.pos().getY() - 8; y--) {
-			if (terrain.supports(x, y - 1, z) && !terrain.solid(x, y, z)) {
-				ground = y;
-				break;
-			}
-		}
+		// the head sits on top of the formation, whose feet are four blocks lower: walk to that level, not up onto the structure
+		int ground = head.pos().getY() - HEAD_ABOVE_FEET;
 		protSpot = new double[] {x, ground, z};
 		protHeadFound = true;
 		protWait = null;
@@ -1454,7 +1451,7 @@ public final class Runner {
 						protLookTicks = 30 + HUNT_RANDOM.nextInt(50);
 					}
 					aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), protSpot[0], protSpot[2]) + protLookOffset;
-					pitchTarget = RouteFollower.clamp(FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), protSpot[0], protSpot[1] + 1.0, protSpot[2]), -20, 20);
+					pitchTarget = RouteFollower.clamp(FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), protSpot[0], protSpot[1] + 3.0, protSpot[2]), -20, 20);
 					haveAim = true;
 				}
 				if (lookForFormationHead(mc, player)) {
