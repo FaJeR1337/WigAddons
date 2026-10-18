@@ -148,6 +148,7 @@ public final class WigGui {
 			new DynCategory("routes", "Edit Routes", "Your routes and how they are set up."),
 			new DynCategory("follow", "Follow", "Following a player with /wig follow."),
 			new DynCategory("hunt", "Hunt", "Hunting mobs with /wig kill."),
+			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks and party changes."));
 		fillAll();
@@ -173,6 +174,7 @@ public final class WigGui {
 				case "routes" -> fillRoutes(category);
 				case "follow" -> fillFollow(category);
 				case "hunt" -> fillHunt(category);
+				case "fishing" -> fillFishing(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
 				default -> {
@@ -272,6 +274,24 @@ public final class WigGui {
 	}
 
 	// ---- HUD ----
+
+	private static void fillFishing(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.button("start", "Trophy fishing", "Hold a fishing rod, face the water or lava and press Start (or type /wig trophy). It casts, waits for the bobber's name to change from the countdown to !!!, reels in a moment later and casts again. You stay where you are and the view stays as it is; moving more than half a block, a changed view, a changed hotbar slot or a teleport is a macro check, like in every other mode. /wig stop, a movement key or any screen ends it.", "Start", () -> {
+			Minecraft.getInstance().setScreen(null);
+			Runner.startFish();
+		});
+		followNumber(b, "reelmin", "Reel delay, at least (ms)", "The shortest wait between the bobber saying !!! and reeling in.",
+			() -> config.fishReelMinMs, v -> config.fishReelMinMs = v, 0, 2000);
+		followNumber(b, "reelmax", "Reel delay, at most (ms)", "The longest wait between the bobber saying !!! and reeling in.",
+			() -> config.fishReelMaxMs, v -> config.fishReelMaxMs = v, 0, 2000);
+		followNumber(b, "castmin", "Cast delay, at least (ms)", "The shortest wait between reeling in and casting again.",
+			() -> config.fishRecastMinMs, v -> config.fishRecastMinMs = v, 0, 5000);
+		followNumber(b, "castmax", "Cast delay, at most (ms)", "The longest wait between reeling in and casting again.",
+			() -> config.fishRecastMaxMs, v -> config.fishRecastMaxMs = v, 0, 5000);
+	}
 
 	private static void fillHunt(DynCategory category) {
 		reset(category);

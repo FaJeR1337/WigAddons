@@ -111,6 +111,16 @@ public final class WigCommands {
 				Chat.info("Hunting " + WigState.config.killName + " (" + WigState.config.killSpecialName + " first). The mouse is locked. /wig stop, a movement key or any screen stops it.");
 				return 1;
 			}))
+			.then(ClientCommands.literal("trophy").executes(c -> {
+				if (WigState.editing != null) {
+					EditMode.leave();
+				}
+				Runner.startFish();
+				if (Runner.isFishing()) {
+					Chat.info("Trophy fishing. Stay where you are and keep the view as it is. /wig stop, a movement key or any screen stops it.");
+				}
+				return 1;
+			}))
 			.then(ClientCommands.literal("follow")
 				.executes(c -> follow(null))
 				.then(ClientCommands.argument("player", StringArgumentType.word()).suggests(NEARBY_PLAYERS)

@@ -165,6 +165,9 @@ public final class Runner {
 		if (follower != null) {
 			return runName;
 		}
+		if (fishing && planner != null) {
+			return "Trophy fishing";
+		}
 		if (hunting && planner != null) {
 			return "Hunting " + WigState.config.killName;
 		}
@@ -271,6 +274,7 @@ public final class Runner {
 		}
 		followName = name;
 		hunting = false;
+		fishing = false;
 		followSource = source;
 		yawSmoother.reset();
 		pitchSmoother.reset();
@@ -385,6 +389,7 @@ public final class Runner {
 		protectorReset();
 		huntMarks = java.util.List.of();
 		hunting = false;
+		fishing = false;
 		useTicksLeft = 0;
 		if (macroCountdown >= 0 || lagWarningTicks > 0) {
 			clearWarning();
@@ -485,7 +490,9 @@ public final class Runner {
 		holdClicks(mc);
 
 		if (planner != null) {
-			if (hunting) {
+			if (fishing) {
+				fishTick(mc, player);
+			} else if (hunting) {
 				huntTick(mc, player);
 			} else {
 				followTick(mc, player);
@@ -527,6 +534,149 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	// ---- trophy fishing ----
+
+	private static boolean fishing;
+	private enum Fish { CAST, CASTING, WAITING, REEL, RECAST }
+	private static Fish fishState = Fish.CAST;
+	/** When the next action is due (System.nanoTime), so the short human delays are not rounded to whole ticks. */
+	private static long fishDueNanos;
+	private static double fishX;
+	private static double fishY;
+	private static double fishZ;
+	private static int fishCasts;
+	private static long fishCastedAtTick;
+	private static net.minecraft.world.entity.projectile.FishingHook fishStale;
+
+	public static boolean isFishing() {
+		return fishing && planner != null;
+	}
+
+	/**
+	 * Starts trophy fishing with the rod in hand: casts, waits for the bobber's name to turn from the countdown into !!!, reels in a moment
+	 * later and casts again. The view and the spot stay as they are; a change of either is a macro check like in every other mode.
+	 */
+	public static void startFish() {
+		Minecraft mc = Minecraft.getInstance();
+		LocalPlayer player = mc.player;
+		if (player == null) {
+			return;
+		}
+		if (!(player.getMainHandItem().getItem() instanceof net.minecraft.world.item.FishingRodItem)) {
+			Chat.error("Hold a fishing rod in your main hand first.");
+			return;
+		}
+		startFollow("fishing", () -> null);
+		fishing = true;
+		fishX = player.getX();
+		fishY = player.getY();
+		fishZ = player.getZ();
+		fishCasts = 0;
+		fishStale = null;
+		// a rod already out is reeled in by the first click, so start with the bobber in the water
+		fishState = player.fishing != null ? Fish.WAITING : Fish.CAST;
+		fishDueNanos = System.nanoTime();
+		standStill();
+	}
+
+	/** Nothing moves while fishing; the spot is held and the cast and reel are done by fishStep. */
+	private static void fishTick(Minecraft mc, LocalPlayer player) {
+		standStill();
+		if (Math.hypot(player.getX() - fishX, player.getZ() - fishZ) > 0.5 || Math.abs(player.getY() - fishY) > 0.5) {
+			macroCheck("You were moved from the fishing spot");
+			// carry on from here so one move isn't raised every tick
+			fishX = player.getX();
+			fishY = player.getY();
+			fishZ = player.getZ();
+		}
+		fishStep(mc, player);
+	}
+
+	private static long fishDelay(double minMs, double maxMs) {
+		double lo = Math.min(minMs, maxMs);
+		double hi = Math.max(minMs, maxMs);
+		return Math.round((lo + HUNT_RANDOM.nextDouble() * (hi - lo)) * 1_000_000.0);
+	}
+
+	/** The text on the bobber: its own name, or a name tag stand right by it. */
+	private static String bobberText(Minecraft mc, net.minecraft.world.entity.projectile.FishingHook hook) {
+		StringBuilder text = new StringBuilder();
+		if (hook.hasCustomName() && hook.getCustomName() != null) {
+			text.append(hook.getCustomName().getString());
+		}
+		for (Entity near : mc.level.getEntities(hook, hook.getBoundingBox().inflate(1.5))) {
+			if (!(near instanceof Player) && near.hasCustomName() && near.getCustomName() != null) {
+				text.append(' ').append(near.getCustomName().getString());
+			}
+		}
+		return text.toString();
+	}
+
+	private static void useRod(Minecraft mc, LocalPlayer player) {
+		var result = mc.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+		if (result.consumesAction()) {
+			player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+		}
+	}
+
+	/** Runs every tick and every frame. */
+	private static void fishStep(Minecraft mc, LocalPlayer player) {
+		if (!fishing || mc.gameMode == null || macroCountdown >= 0) {
+			return;
+		}
+		WigConfig cfg = WigState.config;
+		long now = System.nanoTime();
+		var hook = player.fishing;
+		switch (fishState) {
+			case CAST, RECAST -> {
+				if (now < fishDueNanos) {
+					return;
+				}
+				if (hook != null && hook == fishStale && now - fishDueNanos < 1_000_000_000L) {
+					return; // the reeled in bobber has not gone from the client yet: casting now would reel again
+				}
+				if (!(player.getMainHandItem().getItem() instanceof net.minecraft.world.item.FishingRodItem)) {
+					stop("no fishing rod in your main hand");
+					return;
+				}
+				useRod(mc, player);
+				fishState = Fish.CASTING;
+				fishCastedAtTick = ticks;
+			}
+			case CASTING -> {
+				if (hook != null && hook != fishStale) {
+					fishState = Fish.WAITING;
+				} else if (ticks - fishCastedAtTick > 60) {
+					fishState = Fish.CAST; // the cast did not take: again
+					fishDueNanos = now;
+				}
+			}
+			case WAITING -> {
+				if (hook == null) {
+					fishState = Fish.CAST; // reeled in by something else: cast again
+					fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
+					return;
+				}
+				if (bobberText(mc, hook).contains("!!!")) {
+					fishState = Fish.REEL;
+					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
+				}
+			}
+			case REEL -> {
+				if (now < fishDueNanos) {
+					return;
+				}
+				if (hook != null) {
+					fishStale = hook;
+					useRod(mc, player);
+					fishCasts++;
+				}
+				fishState = Fish.RECAST;
+				fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
+			}
+		}
 	}
 
 	/** One tick of hunting: pick a target, walk up to it, look at it, and right click once it is in reach. */
@@ -1030,6 +1180,9 @@ public final class Runner {
 			return;
 		}
 		checkView(player);
+		if (fishing) {
+			fishStep(mc, player); // between ticks too, so the delays are not rounded up to whole ticks
+		}
 		boolean following = followSource != null;
 		// hunting can have its own fastest turn, apart from the one routes (and following) use
 		double turnSpeed = hunting ? WigState.config.killTurnSpeed : runTurnSpeed;
