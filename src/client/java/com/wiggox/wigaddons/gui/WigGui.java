@@ -279,7 +279,7 @@ public final class WigGui {
 			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startFish();
 		});
-		b.toggle("slug", "Slug Fish", "Reel in by the clock instead of waiting for !!!: once the bobber has been out for the time below, counted in server ticks since the cast. The timer in seconds shows above the bobber while fishing.",
+		b.toggle("slug", "Slug Fish", "Reel in by the clock instead of waiting for !!!: once the bobber has been out for the time below, counted in server ticks since the cast. The timer in seconds shows above the bobber while fishing, and turns green once it passes this time.",
 			() -> config.fishSlug, v -> {
 				config.fishSlug = v;
 				WigState.saveConfig();

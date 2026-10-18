@@ -577,7 +577,7 @@ public final class Runner {
 	}
 
 	/** The bobber to hang the timer on and the seconds since it was thrown, in server ticks (0.0 to 0.05 a tick), or null when there is no bobber. */
-	public record FishTimer(double x, double y, double z, String text) {
+	public record FishTimer(double x, double y, double z, String text, boolean pastThreshold) {
 	}
 
 	public static FishTimer fishTimer() {
@@ -586,7 +586,8 @@ public final class Runner {
 			return null;
 		}
 		var hook = mc.player.fishing;
-		return new FishTimer(hook.getX(), hook.getY() + 0.9, hook.getZ(), String.format(java.util.Locale.ROOT, "%.1fs", fishElapsedTicks(mc) / 20.0));
+		return new FishTimer(hook.getX(), hook.getY() + 0.9, hook.getZ(), String.format(java.util.Locale.ROOT, "%.1fs", fishElapsedTicks(mc) / 20.0),
+			fishElapsedTicks(mc) >= Math.round(cfg().fishSlugSeconds * 20.0)); // green once it passes the Slug Fish time
 	}
 
 	public static boolean isFishing() {
