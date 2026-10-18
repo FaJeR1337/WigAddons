@@ -11,7 +11,7 @@ final class WigGuiConfig extends Config {
 	public StructuredText getTitle() {
 		String version = FabricLoader.getInstance().getModContainer("wigaddons")
 			.map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("");
-		return StructuredText.of("WigAddons " + version + " by Wiggox");
+		return StructuredText.of("WigAddons " + version + " by \u00a7cWiggox");
 	}
 
 	@Override

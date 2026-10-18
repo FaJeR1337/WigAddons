@@ -191,12 +191,9 @@ public final class WigGui {
 
 	// ---- About ----
 
+	/** Nothing in here yet: the tab is kept for later. */
 	private static void fillAbout(DynCategory category) {
 		reset(category);
-		OptionBuilder b = new OptionBuilder(category, CONFIG);
-		String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("wigaddons")
-			.map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("1.0.0");
-		b.info("what", "WigAddons " + version + " by \u00a7cWiggox", " ");
 	}
 
 	// ---- Routes (to run) ----
