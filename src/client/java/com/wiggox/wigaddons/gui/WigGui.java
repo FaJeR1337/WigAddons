@@ -194,13 +194,9 @@ public final class WigGui {
 	private static void fillAbout(DynCategory category) {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
-		b.info("what", "WigAddons", "Record routes of waypoints, then have the player run them.");
-		b.info("list", "Routes", "Start or loop any of your finished routes.");
-		b.info("routes", "Edit Routes", "Make and edit routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
-		b.info("follow", "Follow", "Follow another player with /wig follow, and set how close to stay.");
-		b.info("hud", "HUD", "Show the running route's name and how long it has been running, and drag it where you want it.");
-		b.info("safety", "Safety", "What happens when a macro check is noticed is under Safety.");
-		b.info("commands", "Commands", "Everything here also works as a command: /wig new, edit, done, start, stop, and more.");
+		String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("wigaddons")
+			.map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("1.0.0");
+		b.info("what", "WigAddons " + version + " by \u00a7cWiggox", " ");
 	}
 
 	// ---- Routes (to run) ----

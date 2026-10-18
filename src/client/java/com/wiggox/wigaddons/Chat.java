@@ -4,9 +4,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-/** The mod's chat lines: a "[WigAddons]" tag, then white text (red for errors). */
+/** The mod's chat lines: a "[WigAddons]" tag with the name in red, then white text (red for errors). */
 public final class Chat {
-	private static final int AQUA = 0x55FFFF;
 	private static final int GRAY = 0xAAAAAA;
 	private static final int WHITE = 0xFFFFFF;
 	private static final int RED = 0xFF5555;
@@ -17,7 +16,7 @@ public final class Chat {
 	private static MutableComponent prefix() {
 		return Component.empty()
 			.append(Component.literal("[").withColor(GRAY))
-			.append(Component.literal("WigAddons").withColor(AQUA))
+			.append(Component.literal("WigAddons").withColor(RED))
 			.append(Component.literal("] ").withColor(GRAY));
 	}
 
