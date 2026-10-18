@@ -279,6 +279,16 @@ public final class WigGui {
 			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startFish();
 		});
+		b.toggle("slug", "Slug Fish", "Leave the fish on the hook for the time below after the bobber says !!! before reeling in.",
+			() -> config.fishSlug, v -> {
+				config.fishSlug = v;
+				WigState.saveConfig();
+			});
+		b.slider("slugseconds", "Slug Fish wait (s)", "How many seconds to wait after the bobber says !!! before reeling in, when Slug Fish is on. 10 to 20.",
+			10, 20, 1, () -> config.fishSlugSeconds, v -> {
+				config.fishSlugSeconds = v;
+				WigState.saveConfig();
+			});
 		followNumber(b, "reelmin", "Reel delay, at least (ms)", "The shortest wait between the bobber saying !!! and reeling in.",
 			() -> config.fishReelMinMs, v -> config.fishReelMinMs = v, 0, 2000);
 		followNumber(b, "reelmax", "Reel delay, at most (ms)", "The longest wait between the bobber saying !!! and reeling in.",

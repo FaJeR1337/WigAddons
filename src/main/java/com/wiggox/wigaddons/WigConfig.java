@@ -92,6 +92,9 @@ public final class WigConfig {
 	public double fishReelMaxMs = 75;
 	public double fishRecastMinMs = 50;
 	public double fishRecastMaxMs = 75;
+	/** Slug Fish: wait this long (10 to 20 seconds) after the bobber says !!! before reeling in. */
+	public boolean fishSlug = false;
+	public double fishSlugSeconds = 15;
 	public double protectorSearchSeconds = 10.0;
 	/** The formation has a custom placed head on top. Part of its texture (see /wig heads) to tell it from other heads; blank takes the nearest head of any kind. */
 	public String protectorHeadTexture = "a4e23d23e06f517326570bd0182333b56d410af3e86bad3dfd6eca3a7698473f";
@@ -356,6 +359,7 @@ public final class WigConfig {
 			fishRecastMinMs = d.fishRecastMinMs;
 			fishRecastMaxMs = d.fishRecastMaxMs;
 		}
+		fishSlugSeconds = Double.isNaN(fishSlugSeconds) ? d.fishSlugSeconds : Math.max(10.0, Math.min(20.0, fishSlugSeconds));
 		if (!(protectorSearchSeconds >= 0)) {
 			protectorSearchSeconds = d.protectorSearchSeconds;
 		}

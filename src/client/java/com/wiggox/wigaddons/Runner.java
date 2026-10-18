@@ -681,7 +681,9 @@ public final class Runner {
 				}
 				if (bobberText(mc, hook).contains("!!!")) {
 					fishState = Fish.REEL;
-					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
+					// Slug Fish: leave the fish on for the set time first
+					long slug = cfg.fishSlug ? Math.round(cfg.fishSlugSeconds * 1_000_000_000.0) : 0L;
+					fishDueNanos = now + slug + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
 				}
 			}
 			case REEL -> {
