@@ -569,6 +569,25 @@ public final class Runner {
 	private static int fishCasts;
 	private static long fishCastedAtTick;
 	private static net.minecraft.world.entity.projectile.FishingHook fishStale;
+	private static net.minecraft.world.entity.projectile.FishingHook fishTracked;
+	private static long fishThrownAt;
+
+	private static long fishElapsedTicks(Minecraft mc) {
+		return mc.level == null ? 0 : Math.max(0, mc.level.getGameTime() - fishThrownAt);
+	}
+
+	/** The bobber to hang the timer on and the seconds since it was thrown, in server ticks (0.0 to 0.05 a tick), or null when there is no bobber. */
+	public record FishTimer(double x, double y, double z, String text) {
+	}
+
+	public static FishTimer fishTimer() {
+		Minecraft mc = Minecraft.getInstance();
+		if (!isFishing() || mc.player == null || mc.player.fishing == null || mc.player.fishing != fishTracked) {
+			return null;
+		}
+		var hook = mc.player.fishing;
+		return new FishTimer(hook.getX(), hook.getY() + 0.9, hook.getZ(), String.format(java.util.Locale.ROOT, "%.1fs", fishElapsedTicks(mc) / 20.0));
+	}
 
 	public static boolean isFishing() {
 		return fishing && planner != null;
@@ -679,11 +698,20 @@ public final class Runner {
 					fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
 					return;
 				}
-				if (bobberText(mc, hook).contains("!!!")) {
+				if (hook != fishTracked) {
+					fishTracked = hook;
+					fishThrownAt = mc.level.getGameTime(); // the server's tick count when the bobber came out
+				}
+				boolean ready;
+				if (cfg.fishSlug) {
+					// Slug Fish: by the clock, counted in server ticks since the cast, whatever the bobber says
+					ready = fishElapsedTicks(mc) >= Math.round(cfg.fishSlugSeconds * 20.0);
+				} else {
+					ready = bobberText(mc, hook).contains("!!!");
+				}
+				if (ready) {
 					fishState = Fish.REEL;
-					// Slug Fish: leave the fish on for the set time first
-					long slug = cfg.fishSlug ? Math.round(cfg.fishSlugSeconds * 1_000_000_000.0) : 0L;
-					fishDueNanos = now + slug + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
+					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
 				}
 			}
 			case REEL -> {

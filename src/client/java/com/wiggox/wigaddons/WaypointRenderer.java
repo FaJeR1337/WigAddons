@@ -30,6 +30,10 @@ public final class WaypointRenderer {
 					Gizmos.cuboid(new BlockPos((int) Math.floor(cfg.killHomeX), (int) Math.floor(cfg.killHomeY) - 1, (int) Math.floor(cfg.killHomeZ)), GizmoStyle.stroke(0xFF55FF55, 3.0F));
 					Gizmos.billboardText("Hunt home", new Vec3(cfg.killHomeX, cfg.killHomeY + 0.9, cfg.killHomeZ), TextGizmo.Style.forColorAndCentered(0xFF55FF55).withScale(1.2F)).setAlwaysOnTop();
 				}
+				Runner.FishTimer fishTimer = Runner.fishTimer();
+				if (fishTimer != null) {
+					Gizmos.billboardText(fishTimer.text(), new Vec3(fishTimer.x(), fishTimer.y(), fishTimer.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(1.0F)).setAlwaysOnTop();
+				}
 				if (HeadScanner.showing) {
 					drawHeads();
 				}

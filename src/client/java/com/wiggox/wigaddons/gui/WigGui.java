@@ -279,12 +279,12 @@ public final class WigGui {
 			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startFish();
 		});
-		b.toggle("slug", "Slug Fish", "Leave the fish on the hook for the time below after the bobber says !!! before reeling in.",
+		b.toggle("slug", "Slug Fish", "Reel in by the clock instead of waiting for !!!: once the bobber has been out for the time below, counted in server ticks since the cast. The timer in seconds shows above the bobber while fishing.",
 			() -> config.fishSlug, v -> {
 				config.fishSlug = v;
 				WigState.saveConfig();
 			});
-		b.slider("slugseconds", "Slug Fish wait (s)", "How many seconds to wait after the bobber says !!! before reeling in, when Slug Fish is on. 10 to 20.",
+		b.slider("slugseconds", "Slug Fish wait (s)", "How many seconds after the cast to reel in, when Slug Fish is on. 10 to 20.",
 			10, 20, 1, () -> config.fishSlugSeconds, v -> {
 				config.fishSlugSeconds = v;
 				WigState.saveConfig();

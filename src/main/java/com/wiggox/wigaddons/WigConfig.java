@@ -92,7 +92,7 @@ public final class WigConfig {
 	public double fishReelMaxMs = 75;
 	public double fishRecastMinMs = 50;
 	public double fishRecastMaxMs = 75;
-	/** Slug Fish: wait this long (10 to 20 seconds) after the bobber says !!! before reeling in. */
+	/** Slug Fish: reel in this many seconds (10 to 20, in server ticks) after the cast, instead of waiting for the bobber to say !!!. */
 	public boolean fishSlug = false;
 	public double fishSlugSeconds = 15;
 	public double protectorSearchSeconds = 10.0;
