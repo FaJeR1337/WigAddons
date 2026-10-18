@@ -431,7 +431,7 @@ public final class Runner {
 		strafe = 0;
 		AVOIDER.reset();
 		if (WigState.debug) {
-			Minecraft.getInstance().gui.setOverlayMessage(Component.empty(), false);
+			Compat.setOverlayMessage(Minecraft.getInstance(), Component.empty(), false);
 		}
 	}
 
@@ -473,7 +473,7 @@ public final class Runner {
 				showWarning(mc);
 			}
 		}
-		if (mc.screen != null && ticks >= SCREEN_GRACE_TICKS) {
+		if (Compat.screen(mc) != null && ticks >= SCREEN_GRACE_TICKS) {
 			stop("a screen was opened");
 			return;
 		}
@@ -1836,17 +1836,17 @@ public final class Runner {
 
 	private static void showWarning(Minecraft mc) {
 		warningTimer = WARNING_REFRESH_TICKS;
-		mc.gui.setTimes(0, WARNING_REFRESH_TICKS * 2, 0);
+		Compat.setTimes(mc, 0, WARNING_REFRESH_TICKS * 2, 0);
 		// yellow instead of red when the ping was above the session average: it may well be lag and not a real check
 		int color = macroHighPing ? 0xFFFF55 : 0xFF5555;
-		mc.gui.setTitle(Component.literal("WARNING").withColor(color));
-		mc.gui.setSubtitle(Component.literal(macroHighPing ? macroReason + " (high ping)" : macroReason).withColor(color));
+		Compat.setTitle(mc, Component.literal("WARNING").withColor(color));
+		Compat.setSubtitle(mc, Component.literal(macroHighPing ? macroReason + " (high ping)" : macroReason).withColor(color));
 	}
 
 	private static void clearWarning() {
 		Minecraft mc = Minecraft.getInstance();
-		mc.gui.clearTitles();
-		mc.gui.resetTitleTimes();
+		Compat.clearTitles(mc);
+		Compat.resetTitleTimes(mc);
 	}
 
 	/** Called for every chat line the server sends. */
@@ -1894,7 +1894,7 @@ public final class Runner {
 			RouteFollower.wrapDegrees(player.getYRot()), haveAim ? RouteFollower.wrapDegrees(aimYaw) : Double.NaN,
 			lastFrameStep, lastFrameTicks, turnPerTick, runTurnSpeed, mc.getFps(),
 			o == null ? "" : String.format(" | wp %d dist %.1f blend %.2f", o.target() + 1, o.distance(), o.blend()));
-		mc.gui.setOverlayMessage(Component.literal(text), false);
+		Compat.setOverlayMessage(mc, Component.literal(text), false);
 	}
 
 	/** Our own input is added in the keyboard input after these keys are read, so they only ever hold the player's own presses. */

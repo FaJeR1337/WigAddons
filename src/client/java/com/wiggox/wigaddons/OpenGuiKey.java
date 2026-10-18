@@ -49,7 +49,7 @@ public final class OpenGuiKey {
 			return;
 		}
 		// a chat box or other screen the request came from is gone by now; a key press only counts in the open world
-		if (requested || (pressed && mc.screen == null)) {
+		if (requested || (pressed && Compat.screen(mc) == null)) {
 			requested = false;
 			WigGui.open();
 		}

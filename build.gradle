@@ -2,6 +2,11 @@ plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
+// The Minecraft version to build for: -Ptarget=26.1.2 (the default) or -Ptarget=26.2, each with its settings in versions/<target>.properties
+def target = findProperty('target') ?: '26.1.2'
+def vp = new Properties()
+file("versions/${target}.properties").withInputStream { vp.load(it) }
+
 loom {
 	splitEnvironmentSourceSets()
 
@@ -12,6 +17,9 @@ loom {
 		}
 	}
 }
+
+// the few calls that differ between game versions live in src/compat/<target>
+sourceSets.client.java.srcDir "src/compat/${target}/java"
 
 repositories {
 	maven {
@@ -24,13 +32,13 @@ repositories {
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	minecraft "com.mojang:minecraft:${vp.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${vp.fabric_api_version}"
 
 	// The settings screen: MoulConfig (LGPL-3.0), and the Kotlin runtime it needs, both bundled into the mod jar.
-	implementation "org.notenoughupdates.moulconfig:modern-26.1:${project.moulconfig_version}"
-	include "org.notenoughupdates.moulconfig:modern-26.1:${project.moulconfig_version}"
+	implementation "org.notenoughupdates.moulconfig:${vp.moulconfig_artifact}:${vp.moulconfig_version}"
+	include "org.notenoughupdates.moulconfig:${vp.moulconfig_artifact}:${vp.moulconfig_version}"
 	implementation "org.jetbrains.kotlin:kotlin-stdlib:${project.kotlin_version}"
 	include "org.jetbrains.kotlin:kotlin-stdlib:${project.kotlin_version}"
 
@@ -41,9 +49,10 @@ dependencies {
 processResources {
 	def version = project.version
 	inputs.property "version", version
+	inputs.property "minecraft", vp.minecraft_range
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand "version": version, "minecraft": vp.minecraft_range
 	}
 }
 
@@ -57,7 +66,9 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
+// the jars are named after the game version, not the mod's: wigaddons-26.1.2.jar, wigaddons-26.2.jar
 jar {
+	archiveFileName = "wigaddons-${target}.jar"
 	def projectName = project.name
 	inputs.property "projectName", projectName
 

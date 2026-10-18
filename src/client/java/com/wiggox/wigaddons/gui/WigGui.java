@@ -276,7 +276,7 @@ public final class WigGui {
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
 		b.button("start", "Trophy fishing", "Hold a fishing rod, face the water or lava and press Start (or type /wig trophy). It casts, waits for the bobber's name to change from the countdown to !!!, reels in a moment later and casts again. You stay where you are and the view stays as it is; moving more than half a block, a changed view, a changed hotbar slot or a teleport is a macro check, like in every other mode. /wig stop, a movement key or any screen ends it.", "Start", () -> {
-			Minecraft.getInstance().setScreen(null);
+			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startFish();
 		});
 		followNumber(b, "reelmin", "Reel delay, at least (ms)", "The shortest wait between the bobber saying !!! and reeling in.",
@@ -438,7 +438,7 @@ public final class WigGui {
 				WigState.saveZealots();
 			});
 		b.button("start", "Hunt Zealots", "Same as typing /wig zealots.", "Start", () -> {
-			Minecraft.getInstance().setScreen(null);
+			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startZealots();
 		});
 		b.info("places", "Home spot", "/wig zealots home sets the spot you stand on as home, /wig zealots home clear removes it. This home is separate from the Hunt tab's");
@@ -540,7 +540,7 @@ public final class WigGui {
 				}
 			});
 		b.button("position", "Position", "Opens a screen where you drag the box where you want it.", "Edit", () -> {
-			Minecraft.getInstance().setScreen(null);
+			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			HudPositionScreen.open();
 		});
 		b.button("reset", "Reset position", "Puts the box back where it started, at its normal size.", "Reset", () -> {
@@ -632,7 +632,7 @@ public final class WigGui {
 				}));
 
 		b.button(key + ".edit", "Place waypoints", "Closes this screen. Right click blocks with an empty hand to add waypoints; /wig done leaves edit mode.", "Edit", () -> {
-				Minecraft.getInstance().setScreen(null);
+				com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 				WigCommands.editRoute(route);
 			});
 
@@ -664,7 +664,7 @@ public final class WigGui {
 	}
 
 	private static void run(Route route, boolean loop) {
-		Minecraft.getInstance().setScreen(null);
+		com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 		WigCommands.startRoute(route, loop);
 	}
 

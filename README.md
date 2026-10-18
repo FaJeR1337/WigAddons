@@ -105,3 +105,7 @@ Everything is in `config/WigAddons/`: one `<route>.json` per route (global, not 
 ## Development
 
 `./gradlew runClient -Dwigaddons.smoke=true` (set the property through `JAVA_TOOL_OPTIONS` or the run configuration) runs a scripted check of the real game: it makes a flat world, photographs the settings screen and the waypoint boxes, runs routes in the open, round a pillar and over a step, triggers a macro check, and quits. Everything it prints starts with `[SMOKE]`; pictures go to `run/screenshots`. It does nothing unless that property is set.
+
+## Building for each game version
+
+The jars are named after the game version they run on: `dist/wigaddons-26.1.2.jar` and `dist/wigaddons-26.2.jar`, each with the Fabric API jar for its version beside it. `./gradlew clean build -Ptarget=26.1.2` (the default) or `-Ptarget=26.2` builds one; the settings for each version are in `versions/<target>.properties`, and the few game calls that differ are in `src/compat/<target>`. The dev smoke test (`-Dwigaddons.smoke=true`) only exists for 26.1.2.

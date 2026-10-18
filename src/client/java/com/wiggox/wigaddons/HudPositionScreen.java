@@ -23,7 +23,7 @@ public final class HudPositionScreen extends net.minecraft.client.gui.screens.Sc
 	}
 
 	public static void open() {
-		Minecraft.getInstance().setScreen(new HudPositionScreen());
+		Compat.setScreen(Minecraft.getInstance(), new HudPositionScreen());
 	}
 
 	@Override

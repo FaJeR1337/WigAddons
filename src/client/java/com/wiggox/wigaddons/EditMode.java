@@ -38,8 +38,8 @@ public final class EditMode {
 	public static void leave() {
 		WigState.editing = null;
 		Minecraft mc = Minecraft.getInstance();
-		mc.gui.clearTitles();
-		mc.gui.resetTitleTimes();
+		Compat.clearTitles(mc);
+		Compat.resetTitleTimes(mc);
 	}
 
 	private static void addWaypoint(BlockPos pos) {
@@ -59,9 +59,9 @@ public final class EditMode {
 		}
 		if (hintTimer-- <= 0) {
 			hintTimer = HINT_REFRESH_TICKS;
-			mc.gui.setTimes(0, HINT_REFRESH_TICKS * 2, 0);
-			mc.gui.setTitle(Component.literal(" "));
-			mc.gui.setSubtitle(HINT);
+			Compat.setTimes(mc, 0, HINT_REFRESH_TICKS * 2, 0);
+			Compat.setTitle(mc, Component.literal(" "));
+			Compat.setSubtitle(mc, HINT);
 		}
 	}
 }
