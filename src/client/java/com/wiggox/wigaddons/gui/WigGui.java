@@ -446,7 +446,7 @@ public final class WigGui {
 			Minecraft.getInstance().setScreen(null);
 			Runner.startZealots();
 		});
-		b.info("places", "Protector places and home", "Zealots has its own protector places, home spot and follow settings (at the bottom), apart from the Hunt tab's. /wig zealots home sets the spot you stand on as home (/wig zealots home clear removes it); /wig zealots protector here adds the spot you stand on as a place a protector can spawn, /wig zealots protector reset puts the default places back.");
+		b.info("places", "Home spot", "/wig zealots home sets the spot you stand on as home, /wig zealots home clear removes it. This home is separate from the Hunt tab's");
 		b.info("how", "How it works", "Type /wig zealots. You walk up to the nearest Zealot (special ones first), look at it and right click once it is in reach. The mob is then treated as dead for a few seconds and you move on to the next. /wig stop ends it.");
 		b.slider("turnspeed", "Turn speed", "The fastest the view turns while hunting, in degrees per tick. This is separate from the default turn speed that routes and following use (10).",
 			1, 60, 1, () -> config.killTurnSpeed, v -> {
@@ -522,35 +522,6 @@ public final class WigGui {
 		zealotNumber(b, "behinddelay", "Wait before turning round (s)", "How long targets behind you have to be the only ones left before you turn round to them. The target you are already going for is never dropped for this.",
 			() -> config.killBehindDelaySeconds, v -> config.killBehindDelaySeconds = v, 0, 30);
 		zealotNumber(b, "margin", "Aim margin", "How much bigger than the mob's hitbox still counts as looking at it, in blocks.", () -> config.killAimMargin, v -> config.killAimMargin = v, 0, 2);
-		b.section("followsettings", "Follow settings");
-		zealotNumber(b, "follow.stop", "Stop distance", "You stop walking when you are this many blocks from them.", () -> config.followStopDistance, v -> config.followStopDistance = v, 0, 20);
-		zealotNumber(b, "follow.resume", "Resume distance", "You start walking again when they are further than this many blocks away. It has to be more than the stop distance, so you don't keep starting and stopping.",
-			() -> config.followResumeDistance, v -> config.followResumeDistance = v, 0, 40);
-		zealotNumber(b, "follow.sprint", "Sprint distance", "You sprint while they are at least this far away, and walk when nearer.", () -> config.followSprintDistance, v -> config.followSprintDistance = v, 0, 60);
-		zealotNumber(b, "follow.lost", "Wait when lost", "Seconds to wait at the last place they were seen, after losing sight of them, before stopping.", () -> config.followLostSeconds, v -> config.followLostSeconds = v, 0, 120);
-		zealotNumber(b, "follow.look", "Look radius", "Blocks around their head that you look within: a new random spot every second or two, so the view isn't fixed on one point. 0 looks right at their head.",
-			() -> config.followLookRadius, v -> config.followLookRadius = v, 0, 3);
-		zealotNumber(b, "follow.relook", "Look again every", "Seconds between looking at the player again. In between, the view holds still instead of tracking them every tick. 0 keeps the view on them all the time.",
-			() -> config.followLookInterval, v -> config.followLookInterval = v, 0, 30);
-		zealotNumber(b, "follow.smooth", "Turn smoothing", "About how many ticks the view takes to settle a turn while following. The turning eases in and out instead of snapping. 0 turns at full speed with no easing.",
-			() -> config.followTurnSmoothing, v -> config.followTurnSmoothing = v, 0, 20);
-		b.toggle("follow.trail", "Show trail", "Draws the trail you are following in the world, for debugging: orange dots and lines where the player walked, a green dot at the point you are walking to (with a cyan line to it), and a red dot where they were last seen.",
-			() -> config.followShowTrail, v -> {
-				config.followShowTrail = v;
-				WigState.saveZealots();
-			});
-		b.toggle("follow.lookwall", "Stop looking behind walls", "Stops looking at the player while a wall is between you, and looks where you are walking instead. The view only switches once it has been blocked (or clear) for half a second.",
-			() -> config.followLookOnlyWhenVisible, v -> {
-				config.followLookOnlyWhenVisible = v;
-				WigState.saveZealots();
-			});
-		zealotNumber(b, "follow.jumpcost", "Jump cost (blocks)", "How much a step up that needs a jump counts against a path, in blocks of walking. The higher it is, the further the path goes round to avoid jumping, so it only jumps when there is no walk of about that many extra blocks that avoids it. Used when following and hunting.",
-			() -> config.pathJumpCost, v -> config.pathJumpCost = v, 0, 50);
-		b.toggle("follow.nojump", "Never jump", "Never jump while following.", () -> config.followNeverJump, v -> {
-			config.followNeverJump = v;
-			WigState.saveZealots();
-		});
-		b.endSection();
 	}
 
 	private static void fillHud(DynCategory category) {

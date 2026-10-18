@@ -82,7 +82,7 @@ public final class WigConfig {
 	public String protectorWarpCommand = "warp drag";
 	/**
 	 * Where its formation can be: after the warp the player walks toward the first, looks for the formation (or the protector)
-	 * and, if nothing is found there after protectorSearchSeconds, goes on to the next. /wig kill protector here adds the spot you stand on.
+	 * and, if nothing is found there after protectorSearchSeconds, goes on to the next.
 	 */
 	public double[][] protectorSpots = {{-665, 8, -276}, {-689, 7, -272}, {-639, 7, -328}, {-649, 7, -219}, {-678, 7, -332}, {-727, 7, -284}, {-643, 7, -270}};
 	/** The level the player stands at (feet) round the formations: they are all on the same floor, with the heads four blocks above it. */
@@ -199,6 +199,7 @@ public final class WigConfig {
 		killMaxLookUp = 50;
 		killSpecialClicks = 3;
 		killReactSeeAngle = 60;
+		protectorSpots = d.protectorSpots; // always the same places
 		return this;
 	}
 
