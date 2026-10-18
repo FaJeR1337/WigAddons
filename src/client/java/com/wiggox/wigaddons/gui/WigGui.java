@@ -289,14 +289,6 @@ public final class WigGui {
 				config.fishSlugSeconds = v;
 				WigState.saveConfig();
 			});
-		followNumber(b, "reelmin", "Reel delay, at least (ms)", "The shortest wait between the bobber saying !!! and reeling in.",
-			() -> config.fishReelMinMs, v -> config.fishReelMinMs = v, 0, 2000);
-		followNumber(b, "reelmax", "Reel delay, at most (ms)", "The longest wait between the bobber saying !!! and reeling in.",
-			() -> config.fishReelMaxMs, v -> config.fishReelMaxMs = v, 0, 2000);
-		followNumber(b, "castmin", "Cast delay, at least (ms)", "The shortest wait between reeling in and casting again.",
-			() -> config.fishRecastMinMs, v -> config.fishRecastMinMs = v, 0, 5000);
-		followNumber(b, "castmax", "Cast delay, at most (ms)", "The longest wait between reeling in and casting again.",
-			() -> config.fishRecastMaxMs, v -> config.fishRecastMaxMs = v, 0, 5000);
 	}
 
 	private static void fillHunt(DynCategory category) {

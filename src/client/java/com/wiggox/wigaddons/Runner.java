@@ -634,6 +634,12 @@ public final class Runner {
 		fishStep(mc, player);
 	}
 
+	/** The human pauses: before reeling in, and before casting again, in milliseconds. */
+	private static final double REEL_MIN_MS = 25;
+	private static final double REEL_MAX_MS = 75;
+	private static final double RECAST_MIN_MS = 50;
+	private static final double RECAST_MAX_MS = 75;
+
 	private static long fishDelay(double minMs, double maxMs) {
 		double lo = Math.min(minMs, maxMs);
 		double hi = Math.max(minMs, maxMs);
@@ -696,7 +702,7 @@ public final class Runner {
 			case WAITING -> {
 				if (hook == null) {
 					fishState = Fish.CAST; // reeled in by something else: cast again
-					fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
+					fishDueNanos = now + fishDelay(RECAST_MIN_MS, RECAST_MAX_MS);
 					return;
 				}
 				if (hook != fishTracked) {
@@ -712,7 +718,7 @@ public final class Runner {
 				}
 				if (ready) {
 					fishState = Fish.REEL;
-					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
+					fishDueNanos = now + fishDelay(REEL_MIN_MS, REEL_MAX_MS);
 				}
 			}
 			case REEL -> {
@@ -725,7 +731,7 @@ public final class Runner {
 					fishCasts++;
 				}
 				fishState = Fish.RECAST;
-				fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
+				fishDueNanos = now + fishDelay(RECAST_MIN_MS, RECAST_MAX_MS);
 			}
 		}
 	}
