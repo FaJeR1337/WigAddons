@@ -12,8 +12,11 @@ import net.fabricmc.loader.api.FabricLoader;
 public final class WigState {
 	public static final RouteStore STORE = new RouteStore(configFolder());
 	private static final Path CONFIG_FILE = STORE.dir().resolve("config.json");
+	private static final Path ZEALOTS_FILE = STORE.dir().resolve("zealots.json");
 
 	public static WigConfig config = new WigConfig();
+	/** The hunting settings of the Zealots tab: a copy of the Hunt tab's, made the first time, with the Zealot-only ones fixed. */
+	public static WigConfig zealots = new WigConfig().forZealots();
 
 	/** Every saved route, loaded once. Everything (commands, the GUI, the renderer) works on these same objects. */
 	private static final Map<String, Route> ROUTES = new LinkedHashMap<>();
@@ -46,12 +49,22 @@ public final class WigState {
 		config = WigConfig.load(CONFIG_FILE);
 		// the file is written back so a fresh install shows every setting that can be tuned
 		saveConfig();
+		zealots = (java.nio.file.Files.exists(ZEALOTS_FILE) ? WigConfig.load(ZEALOTS_FILE) : config.copy()).forZealots();
+		saveZealots();
 		ROUTES.clear();
 		for (String name : STORE.names()) {
 			Route route = STORE.load(name);
 			if (route != null) {
 				ROUTES.put(name, route);
 			}
+		}
+	}
+
+	public static void saveZealots() {
+		try {
+			zealots.save(ZEALOTS_FILE);
+		} catch (IOException e) {
+			// settings still work for this session
 		}
 	}
 

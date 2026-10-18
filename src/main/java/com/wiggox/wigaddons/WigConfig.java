@@ -52,7 +52,7 @@ public final class WigConfig {
 	public double followTurnSmoothing = 4;
 	public boolean followShowTrail = false;
 	/** Hunting (/wig kill): what to go for, and what to go for first. A name matches when it contains this text, ignoring case. */
-	public String killName = "Zealot Bruiser";
+	public String killName = "Zealot";
 	public String killSpecialName = "Special Zealot";
 	/** How far away to look for something to hunt, in blocks. */
 	public double killSearchRadius = 40;
@@ -126,7 +126,7 @@ public final class WigConfig {
 	/** How much bigger than the target's hitbox counts as looking at it, in blocks. */
 	public double killAimMargin = 0.3;
 	/** Targets that would need the view pitched up steeper than this many degrees (a pitch from minus this to -90) are ignored. 90 or more ignores none. */
-	public double killMaxLookUp = 50;
+	public double killMaxLookUp = 65;
 	/** Go for the target nearest to where the view already points, so the view turns as little as possible; off goes for the nearest to you. */
 	public boolean killPickByCrosshair = true;
 	/** A target more than this many degrees round to either side counts as behind you. Those wait while there are others, and when they are all there is, for the delay below, so the view doesn't spin round at once. */
@@ -137,7 +137,7 @@ public final class WigConfig {
 	/** Only right click when nothing solid is between you and where the view meets the target. */
 	public boolean killRequireSight = true;
 	/** Test option: when only one part of a mob can be seen (head, body or legs, the rest behind something), aim at that part. */
-	public boolean killAimVisiblePart = true;
+	public boolean killAimVisiblePart = false;
 	/** With two or more targets in sight within click range, stand still and deal with them from where you are, until the last one is marked. */
 	public boolean killStandWhenCrowded = false;
 	/** Standing still gives up after this many seconds, in case nothing manages to get clicked. */
@@ -179,6 +179,43 @@ public final class WigConfig {
 		}
 	}
 
+	/** An independent copy. */
+	public WigConfig copy() {
+		return GSON.fromJson(GSON.toJson(this), WigConfig.class);
+	}
+
+	/** The settings for hunting Zealots, which are fixed whatever the file says. Returns this. */
+	public WigConfig forZealots() {
+		WigConfig d = new WigConfig();
+		killName = "Zealot Bruiser";
+		killSpecialName = d.killSpecialName;
+		killType = d.killType;
+		killByType = false;
+		killRequireSight = true;
+		killPickByCrosshair = true;
+		killAimVisiblePart = true;
+		killBehindAngle = 100;
+		killUpPenalty = 1.5;
+		killMaxLookUp = 50;
+		killSpecialClicks = 3;
+		killReactSeeAngle = 60;
+		return this;
+	}
+
+	/** Takes every hunting setting (kill...) from the profile, except the home spot, which is the same for both. Returns this. */
+	public WigConfig withHuntSettingsOf(WigConfig profile) {
+		for (java.lang.reflect.Field field : WigConfig.class.getDeclaredFields()) {
+			if (field.getName().startsWith("kill") && !field.getName().startsWith("killHome") && !java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				try {
+					field.set(this, field.get(profile));
+				} catch (IllegalAccessException e) {
+					// public fields: not reached
+				}
+			}
+		}
+		return this;
+	}
+
 	public void save(Path file) throws IOException {
 		Files.createDirectories(file.getParent());
 		try (Writer out = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
@@ -189,19 +226,6 @@ public final class WigConfig {
 	/** Puts hand-edited nonsense back to the defaults so the follower can't divide by zero or spin. */
 	private WigConfig sanitised() {
 		WigConfig d = new WigConfig();
-		// hunting is for Zealots only: these are fixed, whatever an older config file says
-		killName = d.killName;
-		killSpecialName = d.killSpecialName;
-		killType = d.killType;
-		killByType = false;
-		killRequireSight = true;
-		killPickByCrosshair = true;
-		killAimVisiblePart = true;
-		killBehindAngle = d.killBehindAngle;
-		killUpPenalty = d.killUpPenalty;
-		killMaxLookUp = d.killMaxLookUp;
-		killSpecialClicks = d.killSpecialClicks;
-		killReactSeeAngle = d.killReactSeeAngle;
 		if (!(turnSpeedDegPerTick > 0)) {
 			turnSpeedDegPerTick = d.turnSpeedDegPerTick;
 		}

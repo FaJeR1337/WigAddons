@@ -111,6 +111,14 @@ public final class WigCommands {
 				Chat.info("Hunting " + WigState.config.killName + " (" + WigState.config.killSpecialName + " first). The mouse is locked. /wig stop, a movement key or any screen stops it.");
 				return 1;
 			}))
+			.then(ClientCommands.literal("zealots").executes(c -> {
+				if (WigState.editing != null) {
+					EditMode.leave();
+				}
+				Runner.startZealots();
+				Chat.info("Hunting Zealots (the Zealots tab's settings). The mouse is locked. /wig stop, a movement key or any screen stops it.");
+				return 1;
+			}))
 			.then(ClientCommands.literal("trophy").executes(c -> {
 				if (WigState.editing != null) {
 					EditMode.leave();

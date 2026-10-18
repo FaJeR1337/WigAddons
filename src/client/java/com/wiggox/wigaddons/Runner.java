@@ -146,6 +146,13 @@ public final class Runner {
 	private static double lastFrameStep;
 	private static double lastFrameTicks;
 
+	/** The settings a Zealots hunt runs on (the Hunt tab's with the Zealots tab's hunting settings over them), or null for the ordinary ones. */
+	private static WigConfig huntCfg;
+
+	private static WigConfig cfg() {
+		return huntCfg != null ? huntCfg : WigState.config;
+	}
+
 	private Runner() {
 	}
 
@@ -167,7 +174,7 @@ public final class Runner {
 			return "Trophy fishing";
 		}
 		if (hunting && planner != null) {
-			return "Hunting " + WigState.config.killName;
+			return "Hunting " + cfg().killName;
 		}
 		return planner != null ? "Following " + followName : null;
 	}
@@ -232,8 +239,8 @@ public final class Runner {
 		runLoop = loop;
 		runRouteForHud = route;
 		runStartNanos = System.nanoTime();
-		runTurnSpeed = route.effectiveTurnSpeed(WigState.config);
-		follower = new RouteFollower(route.waypoints(), loop, route.radius(), WigState.config.withHumanizeOffset(route.effectiveHumanizeOffset(WigState.config)));
+		runTurnSpeed = route.effectiveTurnSpeed(cfg());
+		follower = new RouteFollower(route.waypoints(), loop, route.radius(), cfg().withHumanizeOffset(route.effectiveHumanizeOffset(cfg())));
 		points = java.util.List.copyOf(route.waypoints());
 		runRoute = route;
 		pickPitch();
@@ -275,7 +282,7 @@ public final class Runner {
 		followSource = source;
 		yawSmoother.reset();
 		pitchSmoother.reset();
-		planner = new FollowPlanner(FollowPlanner.Params.of(WigState.config), new Random());
+		planner = new FollowPlanner(FollowPlanner.Params.of(cfg()), new Random());
 		planner.setTerrain(new WorldTerrain());
 		followDistance = Double.NaN;
 		followWasLost = false;
@@ -285,7 +292,7 @@ public final class Runner {
 		runLoop = false;
 		runRouteForHud = null;
 		runStartNanos = System.nanoTime();
-		runTurnSpeed = WigState.config.turnSpeedDegPerTick;
+		runTurnSpeed = cfg().turnSpeedDegPerTick;
 		pitchTarget = Double.NaN;
 		lastOutput = null;
 		jump = false;
@@ -310,7 +317,17 @@ public final class Runner {
 	 * right clicking when it is in reach, then treating it as dead for a few seconds and moving on.
 	 */
 	public static void startHunt() {
+		startHunt(false);
+	}
+
+	/** Hunts Zealots on the Zealots tab's settings. */
+	public static void startZealots() {
+		startHunt(true);
+	}
+
+	private static void startHunt(boolean zealots) {
 		startFollow("mobs", () -> null);
+		huntCfg = zealots ? WigState.config.copy().withHuntSettingsOf(WigState.zealots) : null;
 		hunting = true;
 		huntTargetId = -1;
 		huntKills = 0;
@@ -331,7 +348,7 @@ public final class Runner {
 		HUNT_ORDER.clear();
 		huntWaitingTold = false;
 		useTicksLeft = 0;
-		planner = new FollowPlanner(FollowPlanner.Params.forHunt(WigState.config), new Random());
+		planner = new FollowPlanner(FollowPlanner.Params.forHunt(cfg()), new Random());
 		planner.setTerrain(new WorldTerrain());
 	}
 
@@ -383,6 +400,7 @@ public final class Runner {
 	private static void end() {
 		releaseClicks();
 		protectorReset();
+		huntCfg = null;
 		huntMarks = java.util.List.of();
 		hunting = false;
 		fishing = false;
@@ -460,7 +478,7 @@ public final class Runner {
 			}
 		}
 
-		if (SafeZones.inside(player.getX(), player.getY(), player.getZ(), safeZones(), WigState.config.safeZoneRadius + 5.0)) {
+		if (SafeZones.inside(player.getX(), player.getY(), player.getZ(), safeZones(), cfg().safeZoneRadius + 5.0)) {
 			// at a portal (or where it puts you), about to be teleported: the new world's first position may not be inside the zone yet
 			macroSuppressTicks = Math.max(macroSuppressTicks, 100);
 			expectTeleportTicks = Math.max(expectTeleportTicks, 300);
@@ -617,7 +635,7 @@ public final class Runner {
 		if (!fishing || mc.gameMode == null || macroCountdown >= 0) {
 			return;
 		}
-		WigConfig cfg = WigState.config;
+		WigConfig cfg = cfg();
 		long now = System.nanoTime();
 		var hook = player.fishing;
 		switch (fishState) {
@@ -672,7 +690,7 @@ public final class Runner {
 
 	/** One tick of hunting: pick a target, walk up to it, look at it, and right click once it is in reach. */
 	private static void huntTick(Minecraft mc, LocalPlayer player) {
-		var cfg = WigState.config;
+		var cfg = cfg();
 		huntPrecise = false;
 		if (huntBehindBypass > 0) {
 			huntBehindBypass--;
@@ -859,7 +877,7 @@ public final class Runner {
 
 	/** A little up when the way goes up, a little down when it goes down: at most killPathPitch degrees, reached at a 45 degree slope. */
 	private static double pathPitchBias(LocalPlayer player, double[] way) {
-		double max = WigState.config.killPathPitch;
+		double max = cfg().killPathPitch;
 		if (max <= 0 || way == null) {
 			return 0;
 		}
@@ -1036,7 +1054,7 @@ public final class Runner {
 
 	/** The mobs around that carry the hunted name: on the mob itself, or on the name tag stand floating above it. */
 	private static java.util.List<ZealotHunter.Mob> scanMobs(Minecraft mc, LocalPlayer player) {
-		var cfg = WigState.config;
+		var cfg = cfg();
 		AABB area = player.getBoundingBox().inflate(cfg.killSearchRadius);
 		java.util.List<Entity> around = mc.level.getEntities((Entity) null, area);
 		java.util.Map<Integer, ZealotHunter.Mob> found = new java.util.LinkedHashMap<>();
@@ -1134,7 +1152,7 @@ public final class Runner {
 			case LOST_WAITING -> {
 				if (!followWasLost) {
 					followWasLost = true;
-					Chat.info("Lost sight of " + followName + ". Going to where they were last seen and waiting " + WigState.config.followLostSeconds + " seconds.");
+					Chat.info("Lost sight of " + followName + ". Going to where they were last seen and waiting " + cfg().followLostSeconds + " seconds.");
 				}
 			}
 			default -> followWasLost = false;
@@ -1176,8 +1194,8 @@ public final class Runner {
 		}
 		boolean following = followSource != null;
 		// hunting can have its own fastest turn, apart from the one routes (and following) use
-		double turnSpeed = hunting ? WigState.config.killTurnSpeed : runTurnSpeed;
-		double smoothing = !hunting ? WigState.config.followTurnSmoothing : huntPrecise ? WigState.config.killCloseSmoothing : WigState.config.killTurnSmoothing;
+		double turnSpeed = hunting ? cfg().killTurnSpeed : runTurnSpeed;
+		double smoothing = !hunting ? cfg().followTurnSmoothing : huntPrecise ? cfg().killCloseSmoothing : cfg().killTurnSmoothing;
 		if (haveAim) {
 			double before = player.getYRot();
 			float yaw = (float) (following
@@ -1290,7 +1308,7 @@ public final class Runner {
 	}
 
 	private static void sendWarpNow(Minecraft mc) {
-		String command = WigState.config.protectorWarpCommand.trim();
+		String command = cfg().protectorWarpCommand.trim();
 		if (command.startsWith("/")) {
 			command = command.substring(1).trim();
 		}
@@ -1304,7 +1322,7 @@ public final class Runner {
 
 	private static void protectorStart() {
 		Minecraft mc = Minecraft.getInstance();
-		WigConfig cfg = WigState.config;
+		WigConfig cfg = cfg();
 		protState = Prot.APPROACH;
 		protTicks = 0;
 		protWait = null;
@@ -1347,7 +1365,7 @@ public final class Runner {
 
 	/** Walks toward the goal with the path finder: 0 still going, 1 arrived, 2 can't get there. */
 	private static int protWalk(LocalPlayer player, double[] goal, boolean sprint, double stop, double resume) {
-		WigConfig c = WigState.config;
+		WigConfig c = cfg();
 		if (protGoalRef != goal || protPlanner == null) {
 			protGoalRef = goal;
 			protPlanner = new FollowPlanner(new FollowPlanner.Params(stop, resume, 6.0, 1.0, 0, c.followNeverJump, c.stuckTimeoutSeconds, false, 0, 2, true, c.pathJumpCost), new Random());
@@ -1395,7 +1413,7 @@ public final class Runner {
 
 	/** The End Stone Protector near the spot (or the player): by name, on the mob or its name tag stand, else an unnamed iron golem. */
 	private static Entity findProtector(Minecraft mc, LocalPlayer player) {
-		WigConfig cfg = WigState.config;
+		WigConfig cfg = cfg();
 		// around the spot and around the player, so it is found on the way there too
 		double cx = protSpot != null ? protSpot[0] : player.getX();
 		double cy = protSpot != null ? protSpot[1] : player.getY();
@@ -1446,7 +1464,7 @@ public final class Runner {
 	 * is taken to be under it, and that is where to go and look. Returns true the tick it is found.
 	 */
 	private static boolean lookForFormationHead(Minecraft mc, LocalPlayer player) {
-		WigConfig cfg = WigState.config;
+		WigConfig cfg = cfg();
 		if (protHeadFound || protTicks % 20 != 0) {
 			return false;
 		}
@@ -1537,7 +1555,7 @@ public final class Runner {
 		int x = head.pos().getX();
 		int z = head.pos().getZ();
 		// the head sits on top of the formation: walk at the floor's level, not up onto the structure
-		int ground = WigState.config.protectorFloorY;
+		int ground = cfg().protectorFloorY;
 		protSpot = new double[] {x, ground, z};
 		protHeadFound = true;
 		protWait = null;
@@ -1547,7 +1565,7 @@ public final class Runner {
 
 	/** One tick of the protector sequence (see the Kill Protectors option). */
 	private static void protectorTick(Minecraft mc, LocalPlayer player) {
-		WigConfig cfg = WigState.config;
+		WigConfig cfg = cfg();
 		protTicks++;
 		if (warpDelay > 0) {
 			if (--warpDelay == 0) {
@@ -1737,7 +1755,7 @@ public final class Runner {
 
 	/** Raises a macro check when the view differs from where this mod left it by the configured angle or more. */
 	private static void checkView(LocalPlayer player) {
-		double limit = WigState.config.rotationStopDegrees;
+		double limit = cfg().rotationStopDegrees;
 		double yawChange = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - expectedYaw));
 		double pitchChange = Math.abs(player.getXRot() - expectedPitch);
 		if (yawChange >= limit || pitchChange >= limit) {
@@ -1757,7 +1775,7 @@ public final class Runner {
 			return;
 		}
 		Minecraft here = Minecraft.getInstance();
-		if (here.player != null && (SafeZones.inside(here.player.getX(), here.player.getY(), here.player.getZ(), safeZones(), WigState.config.safeZoneRadius))) {
+		if (here.player != null && (SafeZones.inside(here.player.getX(), here.player.getY(), here.player.getZ(), safeZones(), cfg().safeZoneRadius))) {
 			return; // at a portal or where it puts you: the teleport and the rest of it are expected
 		}
 		if (lagWarningTicks > 0) {
@@ -1768,15 +1786,15 @@ public final class Runner {
 		macroHighPing = PING.above(ping);
 		if (macroHighPing) {
 			// above the session's average ping it may be only lag: a yellow warning, no alarm, and the run carries on
-			lagWarningTicks = Math.max(1, (int) Math.round(WigState.config.macroWarningSeconds * 20));
+			lagWarningTicks = Math.max(1, (int) Math.round(cfg().macroWarningSeconds * 20));
 			Chat.info("Possible macro check (" + reason.toLowerCase(java.util.Locale.ROOT) + "), but your ping was " + ping
 				+ " ms, well above your average of " + Math.round(PING.average()) + " ms. Carrying on.");
 			showWarning(Minecraft.getInstance());
 			return;
 		}
-		macroCountdown = Math.max(1, (int) Math.round(WigState.config.macroWarningSeconds * 20));
+		macroCountdown = Math.max(1, (int) Math.round(cfg().macroWarningSeconds * 20));
 		Chat.error("Macro check detected: " + reason.toLowerCase(java.util.Locale.ROOT) + ". Stopping in "
-			+ WigState.config.macroWarningSeconds + " seconds.");
+			+ cfg().macroWarningSeconds + " seconds.");
 		showWarning(Minecraft.getInstance());
 		playAlarm();
 	}
@@ -1787,7 +1805,7 @@ public final class Runner {
 
 	/** The portals and where they put you. */
 	private static double[][] safeZones() {
-		WigConfig c = WigState.config;
+		WigConfig c = cfg();
 		double[][] zones = new double[c.bruiserPortals.length + 1][];
 		System.arraycopy(c.bruiserPortals, 0, zones, 0, c.bruiserPortals.length);
 		zones[c.bruiserPortals.length] = c.bruiserArrival;
@@ -1797,7 +1815,7 @@ public final class Runner {
 	/** The wither idle sound, at the configured volume, whenever a macro check is raised. */
 	private static void playAlarm() {
 		// the game won't play a sound above full volume, so anything louder is the same sound played again on top of itself
-		double remaining = WigState.config.macroSoundVolume / 100.0;
+		double remaining = cfg().macroSoundVolume / 100.0;
 		while (remaining > 0.001) {
 			float layer = (float) Math.min(1.0, remaining);
 			Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ALARM_SOUND, 1.0F, layer));
@@ -1822,7 +1840,7 @@ public final class Runner {
 
 	/** Called for every chat line the server sends. */
 	public static void onChatLine(String line) {
-		WigConfig reactCfg = WigState.config;
+		WigConfig reactCfg = cfg();
 		if (hunting && planner != null && reactCfg.killProtectors) {
 			if (protState == Prot.NONE && !reactCfg.protectorSpawnMessage.isBlank() && ZealotHunter.matches(line, reactCfg.protectorSpawnMessage)) {
 				protectorStart();
