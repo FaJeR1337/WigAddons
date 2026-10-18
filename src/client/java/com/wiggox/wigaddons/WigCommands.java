@@ -97,12 +97,9 @@ public final class WigCommands {
 			.then(clickCommand("left", true))
 			.then(clickCommand("right", false))
 			.then(ClientCommands.literal("kill")
-				.then(ClientCommands.literal("protector")
-					.then(ClientCommands.literal("here").executes(c -> addProtectorSpot()))
-					.then(ClientCommands.literal("reset").executes(c -> resetProtectorSpots())))
 				.then(ClientCommands.literal("home")
-					.executes(c -> setHuntHome(true))
-					.then(ClientCommands.literal("clear").executes(c -> setHuntHome(false))))
+					.executes(c -> setHuntHome(true, false))
+					.then(ClientCommands.literal("clear").executes(c -> setHuntHome(false, false))))
 				.executes(c -> {
 				if (WigState.editing != null) {
 					EditMode.leave();
@@ -111,7 +108,14 @@ public final class WigCommands {
 				Chat.info("Hunting " + WigState.config.killName + " (" + WigState.config.killSpecialName + " first). The mouse is locked. /wig stop, a movement key or any screen stops it.");
 				return 1;
 			}))
-			.then(ClientCommands.literal("zealots").executes(c -> {
+			.then(ClientCommands.literal("zealots")
+				.then(ClientCommands.literal("protector")
+					.then(ClientCommands.literal("here").executes(c -> addProtectorSpot()))
+					.then(ClientCommands.literal("reset").executes(c -> resetProtectorSpots())))
+				.then(ClientCommands.literal("home")
+					.executes(c -> setHuntHome(true, true))
+					.then(ClientCommands.literal("clear").executes(c -> setHuntHome(false, true))))
+				.executes(c -> {
 				if (WigState.editing != null) {
 					EditMode.leave();
 				}
@@ -531,18 +535,23 @@ public final class WigCommands {
 		return 1;
 	}
 
-	private static int setHuntHome(boolean set) {
+	private static int setHuntHome(boolean set, boolean zealots) {
 		var mc = net.minecraft.client.Minecraft.getInstance();
 		if (set && mc.player == null) {
 			return 0;
 		}
-		WigState.config.killHomeSet = set;
+		WigConfig target = zealots ? WigState.zealots : WigState.config;
+		target.killHomeSet = set;
 		if (set) {
-			WigState.config.killHomeX = Math.floor(mc.player.getX()) + 0.5;
-			WigState.config.killHomeY = Math.floor(mc.player.getY() + 0.01);
-			WigState.config.killHomeZ = Math.floor(mc.player.getZ()) + 0.5;
+			target.killHomeX = Math.floor(mc.player.getX()) + 0.5;
+			target.killHomeY = Math.floor(mc.player.getY() + 0.01);
+			target.killHomeZ = Math.floor(mc.player.getZ()) + 0.5;
 		}
-		WigState.saveConfig();
+		if (zealots) {
+			WigState.saveZealots();
+		} else {
+			WigState.saveConfig();
+		}
 		Chat.info(set ? "Hunt home set here. With nothing to hunt you walk back here and wander around it."
 			: "Hunt home cleared. With nothing to hunt you stand still.");
 		return 1;
@@ -553,18 +562,18 @@ public final class WigCommands {
 		if (mc.player == null) {
 			return 0;
 		}
-		double[][] old = WigState.config.protectorSpots;
+		double[][] old = WigState.zealots.protectorSpots;
 		double[][] spots = java.util.Arrays.copyOf(old, old.length + 1);
 		spots[old.length] = new double[] {Math.floor(mc.player.getX()), Math.floor(mc.player.getY() + 0.01), Math.floor(mc.player.getZ())};
-		WigState.config.protectorSpots = spots;
-		WigState.saveConfig();
+		WigState.zealots.protectorSpots = spots;
+		WigState.saveZealots();
 		Chat.info("Added a place the End Stone Protector can be: now " + spots.length + " to look at, in order.");
 		return 1;
 	}
 
 	private static int resetProtectorSpots() {
-		WigState.config.protectorSpots = new WigConfig().protectorSpots;
-		WigState.saveConfig();
+		WigState.zealots.protectorSpots = new WigConfig().protectorSpots;
+		WigState.saveZealots();
 		Chat.info("The places to look for the End Stone Protector are back to the default one.");
 		return 1;
 	}

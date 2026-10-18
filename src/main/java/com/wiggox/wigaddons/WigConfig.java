@@ -202,10 +202,13 @@ public final class WigConfig {
 		return this;
 	}
 
-	/** Takes every hunting setting (kill...) from the profile, except the home spot, which is the same for both. Returns this. */
+	/** Takes every hunting setting from the profile: kill..., the protector places and portals, the home spot and the follow settings. Returns this. */
 	public WigConfig withHuntSettingsOf(WigConfig profile) {
 		for (java.lang.reflect.Field field : WigConfig.class.getDeclaredFields()) {
-			if (field.getName().startsWith("kill") && !field.getName().startsWith("killHome") && !java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+			String name = field.getName();
+			boolean mine = name.startsWith("kill") || name.startsWith("protector") || name.startsWith("bruiser") || name.startsWith("safeZone") || name.startsWith("follow")
+				|| name.equals("pathJumpCost");
+			if (mine && !java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				try {
 					field.set(this, field.get(profile));
 				} catch (IllegalAccessException e) {

@@ -25,8 +25,8 @@ public final class WaypointRenderer {
 						draw(route);
 					}
 				}
-				if (Runner.isHunting() && WigState.config.killHomeSet) {
-					var cfg = WigState.config;
+				if (Runner.isHunting() && Runner.activeConfig().killHomeSet) {
+					var cfg = Runner.activeConfig();
 					Gizmos.cuboid(new BlockPos((int) Math.floor(cfg.killHomeX), (int) Math.floor(cfg.killHomeY) - 1, (int) Math.floor(cfg.killHomeZ)), GizmoStyle.stroke(0xFF55FF55, 3.0F));
 					Gizmos.billboardText("Hunt home", new Vec3(cfg.killHomeX, cfg.killHomeY + 0.9, cfg.killHomeZ), TextGizmo.Style.forColorAndCentered(0xFF55FF55).withScale(1.2F)).setAlwaysOnTop();
 				}

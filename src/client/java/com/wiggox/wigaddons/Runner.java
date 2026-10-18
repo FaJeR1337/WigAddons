@@ -149,6 +149,11 @@ public final class Runner {
 	/** The settings a Zealots hunt runs on (the Hunt tab's with the Zealots tab's hunting settings over them), or null for the ordinary ones. */
 	private static WigConfig huntCfg;
 
+	/** The settings the run in progress uses (the ordinary ones when nothing runs). */
+	public static WigConfig activeConfig() {
+		return cfg();
+	}
+
 	private static WigConfig cfg() {
 		return huntCfg != null ? huntCfg : WigState.config;
 	}
@@ -328,7 +333,12 @@ public final class Runner {
 	private static void startHunt(boolean zealots) {
 		startFollow("mobs", () -> null);
 		protBlocked = false;
-		huntCfg = zealots ? WigState.config.copy().withHuntSettingsOf(WigState.zealots) : null;
+		huntCfg = WigState.config.copy();
+		if (zealots) {
+			huntCfg.withHuntSettingsOf(WigState.zealots);
+		} else {
+			huntCfg.killProtectors = false; // Protectors are for the Zealots tab
+		}
 		hunting = true;
 		huntTargetId = -1;
 		huntKills = 0;

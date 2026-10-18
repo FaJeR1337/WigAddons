@@ -534,14 +534,14 @@ final class SmokeTest {
 		if (phaseTick == 1) {
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			command(mc, "kill @e[type=minecraft:iron_golem]");
-			WigState.config.killProtectors = true;
-			WigState.config.protectorWarpCommand = "say warp drag";
-			WigState.config.protectorSpots = new double[][] {{40, -60, 40}}; // a decoy: the head says where it really is
+			WigState.zealots.killProtectors = true;
+			WigState.zealots.protectorWarpCommand = "say warp drag";
+			WigState.zealots.protectorSpots = new double[][] {{40, -60, 40}}; // a decoy: the head says where it really is
 			command(mc, "setblock 20 -57 20 minecraft:player_head");
 			protLast = "";
 		}
 		if (phaseTick == 20) {
-			Runner.startHunt();
+			Runner.startZealots();
 		}
 		if (phaseTick == 30) {
 			Runner.onChatLine("The ground begins to shake as an End Stone Protector rises from below!");
@@ -567,10 +567,10 @@ final class SmokeTest {
 		if (phaseTick == 720) {
 			log("protector: end state " + Runner.protectorState() + ", me " + fmt(mc));
 			Runner.stop("smoke test over");
-			WigState.config.killProtectors = false;
+			WigState.zealots.killProtectors = false;
 			command(mc, "setblock 20 -57 20 minecraft:air");
-			WigState.config.protectorSpots = new WigConfig().protectorSpots;
-			WigState.config.protectorWarpCommand = new WigConfig().protectorWarpCommand;
+			WigState.zealots.protectorSpots = new WigConfig().protectorSpots;
+			WigState.zealots.protectorWarpCommand = new WigConfig().protectorWarpCommand;
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			next();
@@ -620,13 +620,13 @@ final class SmokeTest {
 			HudPositionScreen.open();
 		}
 		if (phaseTick == 10) {
-			log("position screen is " + mc.screen.getClass().getSimpleName() + " at " + String.format("%.2f,%.2f scale %.1f", WigState.config.hudX, WigState.config.hudY, WigState.config.hudScale));
+			log("position screen is " + mc.screen.getClass().getSimpleName() + " at " + String.format("%.2f,%.2f scale %.1f", WigState.zealots.hudX, WigState.zealots.hudY, WigState.zealots.hudScale));
 			photograph(mc, "hud-position-before");
 		}
 		if (phaseTick == 20) {
 			// grab the box where it is drawn and drag it to the lower right
-			int gx = (int) (WigState.config.hudX * (mc.getWindow().getGuiScaledWidth() - 90)) + 10;
-			int gy = (int) (WigState.config.hudY * (mc.getWindow().getGuiScaledHeight() - 30)) + 10;
+			int gx = (int) (WigState.zealots.hudX * (mc.getWindow().getGuiScaledWidth() - 90)) + 10;
+			int gy = (int) (WigState.zealots.hudY * (mc.getWindow().getGuiScaledHeight() - 30)) + 10;
 			var screen = mc.screen;
 			var info = new net.minecraft.client.input.MouseButtonInfo(0, 0);
 			screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(gx, gy, info), false);
@@ -635,7 +635,7 @@ final class SmokeTest {
 			screen.mouseScrolled(0, 0, 0, 5);
 		}
 		if (phaseTick == 30) {
-			log("after the drag and a scroll: " + String.format("%.2f,%.2f scale %.1f", WigState.config.hudX, WigState.config.hudY, WigState.config.hudScale));
+			log("after the drag and a scroll: " + String.format("%.2f,%.2f scale %.1f", WigState.zealots.hudX, WigState.zealots.hudY, WigState.zealots.hudScale));
 			photograph(mc, "hud-position-after");
 		}
 		if (phaseTick == 40) {
