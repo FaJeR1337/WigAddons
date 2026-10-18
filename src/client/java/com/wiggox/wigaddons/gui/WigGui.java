@@ -3,7 +3,6 @@ package com.wiggox.wigaddons.gui;
 import com.wiggox.wigaddons.Chat;
 import com.wiggox.wigaddons.HudPositionScreen;
 import com.wiggox.wigaddons.ItemSearch;
-import com.wiggox.wigaddons.PartyLeave;
 import com.wiggox.wigaddons.Route;
 import com.wiggox.wigaddons.Runner;
 import com.wiggox.wigaddons.Waypoint;
@@ -150,7 +149,7 @@ public final class WigGui {
 			new DynCategory("hunt", "Hunt", "Hunting mobs with /wig kill."),
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
-			new DynCategory("safety", "Safety", "Macro checks and party changes."));
+			new DynCategory("safety", "Safety", "Macro checks."));
 		fillAll();
 		if (expandAll) {
 			for (DynCategory category : categories) {
@@ -198,7 +197,7 @@ public final class WigGui {
 		b.info("routes", "Edit Routes", "Make and edit routes. Each route has tabs for its general settings, waypoints, movement, humanizing and display.");
 		b.info("follow", "Follow", "Follow another player with /wig follow, and set how close to stay.");
 		b.info("hud", "HUD", "Show the running route's name and how long it has been running, and drag it where you want it.");
-		b.info("safety", "Safety", "What happens when a macro check or a party change is noticed is under Safety.");
+		b.info("safety", "Safety", "What happens when a macro check is noticed is under Safety.");
 		b.info("commands", "Commands", "Everything here also works as a command: /wig new, edit, done, start, stop, and more.");
 	}
 
@@ -769,35 +768,6 @@ public final class WigGui {
 				config.stuckTimeoutSeconds = v;
 				WigState.saveConfig();
 			});
-		b.endSection();
-
-		b.section("party", "Party members leaving");
-		b.slider("partyDelay", "Delay", "Seconds after a party member leaves before the run stops and the command is sent.",
-			0, 10, 1, () -> config.partyLeaveDelaySeconds, v -> {
-				config.partyLeaveDelaySeconds = v;
-				WigState.saveConfig();
-			});
-		b.text("partyCommand", "Command", "Sent when the run stops because a party member left. Leave empty to only stop.",
-			() -> config.partyLeaveCommand, v -> {
-				config.partyLeaveCommand = v;
-				WigState.saveConfig();
-			});
-		b.text("partyPatterns", "Chat lines", "Regular expressions, separated by ;; , matched from the start of a chat line to recognise someone leaving. Empty turns this off.",
-			() -> String.join(PATTERN_SEPARATOR, config.partyLeavePatterns), v -> {
-				List<String> patterns = new ArrayList<>();
-				for (String part : v.split(";;")) {
-					if (!part.isBlank()) {
-						patterns.add(part.trim());
-					}
-				}
-				config.partyLeavePatterns = patterns;
-				WigState.saveConfig();
-			});
-		b.button("partyDefaults", "Reset chat lines", "Puts the chat lines back to the built-in ones.", "Reset", () -> {
-			config.partyLeavePatterns = new ArrayList<>(PartyLeave.DEFAULT_PATTERNS);
-			WigState.saveConfig();
-			refresh(null);
-		});
 		b.endSection();
 	}
 

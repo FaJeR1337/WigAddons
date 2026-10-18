@@ -109,7 +109,7 @@ final class SmokeTest {
 			case 9 -> runRoute(mc, "step", false, 10);
 			case 10 -> commandOpensGui(mc);
 			case 11 -> macroCheck(mc);
-			case 12 -> partyLeave(mc);
+			case 12 -> next();
 			case 13 -> jumpCheck(mc, false, 14);
 			case 14 -> jumpCheck(mc, true, 15);
 			case 15 -> followCheck(mc);
@@ -172,31 +172,6 @@ final class SmokeTest {
 		}
 		if (phaseTick > 400) {
 			log("macro check did not stop the run");
-			Runner.stop("smoke test timeout");
-			next();
-		}
-	}
-
-	/** A "left the party" chat line during a run should stop it 2 seconds later and send /warp hub. */
-	private static void partyLeave(Minecraft mc) {
-		if (phaseTick == 1) {
-			command(mc, "tp @s 0.5 -60 0.5 -90 0");
-		}
-		if (phaseTick == 20) {
-			log("start long, then a party member leaves");
-			WigCommands.startRoute(WigState.route("long"), false);
-		}
-		if (phaseTick == 60) {
-			Runner.onChatLine("[MVP+] Davidcovi has left the party.");
-			log("chat line fed at tick " + phaseTick);
-		}
-		if (phaseTick > 60 && !Runner.isRunning()) {
-			log("run stopped " + (phaseTick - 60) + " ticks after the chat line");
-			photograph(mc, "party-leave");
-			next();
-		}
-		if (phaseTick > 400) {
-			log("party leave did not stop the run");
 			Runner.stop("smoke test timeout");
 			next();
 		}

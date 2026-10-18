@@ -18,7 +18,7 @@ public class WigAddonsClient implements ClientModInitializer {
 
 		// at the end of the tick, after the game has stored the previous rotation, so the camera blends between the two
 		ClientTickEvents.END_CLIENT_TICK.register(Runner::tick);
-		// servers send party notices as system messages
+		// the server's chat lines arrive as system messages
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (!overlay) {
 				Runner.onChatLine(message.getString());

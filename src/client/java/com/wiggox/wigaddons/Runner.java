@@ -137,8 +137,6 @@ public final class Runner {
 	private static int macroCountdown = -1;
 	private static String macroReason = "";
 	private static int warningTimer;
-	/** Ticks left before the run stops because a party member left, or -1. */
-	private static int partyCountdown = -1;
 	/** Which mouse buttons this run is holding down, so only those are let go of. */
 	private static boolean holdingLeft;
 	private static boolean holdingRight;
@@ -246,7 +244,6 @@ public final class Runner {
 		strafe = 0;
 		AVOIDER.reset();
 		macroCountdown = -1;
-		partyCountdown = -1;
 		ticks = 0;
 		startSlot = player.getInventory().getSelectedSlot();
 		expectedYaw = player.getYRot();
@@ -297,7 +294,6 @@ public final class Runner {
 		sprintOn = false;
 		AVOIDER.reset();
 		macroCountdown = -1;
-		partyCountdown = -1;
 		ticks = 0;
 		startSlot = player.getInventory().getSelectedSlot();
 		expectedYaw = player.getYRot();
@@ -396,7 +392,6 @@ public final class Runner {
 		}
 		lagWarningTicks = 0;
 		macroCountdown = -1;
-		partyCountdown = -1;
 		follower = null;
 		planner = null;
 		followSource = null;
@@ -431,10 +426,6 @@ public final class Runner {
 		}
 		if (warpGraceTicks > 0) {
 			warpGraceTicks--;
-		}
-		if (partyCountdown > 0 && --partyCountdown == 0) {
-			leaveBecauseOfParty(mc);
-			return;
 		}
 		if (lagWarningTicks > 0) {
 			if (--lagWarningTicks == 0) {
@@ -1850,27 +1841,6 @@ public final class Runner {
 			huntReactDirection = HUNT_RANDOM.nextBoolean() ? 1 : -1;
 			net.minecraft.client.player.LocalPlayer me = Minecraft.getInstance().player;
 			huntReactStartYaw = me == null ? 0 : me.getYRot();
-		}
-		if (!active() || partyCountdown >= 0 || !PartyLeave.matches(line, WigState.config.partyLeavePatterns)) {
-			return;
-		}
-		WigConfig cfg = WigState.config;
-		partyCountdown = Math.max(1, (int) Math.round(cfg.partyLeaveDelaySeconds * 20));
-		String command = partyCommand();
-		Chat.info("A party member left: stopping in " + cfg.partyLeaveDelaySeconds + " seconds" + (command.isEmpty() ? "." : " and running /" + command + "."));
-	}
-
-	/** The command to send, without a leading slash, or empty for none. */
-	private static String partyCommand() {
-		String command = WigState.config.partyLeaveCommand.trim();
-		return command.startsWith("/") ? command.substring(1).trim() : command;
-	}
-
-	private static void leaveBecauseOfParty(Minecraft mc) {
-		String command = partyCommand();
-		stop("a party member left");
-		if (!command.isEmpty() && mc.player != null) {
-			mc.player.connection.sendCommand(command);
 		}
 	}
 

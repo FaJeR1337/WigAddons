@@ -31,7 +31,7 @@ Build with `./gradlew build` inside this folder. The jar is in `build/libs/`.
   - **Display**: show the waypoints, their numbers, radius circles and lines, and the box colour. Several routes can be shown at once.
 - **Follow**: the distances, look radius, lost-sight wait and never-jump setting for `/wig follow`.
 - **HUD**: a box on screen, while a route runs, with the route's icon, its name and how long it has been running (`01:23`, or `1:02:03` after an hour, with "(loop)" when looping). Switch the whole box, the timer and the icon on or off, set its scale, and press **Edit** under Position to open a screen where you drag the box where you want it (scroll to resize, R to reset, Esc to finish). Its place is kept as a share of the screen, so it stays put if the window size changes.
-- **Safety**: macro-check limits, the warning time, the stuck timeout, and what to do when a party member leaves (delay, command and the chat lines that count).
+- **Safety**: macro-check limits, the warning time, the stuck timeout.
 
 Everything saves as you change it. Opening any screen stops a running route, so a route can't be running while the screen is open; the Run buttons close the screen first. Everything in the screen is also a command.
 
@@ -68,7 +68,6 @@ A run stops at once when:
 
 - any screen opens (chat, inventory, escape, modded screens)
 - you press a movement key (forward, back, left, right, jump, sneak)
-- a party member leaves (see below)
 - you disconnect
 - the player barely moves for 3 seconds (stuck)
 
@@ -77,10 +76,6 @@ A run stops at once when:
 Two things a server might use to catch a macro raise a **macro check**: the selected hotbar slot changing (scrolling, number keys, or the server), and the view being turned by 20 degrees or more in yaw or pitch by anything but this mod (a server rotation check, for example; the limit is `rotationStopDegrees`). The run does **not** stop at once: it carries on for `macroWarningSeconds` (3) while a red **WARNING** title with the reason as its subtitle shows on screen, and a line goes to chat, and then it stops. Minecraft has no sideways tilt (roll) for the player, so only yaw (left/right) and pitch (up/down) are checked.
 
 `/wig debug` toggles a readout above the hotbar while a route runs: the current and wanted yaw, how far the view turned this frame, the turn per tick, FPS, and the waypoint, its distance and the blend toward the next one.
-
-### Party members leaving
-
-If a chat line from the server says someone left your party (for example `Name has left the party.`, `Name was removed from the party...`, `The party was disbanded...`) while a route is running, the run stops `partyLeaveDelaySeconds` (2) later and sends `partyLeaveCommand` (`/warp hub`). If the run has already ended by then (you stopped it, it finished, or a macro check stopped it) nothing is sent. The lines are matched from their start with the regular expressions in `partyLeavePatterns`, so a player typing the same words in chat doesn't count. Set `partyLeaveCommand` to an empty string to only stop.
 
 ### Following a player
 
@@ -106,4 +101,4 @@ Everything is in `config/WigAddons Routes/`: one `<route>.json` per route (globa
 
 ## Development
 
-`./gradlew runClient -Dwigaddons.smoke=true` (set the property through `JAVA_TOOL_OPTIONS` or the run configuration) runs a scripted check of the real game: it makes a flat world, photographs the settings screen and the waypoint boxes, runs routes in the open, round a pillar and over a step, triggers a macro check and a party-leave line, and quits. Everything it prints starts with `[SMOKE]`; pictures go to `run/screenshots`. It does nothing unless that property is set.
+`./gradlew runClient -Dwigaddons.smoke=true` (set the property through `JAVA_TOOL_OPTIONS` or the run configuration) runs a scripted check of the real game: it makes a flat world, photographs the settings screen and the waypoint boxes, runs routes in the open, round a pillar and over a step, triggers a macro check, and quits. Everything it prints starts with `[SMOKE]`; pictures go to `run/screenshots`. It does nothing unless that property is set.

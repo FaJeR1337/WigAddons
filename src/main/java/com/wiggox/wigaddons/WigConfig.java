@@ -28,12 +28,6 @@ public final class WigConfig {
 	public double macroWarningSeconds = 3.0;
 	/** How loud the alarm (the wither spawning) is when a macro check is raised, 0 to 300 percent. 0 is silent, 100 is the game's full volume for that sound, and above that the sound is layered on itself to be louder. */
 	public double macroSoundVolume = 100.0;
-	/** A chat line matching one of these (regular expressions, from the start of the line) means a party member left. */
-	public List<String> partyLeavePatterns = new ArrayList<>(PartyLeave.DEFAULT_PATTERNS);
-	/** After a party member leaves, the run stops this many seconds later and the command below is sent. */
-	public double partyLeaveDelaySeconds = 2.0;
-	/** Sent when the run stops because a party member left. Leave empty to only stop. */
-	public String partyLeaveCommand = "/warp hub";
 	/** Show the route's name and how long it has been running on the HUD while a route runs. */
 	public boolean showHud = true;
 	public boolean hudShowTimer = true;
@@ -210,15 +204,6 @@ public final class WigConfig {
 		macroSoundVolume = Math.min(300.0, macroSoundVolume);
 		if (!(macroWarningSeconds >= 0)) {
 			macroWarningSeconds = d.macroWarningSeconds;
-		}
-		if (partyLeavePatterns == null) {
-			partyLeavePatterns = d.partyLeavePatterns;
-		}
-		if (!(partyLeaveDelaySeconds >= 0)) {
-			partyLeaveDelaySeconds = d.partyLeaveDelaySeconds;
-		}
-		if (partyLeaveCommand == null) {
-			partyLeaveCommand = "";
 		}
 		hudX = Math.max(0, Math.min(1, Double.isNaN(hudX) ? d.hudX : hudX));
 		hudY = Math.max(0, Math.min(1, Double.isNaN(hudY) ? d.hudY : hudY));
