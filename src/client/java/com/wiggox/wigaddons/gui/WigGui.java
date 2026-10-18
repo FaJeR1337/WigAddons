@@ -147,7 +147,7 @@ public final class WigGui {
 			new DynCategory("routes", "Edit Routes", "Your routes and how they are set up."),
 			new DynCategory("follow", "Follow", "Following a player with /wig follow."),
 			new DynCategory("hunt", "Hunt", "Hunting mobs with /wig kill."),
-			new DynCategory("zealots", "Zealots", "Hunting Zealots with /wig zealots."),
+			new DynCategory("zealots", "Zealots", "/wig zealots"),
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
@@ -447,7 +447,6 @@ public final class WigGui {
 			Runner.startZealots();
 		});
 		b.info("places", "Home spot", "/wig zealots home sets the spot you stand on as home, /wig zealots home clear removes it. This home is separate from the Hunt tab's");
-		b.info("how", "How it works", "Type /wig zealots. You walk up to the nearest Zealot (special ones first), look at it and right click once it is in reach. The mob is then treated as dead for a few seconds and you move on to the next. /wig stop ends it.");
 		b.slider("turnspeed", "Turn speed", "The fastest the view turns while hunting, in degrees per tick. This is separate from the default turn speed that routes and following use (10).",
 			1, 60, 1, () -> config.killTurnSpeed, v -> {
 				config.killTurnSpeed = v;
@@ -458,7 +457,6 @@ public final class WigGui {
 				config.killPathPitch = v;
 				WigState.saveZealots();
 			});
-		b.info("home", "Home spot", "/wig kill home sets the spot you are standing on as home, /wig kill home clear removes it. With nothing to hunt you walk back there and wander around it until something turns up.");
 		b.toggle("wander", "Wander at home", "While nothing is in range, stroll to random spots around the home spot, resting a moment between them, instead of standing still.",
 			() -> config.killWander, v -> {
 				config.killWander = v;
@@ -495,11 +493,6 @@ public final class WigGui {
 			() -> config.killPreciseAngle, v -> config.killPreciseAngle = v, 1, 90);
 		zealotNumber(b, "tagscale", "Name tag size", "How big the name tags are, the same at any distance: they shrink with distance like any name tag. About 0.45 is the size of an ordinary name tag, make it bigger to read them from further away.",
 			() -> config.killTagScale, v -> config.killTagScale = v, 0.1, 5);
-		b.text("react", "Spawn message", "When this chat message arrives while hunting, you stand still, look around and jump for a few seconds before going for the mob. Leave it empty to turn that off.",
-			() -> config.killReactMessage, v -> {
-				config.killReactMessage = v.trim();
-				WigState.saveZealots();
-			});
 		zealotNumber(b, "reactmin", "Look around for at least (s)", "The shortest time spent looking around and jumping after the spawn message, in seconds.",
 			() -> config.killReactMinSeconds, v -> config.killReactMinSeconds = v, 0, 30);
 		zealotNumber(b, "reactmax", "Look around for at most (s)", "The longest time spent looking around and jumping after the spawn message, in seconds.",

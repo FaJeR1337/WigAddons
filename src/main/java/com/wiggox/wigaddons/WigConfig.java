@@ -199,6 +199,7 @@ public final class WigConfig {
 		killMaxLookUp = 50;
 		killSpecialClicks = 3;
 		killReactSeeAngle = 60;
+		killReactMessage = d.killReactMessage;
 		protectorSpots = d.protectorSpots; // always the same places
 		return this;
 	}

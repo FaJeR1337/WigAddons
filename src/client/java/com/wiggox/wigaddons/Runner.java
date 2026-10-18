@@ -729,7 +729,7 @@ public final class Runner {
 				// all the way round once over the time, a little up and down as it goes
 				double progress = huntReactTotal <= 0 ? 1 : (double) elapsed / huntReactTotal;
 				aimYaw = huntReactStartYaw + huntReactDirection * 360.0 * progress;
-				pitchTarget = Math.sin(progress * Math.PI * 3) * 15.0;
+				pitchTarget = 15.0 + Math.sin(progress * Math.PI * 3) * 15.0; // a little lower than level, 15 degrees down on average
 				haveAim = true;
 				if (--huntReactJumpTicks <= 0 && player.onGround()) {
 					jump = true;
