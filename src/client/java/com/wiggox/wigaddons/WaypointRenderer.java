@@ -32,7 +32,7 @@ public final class WaypointRenderer {
 				}
 				Runner.FishTimer fishTimer = Runner.fishTimer();
 				if (fishTimer != null) {
-					Gizmos.billboardText(fishTimer.text(), new Vec3(fishTimer.x(), fishTimer.y(), fishTimer.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(1.0F)).setAlwaysOnTop();
+					Gizmos.billboardText(fishTimer.text(), new Vec3(fishTimer.x(), fishTimer.y(), fishTimer.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(0.45F)).setAlwaysOnTop(); // white, the size of an ordinary name tag, the same at any distance
 				}
 				if (HeadScanner.showing) {
 					drawHeads();
