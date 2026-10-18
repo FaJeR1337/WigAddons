@@ -442,7 +442,7 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.zealots;
-		b.toggle("protectors", "Kill Protectors", "When the chat says an End Stone Protector is rising, during a hunt: warp (/warp drag), walk to where it spawns (the places are in config.json as protectorSpots, -665 8 -276 by default; /wig kill protector here adds the spot you stand on), look at it from 6 to 9 blocks, then fight it up close at its feet, sneaking and right clicking, until it is down. Then hop about for 4 seconds, warp back and walk to a Bruiser portal. Macro checks are ignored within 3 blocks of the portals and where they put you.",
+		b.toggle("protectors", "Kill Protectors", "Kills End Stone Protectors when they spawn (requires /warp drag).",
 			() -> config.killProtectors, v -> {
 				config.killProtectors = v;
 				WigState.saveZealots();
