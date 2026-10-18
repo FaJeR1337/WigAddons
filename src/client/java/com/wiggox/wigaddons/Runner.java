@@ -327,6 +327,7 @@ public final class Runner {
 
 	private static void startHunt(boolean zealots) {
 		startFollow("mobs", () -> null);
+		protBlocked = false;
 		huntCfg = zealots ? WigState.config.copy().withHuntSettingsOf(WigState.zealots) : null;
 		hunting = true;
 		huntTargetId = -1;
@@ -1839,9 +1840,24 @@ public final class Runner {
 	}
 
 	/** Called for every chat line the server sends. */
+	private static final String WARP_LOCKED = "You haven't unlocked this fast travel destination!";
+	/** The protector warp turned out to be locked: no more Protectors this hunt. */
+	private static boolean protBlocked;
+
 	public static void onChatLine(String line) {
 		WigConfig reactCfg = cfg();
-		if (hunting && planner != null && reactCfg.killProtectors) {
+		if (hunting && planner != null && reactCfg.killProtectors && protState != Prot.NONE && ZealotHunter.matches(line, WARP_LOCKED)) {
+			// the warp did not go anywhere: the destination is not unlocked, so there is no protector to get to. Carry on with the Zealots.
+			protectorReset();
+			protBlocked = true;
+			expectTeleportTicks = 0;
+			warpGraceTicks = 0;
+			macroSuppressTicks = 0;
+			Chat.error("Kill Protectors can't work: you haven't unlocked the fast travel destination (/" + reactCfg.protectorWarpCommand.trim().replaceFirst("^/", "")
+				+ "). Skipping Protectors and carrying on with the Zealots.");
+			return;
+		}
+		if (hunting && planner != null && reactCfg.killProtectors && !protBlocked) {
 			if (protState == Prot.NONE && !reactCfg.protectorSpawnMessage.isBlank() && ZealotHunter.matches(line, reactCfg.protectorSpawnMessage)) {
 				protectorStart();
 			} else if ((protState == Prot.APPROACH || protState == Prot.WAIT || protState == Prot.FIGHT)
