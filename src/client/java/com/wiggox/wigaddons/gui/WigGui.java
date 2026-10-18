@@ -146,7 +146,7 @@ public final class WigGui {
 			new DynCategory("list", "Routes", "Run one of your routes."),
 			new DynCategory("routes", "Edit Routes", "Your routes and how they are set up."),
 			new DynCategory("follow", "Follow", "Following a player with /wig follow."),
-			new DynCategory("hunt", "Hunt", "Hunting mobs with /wig kill."),
+			new DynCategory("hunt", "Zealots", "Hunting Zealots with /wig kill."),
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
@@ -301,7 +301,11 @@ public final class WigGui {
 				config.killProtectors = v;
 				WigState.saveConfig();
 			});
-		b.info("how", "How it works", "Type /wig kill. You walk up to the nearest mob with the name below (special ones first), look at it and right click once it is in reach. The mob is then treated as dead for a few seconds and you move on to the next. /wig stop ends it.");
+		b.button("start", "Hunt Zealots", "Same as typing /wig kill.", "Start", () -> {
+			Minecraft.getInstance().setScreen(null);
+			Runner.startHunt();
+		});
+		b.info("how", "How it works", "Type /wig kill. You walk up to the nearest Zealot (special ones first), look at it and right click once it is in reach. The mob is then treated as dead for a few seconds and you move on to the next. /wig stop ends it.");
 		b.slider("turnspeed", "Turn speed", "The fastest the view turns while hunting, in degrees per tick. This is separate from the default turn speed that routes and following use (10).",
 			1, 60, 1, () -> config.killTurnSpeed, v -> {
 				config.killTurnSpeed = v;
@@ -310,16 +314,6 @@ public final class WigGui {
 		b.slider("pathpitch", "Look with the path (deg)", "While the view isn't on a target (walking home, wandering, or a target behind a wall), look slightly up when the way goes up and slightly down when it goes down, by at most this many degrees. 0 turns it off.",
 			0, 30, 1, () -> config.killPathPitch, v -> {
 				config.killPathPitch = v;
-				WigState.saveConfig();
-			});
-		b.text("name", "Mob name", "Mobs whose name contains this text are hunted, ignoring capitals, so Zealot also finds Zealot Bruiser.",
-			() -> config.killName, v -> {
-				config.killName = v.trim();
-				WigState.saveConfig();
-			});
-		b.text("special", "Special mob name", "Mobs whose name contains this text are always gone for first, however far away (within the search radius).",
-			() -> config.killSpecialName, v -> {
-				config.killSpecialName = v.trim();
 				WigState.saveConfig();
 			});
 		b.info("home", "Home spot", "/wig kill home sets the spot you are standing on as home, /wig kill home clear removes it. With nothing to hunt you walk back there and wander around it until something turns up.");
@@ -370,26 +364,10 @@ public final class WigGui {
 			() -> config.killReactMaxSeconds, v -> config.killReactMaxSeconds = v, 0, 30);
 		followNumber(b, "reactearly", "Go early after (s)", "While looking around after the spawn message, if a special mob has come into sight in front of you (within the angle below), then once this many seconds have passed the looking around ends and you go for it.",
 			() -> config.killReactEarlySeconds, v -> config.killReactEarlySeconds = v, 0, 30);
-		followNumber(b, "reactangle", "In front means within (deg)", "How many degrees either side of where you are facing counts as in front of you, for going early.",
-			() -> config.killReactSeeAngle, v -> config.killReactSeeAngle = v, 1, 180);
-		b.toggle("bytype", "Hunt by mob type (no name tag needed)", "Name tags are separate entities, and the server may not send them or may only send them when you are close. With this on, every mob of the type below within the search radius is hunted whether or not its name tag is there. It can't tell special mobs apart without their tag, and it will also go for any other mob of that type.",
-			() -> config.killByType, v -> {
-				config.killByType = v;
-				WigState.saveConfig();
-			});
-		b.text("type", "Mob type", "The type to hunt when the option above is on, as the game names it, for example minecraft:enderman.",
-			() -> config.killType, v -> {
-				if (!v.isBlank()) {
-					config.killType = v.trim();
-					WigState.saveConfig();
-				}
-			});
 		followNumber(b, "maxdrop", "Longest drop (blocks)", "The longest fall hunting takes as a shortcut, instead of walking a long way round by stairs or slopes. Falls over 3 blocks hurt. 0 never drops more than a step.",
 			() -> config.killMaxDrop, v -> config.killMaxDrop = (int) Math.round(v), 0, 40);
 		followNumber(b, "spawncooldown", "Spawn cooldown (s)", "A mob that has just appeared can't be targeted for this many seconds. The mobs already there when you start hunting are not counted as new.",
 			() -> config.killSpawnCooldownSeconds, v -> config.killSpawnCooldownSeconds = v, 0, 60);
-		followNumber(b, "specialclicks", "Clicks on a special mob", "How many right clicks a special mob gets before it is assumed dead and left alone, since it usually takes more than one. Ordinary mobs are assumed dead after one.",
-			() -> config.killSpecialClicks, v -> config.killSpecialClicks = (int) Math.round(v), 1, 50);
 		followNumber(b, "cooldown", "Click cooldown (s)", "The least time between one right click and the next, in seconds. Set it to your weapon's cooldown. A little extra is added at random so it isn't clockwork.",
 			() -> config.killClickCooldownSeconds, v -> config.killClickCooldownSeconds = v, 0, 60);
 		b.toggle("stand", "Stand still when crowded", "With two or more targets in sight and within click range, stop walking and deal with them from where you stand, until the last one is marked.",
@@ -399,29 +377,8 @@ public final class WigGui {
 			});
 		followNumber(b, "standlimit", "Stand still limit (s)", "Standing still gives up after this many seconds if nothing gets clicked, so a blocked shot can't freeze you in place. Then you walk on as normal.",
 			() -> config.killStandLimitSeconds, v -> config.killStandLimitSeconds = v, 1, 600);
-		followNumber(b, "maxup", "Ignore above pitch", "Targets that would need you to look up steeper than this many degrees (a pitch from minus this to -90) are ignored, so the view never ends up pointing straight up. 90 ignores none.",
-			() -> config.killMaxLookUp, v -> config.killMaxLookUp = v, 1, 90);
-		followNumber(b, "uppenalty", "Prefer targets level with me", "How much worse a target counts for being above you, so one you don't have to look up at is gone for first. Each degree you would have to pitch up counts as this many extra degrees away from your crosshair (blocks, when picking by distance). 0 ignores height. Special mobs still come first, but only among themselves.",
-			() -> config.killUpPenalty, v -> config.killUpPenalty = v, 0, 10);
-		followNumber(b, "behindangle", "Behind me means beyond (deg)", "A target more than this many degrees round to either side of where you are facing counts as behind you. Targets behind you are only gone for when none in front is left and they have been the only ones for the delay below, so you don't spin round at once.",
-			() -> config.killBehindAngle, v -> config.killBehindAngle = v, 30, 180);
 		followNumber(b, "behinddelay", "Wait before turning round (s)", "How long targets behind you have to be the only ones left before you turn round to them. The target you are already going for is never dropped for this.",
 			() -> config.killBehindDelaySeconds, v -> config.killBehindDelaySeconds = v, 0, 30);
-		b.toggle("part", "Aim at the visible part (test)", "A test option. When only one part of a mob can be seen, say its head over a ledge or its body past a corner, aim at that part instead of the middle of it, so shots aren't wasted on the part behind something.",
-			() -> config.killAimVisiblePart, v -> {
-				config.killAimVisiblePart = v;
-				WigState.saveConfig();
-			});
-		b.toggle("crosshair", "Pick nearest the crosshair", "Go for the target nearest to where you are already looking, so the view turns as little as possible and doesn't spin round. Off goes for the nearest to you. Special mobs still come first.",
-			() -> config.killPickByCrosshair, v -> {
-				config.killPickByCrosshair = v;
-				WigState.saveConfig();
-			});
-		b.toggle("sight", "Depth check", "Mobs behind walls are only walked toward when none is in sight, and are never looked at or clicked until they are in sight. It only right clicks when nothing solid is between you and the mob, so no shot is wasted on a wall.",
-			() -> config.killRequireSight, v -> {
-				config.killRequireSight = v;
-				WigState.saveConfig();
-			});
 		followNumber(b, "margin", "Aim margin", "How much bigger than the mob's hitbox still counts as looking at it, in blocks.", () -> config.killAimMargin, v -> config.killAimMargin = v, 0, 2);
 	}
 

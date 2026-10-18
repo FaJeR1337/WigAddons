@@ -10,7 +10,7 @@ import net.fabricmc.loader.api.FabricLoader;
 
 /** The mod's shared state: where routes live, the settings, the loaded routes, which one is selected and whether it is being edited. */
 public final class WigState {
-	public static final RouteStore STORE = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve("WigAddons Routes"));
+	public static final RouteStore STORE = new RouteStore(configFolder());
 	private static final Path CONFIG_FILE = STORE.dir().resolve("config.json");
 
 	public static WigConfig config = new WigConfig();
@@ -25,6 +25,21 @@ public final class WigState {
 	public static boolean debug;
 
 	private WigState() {
+	}
+
+	/** config/WigAddons; a folder from before the rename (config/WigAddons Routes) is moved there, routes and settings with it. */
+	private static Path configFolder() {
+		Path root = FabricLoader.getInstance().getConfigDir();
+		Path folder = root.resolve("WigAddons");
+		Path old = root.resolve("WigAddons Routes");
+		try {
+			if (java.nio.file.Files.isDirectory(old) && !java.nio.file.Files.exists(folder)) {
+				java.nio.file.Files.move(old, folder);
+			}
+		} catch (IOException e) {
+			// the old folder stays where it is; a new, empty one is made
+		}
+		return folder;
 	}
 
 	public static void load() {
