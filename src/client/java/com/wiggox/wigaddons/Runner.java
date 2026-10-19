@@ -559,7 +559,7 @@ public final class Runner {
 	// ---- trophy fishing ----
 
 	private static boolean fishing;
-	private enum Fish { CAST, CASTING, WAITING, REEL, RECAST }
+	private enum Fish { CAST, CASTING, WAITING, MISS, REEL, RECAST }
 	private static Fish fishState = Fish.CAST;
 	/** When the next action is due (System.nanoTime), so the short human delays are not rounded to whole ticks. */
 	private static long fishDueNanos;
@@ -571,6 +571,13 @@ public final class Runner {
 	private static net.minecraft.world.entity.projectile.FishingHook fishStale;
 	private static net.minecraft.world.entity.projectile.FishingHook fishTracked;
 	private static long fishThrownAt;
+	/** Catches since the last deliberately missed one, and how many there are to be before the next (50 to 100, drawn again each time). */
+	private static int fishSinceMiss;
+	private static int fishMissEvery;
+
+	private static int rollMissEvery() {
+		return 50 + HUNT_RANDOM.nextInt(51);
+	}
 
 	private static long fishElapsedTicks(Minecraft mc) {
 		return mc.level == null ? 0 : Math.max(0, mc.level.getGameTime() - fishThrownAt);
@@ -614,6 +621,8 @@ public final class Runner {
 		fishY = player.getY();
 		fishZ = player.getZ();
 		fishCasts = 0;
+		fishSinceMiss = 0;
+		fishMissEvery = rollMissEvery();
 		fishStale = null;
 		// a rod already out is reeled in by the first click, so start with the bobber in the water
 		fishState = player.fishing != null ? Fish.WAITING : Fish.CAST;
@@ -707,6 +716,21 @@ public final class Runner {
 				boolean ready = bobberText(mc, hook).contains("!!!")
 					&& (!cfg.fishSlug || fishElapsedTicks(mc) >= Math.round(cfg.fishSlugSeconds * 20.0));
 				if (ready) {
+					if (cfg.fishMissCatches && ++fishSinceMiss >= fishMissEvery) {
+						// this one is let go by on purpose; the next miss is 50 to 100 catches away
+						fishSinceMiss = 0;
+						fishMissEvery = rollMissEvery();
+						fishState = Fish.MISS;
+						Chat.info("Missing this catch on purpose.");
+					} else {
+						fishState = Fish.REEL;
+						fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
+					}
+				}
+			}
+			case MISS -> {
+				// wait for the bite to pass (the !!! to go, or the bobber to), then reel in as usual and cast again
+				if (hook == null || !bobberText(mc, hook).contains("!!!")) {
 					fishState = Fish.REEL;
 					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
 				}

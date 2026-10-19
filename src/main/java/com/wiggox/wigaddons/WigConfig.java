@@ -92,6 +92,8 @@ public final class WigConfig {
 	public double fishReelMaxMs = 75;
 	public double fishRecastMinMs = 50;
 	public double fishRecastMaxMs = 75;
+	/** Now and then, at random every 50 to 100 catches, let a catch go by without reeling it in. */
+	public boolean fishMissCatches = false;
 	/** Slug Fish: once the bobber has been out this many seconds (10 to 20, in server ticks), reel in on the next !!! (not before the time, whatever the bobber says). */
 	public boolean fishSlug = false;
 	public double fishSlugSeconds = 15;
