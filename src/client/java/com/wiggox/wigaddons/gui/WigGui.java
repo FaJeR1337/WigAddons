@@ -290,7 +290,7 @@ public final class WigGui {
 				WigState.saveConfig();
 			});
 		b.section("humanization", "Humanization delays");
-		b.toggle("misscatches", "Randomly miss a catch every 50-100 catches", "Now and then, every 50 to 100 catches (a new number drawn each time), a catch is let go by without reeling it in. The bobber is reeled in and cast again once the bite has passed.",
+		b.toggle("misscatches", "Randomly miss a catch every 50-100 catches", "Now and then, every 50 to 100 catches (a new number drawn each time), a catch is let go by without reeling it in. The bobber is reeled in a second after the !!! has gone, and then cast again.",
 			() -> config.fishMissCatches, v -> {
 				config.fishMissCatches = v;
 				WigState.saveConfig();

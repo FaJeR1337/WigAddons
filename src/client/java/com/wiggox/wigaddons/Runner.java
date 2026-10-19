@@ -721,6 +721,7 @@ public final class Runner {
 						fishSinceMiss = 0;
 						fishMissEvery = rollMissEvery();
 						fishState = Fish.MISS;
+						fishDueNanos = 0; // set once the !!! has gone
 						Chat.info("Missing this catch on purpose.");
 					} else {
 						fishState = Fish.REEL;
@@ -729,10 +730,14 @@ public final class Runner {
 				}
 			}
 			case MISS -> {
-				// wait for the bite to pass (the !!! to go, or the bobber to), then reel in as usual and cast again
-				if (hook == null || !bobberText(mc, hook).contains("!!!")) {
+				// the bite passes (the !!! goes), then a full second later it is reeled in and cast again
+				if (fishDueNanos == 0) {
+					if (hook == null || !bobberText(mc, hook).contains("!!!")) {
+						fishDueNanos = now + 1_000_000_000L;
+					}
+				} else if (now >= fishDueNanos) {
 					fishState = Fish.REEL;
-					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
+					fishDueNanos = now;
 				}
 			}
 			case REEL -> {
