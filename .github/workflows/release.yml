@@ -1,10 +1,15 @@
 name: Release
 
-# Pushing a tag like v1.0.0 publishes a release with the jars in downloads/ attached.
+# Pushing a tag like v1.0.0, or running this by hand with a tag, publishes a release with the jars in downloads/ attached.
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release, like v1.0.0 (created if it doesn't exist)"
+        required: true
 
 permissions:
   contents: write
@@ -17,7 +22,8 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release create "$GITHUB_REF_NAME" downloads/*.jar \
-            --title "WigAddons ${GITHUB_REF_NAME#v}" \
+          gh release create "$TAG" downloads/*.jar --target "$GITHUB_SHA" \
+            --title "WigAddons ${TAG#v}" \
             --notes "wigaddons-26.1.2.jar is for Minecraft 26.1.2 (Fabric API 0.155.3+26.1.2) and wigaddons-26.2.jar is for Minecraft 26.2 (Fabric API 0.161.0+26.2)."
