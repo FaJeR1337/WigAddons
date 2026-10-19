@@ -131,6 +131,10 @@ public final class FollowPlanner {
 	private double refX = Double.NaN;
 	private double refZ;
 	private int ticksInWindow;
+	/** The strafe being held and for how many ticks, so it can't change faster than STRAFE_HOLD_TICKS. */
+	private int heldStrafe;
+	private int strafeHeldTicks = 1000;
+	private static final int STRAFE_HOLD_TICKS = 6;
 
 	public FollowPlanner(Params params, Random random) {
 		this.params = params;
@@ -205,6 +209,14 @@ public final class FollowPlanner {
 			int[] keys = keysFor(RouteFollower.wrapDegrees(moveYaw - viewYaw));
 			forward = keys[0];
 			strafe = keys[1];
+			// A and D are held for a little before they change, so a heading hovering at the edge of a band, or two targets pulling either way, doesn't make them flicker
+			if (strafe != heldStrafe && strafeHeldTicks < STRAFE_HOLD_TICKS) {
+				strafe = heldStrafe;
+			} else if (strafe != heldStrafe) {
+				heldStrafe = strafe;
+				strafeHeldTicks = 0;
+			}
+			strafeHeldTicks++;
 			sprint = forward > 0 && dist >= params.sprintDistance();
 			// a rise only matters when it is close: the followed player hopping about far away shouldn't make us jump
 			// with the world known, only an actual bump jumps: slabs, stairs and the like are stepped up by the walk itself, and path heights are only block-accurate
