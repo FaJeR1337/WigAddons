@@ -83,7 +83,7 @@ public final class Runner {
 
 	private static final java.util.Map<Integer, Engaged> ENGAGED = new java.util.HashMap<>();
 	/** How long after the last click a mob going is still counted as killed by it, in ticks. */
-	private static final int KILL_WINDOW_TICKS = 20 * 15;
+	private static final int KILL_WINDOW_TICKS = 20 * 2;
 
 	/** The stats shown under the time on the HUD: nothing outside a Zealots run. */
 	public static java.util.List<String> statLines() {
