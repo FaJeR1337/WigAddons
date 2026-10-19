@@ -60,6 +60,15 @@ public final class Runner {
 	private static final Random HUNT_RANDOM = new Random();
 	private static int huntTargetId = -1;
 	private static int huntKills;
+	/** The target being gone for, and where the player was when it was taken: standing within two blocks of there for two seconds without a click is being stuck. */
+	private static int huntStuckId = -1;
+	private static double huntStuckX;
+	private static double huntStuckY;
+	private static double huntStuckZ;
+	private static long huntStuckSince;
+	private static long huntLastClickTick = -100000;
+	private static final double STUCK_MOVE_BLOCKS = 2.0;
+	private static final int STUCK_TICKS = 40;
 	/** A Zealots run: the stats on the HUD. Eyes are counted from the chat message for a Summoning Eye drop. */
 	private static boolean zealotsRun;
 	private static int eyes;
@@ -396,6 +405,8 @@ public final class Runner {
 		eyes = 0;
 		zealotKills = 0;
 		ENGAGED.clear();
+		huntStuckId = -1;
+		huntLastClickTick = -100000;
 		huntCfg = WigState.config.copy();
 		if (zealots) {
 			huntCfg.withHuntSettingsOf(WigState.zealots);
@@ -829,6 +840,7 @@ public final class Runner {
 			huntBehindBypass--;
 		}
 		if (protState != Prot.NONE) {
+			huntStuckId = -1;
 			protectorTick(mc, player);
 			return;
 		}
@@ -837,6 +849,7 @@ public final class Runner {
 			holdingRight = false;
 		}
 		if (huntReactTicks > 0) {
+			huntStuckId = -1; // standing and looking round on purpose is not being stuck
 			huntReactTicks--;
 			int elapsed = huntReactTotal - huntReactTicks;
 			// a special mob has been in front of the view at some point: after the first second (a person would need that long to react) go for it
@@ -911,6 +924,22 @@ public final class Runner {
 			huntBehindTicks = 0;
 		}
 		int id = pick == null ? -1 : pick.id();
+		// stuck: the same target for two seconds without moving two blocks and without a click on it (a fight standing still is not stuck): leave it, go for another
+		if (id < 0 || id != huntStuckId || Math.hypot(player.getX() - huntStuckX, player.getZ() - huntStuckZ) >= STUCK_MOVE_BLOCKS
+			|| Math.abs(player.getY() - huntStuckY) >= STUCK_MOVE_BLOCKS) {
+			huntStuckId = id;
+			huntStuckX = player.getX();
+			huntStuckY = player.getY();
+			huntStuckZ = player.getZ();
+			huntStuckSince = ticks;
+		} else if (ticks - huntStuckSince >= STUCK_TICKS && ticks - huntLastClickTick >= STUCK_TICKS) {
+			HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
+			huntStuckId = -1;
+			huntTargetId = -1;
+			Chat.info("Stuck on " + pick.name() + ": going for another.");
+			standStill();
+			return;
+		}
 		int markedTarget = pick == null ? -1 : pick.id();
 		huntMarks = all.stream().map(m -> new HuntMark(m.x(), m.y(), m.z(), m.eyeY(), m.name(),
 			ZealotHunter.matches(m.name(), cfg.killSpecialName), m.id() == markedTarget, HUNTER.isMarkedDead(m.id(), ticks), !cfg.killRequireSight || recentlySeen(m.id()))).toList();
@@ -994,6 +1023,7 @@ public final class Runner {
 				HUNTER.markDead(id, ticks, cfg.killMarkMinSeconds, cfg.killMarkMaxSeconds, HUNT_RANDOM);
 			}
 			huntKills++;
+			huntLastClickTick = ticks;
 			Entity clicked = mc.level.getEntity(id);
 			if (clicked != null) {
 				engage(player, clicked, ZealotHunter.matches(pick.name(), cfg.killSpecialName));
