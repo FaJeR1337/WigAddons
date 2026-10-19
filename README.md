@@ -1,6 +1,6 @@
 # WigAddons
 
-A client-side Fabric mod for Minecraft 26.1.2. Record routes of waypoints with right-clicks, then have the player run them automatically.
+A client-side Fabric mod for Minecraft 26.1.2 and 26.2. Record routes of waypoints with right-clicks, then have the player run them automatically.
 
 ## Kill Protectors
 
@@ -108,4 +108,4 @@ Everything is in `config/WigAddons/`: one `<route>.json` per route (global, not 
 
 ## Building for each game version
 
-The jars are named after the game version they run on: `dist/wigaddons-26.1.2.jar` and `dist/wigaddons-26.2.jar`, each with the Fabric API jar for its version beside it. `./gradlew clean build -Ptarget=26.1.2` (the default) or `-Ptarget=26.2` builds one; the settings for each version are in `versions/<target>.properties`, and the few game calls that differ are in `src/compat/<target>`. The dev smoke test (`-Dwigaddons.smoke=true`) only exists for 26.1.2.
+The finished jars are in `downloads/`, named after the game version they run on: `wigaddons-26.1.2.jar` and `wigaddons-26.2.jar`. Each needs Fabric Loader and the Fabric API for its version (0.155.3+26.1.2 and 0.161.0+26.2). `./gradlew clean build -Ptarget=26.1.2` (the default) or `-Ptarget=26.2` builds one; the settings for each version are in `versions/<target>.properties`, and the few game calls that differ are in `src/compat/<target>`. The dev smoke test (`-Dwigaddons.smoke=true`) only exists for 26.1.2.
