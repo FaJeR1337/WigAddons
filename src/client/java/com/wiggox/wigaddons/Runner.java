@@ -1126,10 +1126,12 @@ public final class Runner {
 		java.util.List<Entity> around = mc.level.getEntities((Entity) null, area);
 		java.util.Map<Integer, ZealotHunter.Mob> found = new java.util.LinkedHashMap<>();
 		for (Entity entity : around) {
-			if (!entity.hasCustomName()) {
+			// player NPCs are mobs too: their name is the profile name (or a custom one), and they are never the player themselves
+			boolean npc = entity instanceof Player && entity != player;
+			if (!entity.hasCustomName() && !npc) {
 				continue;
 			}
-			String name = entity.getCustomName().getString();
+			String name = entity.hasCustomName() ? entity.getCustomName().getString() : entity.getName().getString();
 			if (!ZealotHunter.matches(name, cfg.killName) && !ZealotHunter.matches(name, cfg.killSpecialName)) {
 				continue;
 			}
@@ -1138,7 +1140,7 @@ public final class Runner {
 				body = null;
 				double best = Double.MAX_VALUE;
 				for (Entity other : around) {
-					if (!(other instanceof LivingEntity) || other instanceof ArmorStand || other instanceof Player) {
+					if (!(other instanceof LivingEntity) || other instanceof ArmorStand || other == player) {
 						continue;
 					}
 					double flat = Math.hypot(other.getX() - entity.getX(), other.getZ() - entity.getZ());
@@ -1149,7 +1151,7 @@ public final class Runner {
 					}
 				}
 			}
-			if (body != null && body.isAlive() && !(body instanceof Player)) {
+			if (body != null && body.isAlive() && body != player) {
 				found.putIfAbsent(body.getId(), new ZealotHunter.Mob(body.getId(), name, body.getX(), body.getY(), body.getZ(), body.getEyeY()));
 				HUNT_NAME_OF.put(body.getId(), name);
 				HUNT_NAMED_AT.put(body.getId(), (long) ticks);
@@ -1157,7 +1159,7 @@ public final class Runner {
 		}
 		// a mob that was recognised a moment ago stays recognised when its name tag isn't there for the moment (it lags behind a moving mob, or comes and goes)
 		for (Entity entity : around) {
-			if (found.containsKey(entity.getId()) || !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity instanceof Player || !entity.isAlive()) {
+			if (found.containsKey(entity.getId()) || !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity == player || !entity.isAlive()) {
 				continue;
 			}
 			String remembered = HUNT_NAME_OF.get(entity.getId());
@@ -1169,7 +1171,7 @@ public final class Runner {
 			// no name tag needed: anything of the hunted type within the radius counts
 			String type = cfg.killType.trim();
 			for (Entity entity : around) {
-				if (found.containsKey(entity.getId()) || !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity instanceof Player || !entity.isAlive()) {
+				if (found.containsKey(entity.getId()) || !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity == player || !entity.isAlive()) {
 					continue;
 				}
 				if (!net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().equals(type)) {
