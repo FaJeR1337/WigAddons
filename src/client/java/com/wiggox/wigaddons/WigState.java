@@ -49,7 +49,7 @@ public final class WigState {
 		config = WigConfig.load(CONFIG_FILE);
 		// the file is written back so a fresh install shows every setting that can be tuned
 		saveConfig();
-		zealots = (java.nio.file.Files.exists(ZEALOTS_FILE) ? WigConfig.load(ZEALOTS_FILE) : config.copy()).forZealots();
+		zealots = (java.nio.file.Files.exists(ZEALOTS_FILE) ? WigConfig.load(ZEALOTS_FILE) : WigConfig.zealotDefaults()).forZealots();
 		saveZealots();
 		ROUTES.clear();
 		for (String name : STORE.names()) {

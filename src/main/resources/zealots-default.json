@@ -1,0 +1,131 @@
+{
+  "turnSpeedDegPerTick": 10.0,
+  "rotationStopDegrees": 20.0,
+  "humanizeOffset": 0.4,
+  "macroWarningSeconds": 5.0,
+  "macroSoundVolume": 209.0,
+  "showHud": true,
+  "hudShowTimer": true,
+  "hudShowIcon": true,
+  "hudX": 0.02,
+  "hudY": 0.3,
+  "hudScale": 1.0,
+  "followStopDistance": 3.0,
+  "followResumeDistance": 5.0,
+  "followSprintDistance": 6.0,
+  "followLostSeconds": 5.0,
+  "followLookRadius": 0.5,
+  "followLookInterval": 0.3,
+  "followTurnSmoothing": 2.0,
+  "followShowTrail": true,
+  "killName": "Zealot Bruiser",
+  "killSpecialName": "Special Zealot",
+  "killSearchRadius": 40.0,
+  "killRange": 40.0,
+  "killMarkMinSeconds": 4.0,
+  "killMarkMaxSeconds": 7.0,
+  "killClickTicks": 1,
+  "killSpecialClicks": 3,
+  "killSpawnCooldownSeconds": 0.0,
+  "killMaxDrop": 7,
+  "killByType": false,
+  "killProtectors": true,
+  "protectorSpawnMessage": "The ground begins to shake as an End Stone Protector rises from below!",
+  "protectorDeathMessage": "END STONE PROTECTOR DOWN!",
+  "protectorName": "End Stone Protector",
+  "protectorWarpCommand": "warp drag",
+  "protectorSpots": [
+    [
+      -665.0,
+      8.0,
+      -276.0
+    ],
+    [
+      -689.0,
+      7.0,
+      -272.0
+    ],
+    [
+      -639.0,
+      7.0,
+      -328.0
+    ],
+    [
+      -649.0,
+      7.0,
+      -219.0
+    ],
+    [
+      -678.0,
+      7.0,
+      -332.0
+    ],
+    [
+      -727.0,
+      7.0,
+      -284.0
+    ],
+    [
+      -643.0,
+      7.0,
+      -270.0
+    ]
+  ],
+  "protectorFloorY": 5,
+  "protectorSearchSeconds": 10.0,
+  "protectorHeadTexture": "",
+  "bruiserPortals": [
+    [
+      -617.0,
+      5.0,
+      -269.0
+    ],
+    [
+      -617.0,
+      5.0,
+      -282.0
+    ]
+  ],
+  "bruiserArrival": [
+    618.0,
+    85.0,
+    -203.0
+  ],
+  "safeZoneRadius": 3.0,
+  "killReactMessage": "A special Zealot has spawned nearby!",
+  "killReactMinSeconds": 2.0,
+  "killReactMaxSeconds": 3.0,
+  "killReactEarlySeconds": 1.0,
+  "killReactSeeAngle": 60.0,
+  "killTurnSmoothing": 3.0,
+  "killTurnSpeed": 15.0,
+  "killPathPitch": 8.0,
+  "killPreciseAim": true,
+  "killCloseSmoothing": 0.5,
+  "killPreciseAngle": 10.0,
+  "killShowTags": true,
+  "killTagScale": 0.45,
+  "killType": "minecraft:enderman",
+  "killClickCooldownSeconds": 0.5,
+  "killAimMargin": 0.1,
+  "killMaxLookUp": 50.0,
+  "killPickByCrosshair": true,
+  "killBehindAngle": 100.0,
+  "killBehindDelaySeconds": 0.76,
+  "killUpPenalty": 1.5,
+  "killRequireSight": true,
+  "killAimVisiblePart": true,
+  "killStandWhenCrowded": false,
+  "killStandLimitSeconds": 1.0,
+  "killHomeSet": true,
+  "killHomeX": -551.5,
+  "killHomeY": 56.0,
+  "killHomeZ": -233.5,
+  "killWander": true,
+  "killIdleLookAround": true,
+  "killWanderRadius": 10.0,
+  "followLookOnlyWhenVisible": true,
+  "followNeverJump": false,
+  "pathJumpCost": 12.0,
+  "stuckTimeoutSeconds": 3.0
+}

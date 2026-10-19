@@ -177,6 +177,21 @@ public final class WigConfig {
 		}
 	}
 
+	/** The settings the Zealots tab starts from (zealots-default.json, bundled in the jar), with the fixed Zealot values on top. */
+	public static WigConfig zealotDefaults() {
+		try (java.io.InputStream in = WigConfig.class.getResourceAsStream("/zealots-default.json")) {
+			if (in != null) {
+				WigConfig loaded = GSON.fromJson(new java.io.InputStreamReader(in, StandardCharsets.UTF_8), WigConfig.class);
+				if (loaded != null) {
+					return loaded.sanitised().forZealots();
+				}
+			}
+		} catch (IOException | RuntimeException e) {
+			// the plain defaults below
+		}
+		return new WigConfig().forZealots();
+	}
+
 	/** An independent copy. */
 	public WigConfig copy() {
 		return GSON.fromJson(GSON.toJson(this), WigConfig.class);
