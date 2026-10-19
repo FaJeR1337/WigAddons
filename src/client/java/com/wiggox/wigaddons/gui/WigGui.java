@@ -527,11 +527,6 @@ public final class WigGui {
 		zealotNumber(b, "behinddelay", "Wait before turning round (s)", "How long targets behind you have to be the only ones left before you turn round to them. The target you are already going for is never dropped for this.",
 			() -> config.killBehindDelaySeconds, v -> config.killBehindDelaySeconds = v, 0, 30);
 		zealotNumber(b, "margin", "Aim margin", "How much bigger than the mob's hitbox still counts as looking at it, in blocks.", () -> config.killAimMargin, v -> config.killAimMargin = v, 0, 2);
-		b.toggle("combotest", "Count kills from the Kill Combo (test)", "Test mode: Zealots killed are not worked out from the mobs the run went for, but added up from the chat message \"Your Kill Combo has expired! You reached a 10 Kill Combo!\" (10 kills for that one). The count only moves when a combo ends.",
-			() -> config.killComboTest, v -> {
-				config.killComboTest = v;
-				WigState.saveZealots();
-			});
 	}
 
 	private static void fillHud(DynCategory category) {

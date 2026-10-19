@@ -72,18 +72,8 @@ public final class Runner {
 	/** A Zealots run: the stats on the HUD. Eyes are counted from the chat message for a Summoning Eye drop. */
 	private static boolean zealotsRun;
 	private static int eyes;
-	/** Zealots killed. Only ones this run went for count: it clicked on them, and they were then dead or gone while still near. */
+	/** Zealots killed, added up from the Kill Combo chat messages. */
 	private static int zealotKills;
-
-	private static final class Engaged {
-		int lastClick;
-		double lastDistance;
-		boolean special;
-	}
-
-	private static final java.util.Map<Integer, Engaged> ENGAGED = new java.util.HashMap<>();
-	/** How long after the last click a mob going is still counted as killed by it, in ticks. */
-	private static final int KILL_WINDOW_TICKS = 20 * 2;
 
 	/** The stats shown under the time on the HUD: nothing outside a Zealots run. */
 	public static java.util.List<String> statLines() {
@@ -92,44 +82,6 @@ public final class Runner {
 		}
 		String perEye = eyes > 0 ? String.format(java.util.Locale.ROOT, "%.1f", zealotKills / (double) eyes) : "-";
 		return java.util.List.of("Eyes: " + eyes, "Zealots killed: " + zealotKills, "Kills/Eye: " + perEye);
-	}
-
-	/** Called at every click on a target: from now on its going away counts as a kill. */
-	private static void engage(LocalPlayer player, Entity target, boolean special) {
-		Engaged e = ENGAGED.computeIfAbsent(target.getId(), k -> new Engaged());
-		e.lastClick = ticks;
-		e.special = special;
-		e.lastDistance = player.distanceTo(target);
-	}
-
-	/** Every tick: an engaged mob that is dead or gone while it was near counts once, a special one as an Eye too. */
-	private static void resolveKills(Minecraft mc, LocalPlayer player) {
-		if (cfg().killComboTest) {
-			ENGAGED.clear(); // the Kill Combo messages are counted instead
-			return;
-		}
-		if (ENGAGED.isEmpty() || mc.level == null) {
-			return;
-		}
-		double near = cfg().killSearchRadius;
-		var it = ENGAGED.entrySet().iterator();
-		while (it.hasNext()) {
-			var entry = it.next();
-			Engaged e = entry.getValue();
-			Entity entity = mc.level.getEntity(entry.getKey());
-			if (entity != null && entity.isAlive()) {
-				e.lastDistance = player.distanceTo(entity);
-				if (ticks - e.lastClick > KILL_WINDOW_TICKS) {
-					it.remove(); // still alive long after the last click: not killed by it
-				}
-				continue;
-			}
-			// dead, or gone: a kill only if it was close by (further out it may just have left the loaded area) and the last click was recent
-			if (e.lastDistance <= near && ticks - e.lastClick <= KILL_WINDOW_TICKS) {
-				zealotKills++;
-			}
-			it.remove();
-		}
 	}
 
 	/** While nothing is in range: where the planner is walking to (the home spot, or a spot to stroll to), and how long to stand before the next stroll. */
@@ -408,7 +360,6 @@ public final class Runner {
 		zealotsRun = zealots;
 		eyes = 0;
 		zealotKills = 0;
-		ENGAGED.clear();
 		huntStuckId = -1;
 		huntLastClickTick = -100000;
 		huntCfg = WigState.config.copy();
@@ -491,7 +442,6 @@ public final class Runner {
 		protectorReset();
 		huntCfg = null;
 		zealotsRun = false;
-		ENGAGED.clear();
 		huntMarks = java.util.List.of();
 		hunting = false;
 		fishing = false;
@@ -587,7 +537,6 @@ public final class Runner {
 		}
 		checkTeleport(mc, player);
 		ticks++;
-		resolveKills(mc, player);
 		holdClicks(mc);
 
 		if (planner != null) {
@@ -1028,10 +977,6 @@ public final class Runner {
 			}
 			huntKills++;
 			huntLastClickTick = ticks;
-			Entity clicked = mc.level.getEntity(id);
-			if (clicked != null) {
-				engage(player, clicked, ZealotHunter.matches(pick.name(), cfg.killSpecialName));
-			}
 			HUNT_ORDER.add(pick.name());
 		}
 	}
@@ -2023,7 +1968,7 @@ public final class Runner {
 	private static final java.util.regex.Pattern KILL_COMBO = java.util.regex.Pattern.compile("^Your Kill Combo has expired! You reached a (\\d+) Kill Combo!", java.util.regex.Pattern.CASE_INSENSITIVE);
 
 	public static void onChatLine(String line) {
-		if (zealotsRun && active() && cfg().killComboTest) {
+		if (zealotsRun && active()) {
 			var combo = KILL_COMBO.matcher(line.trim());
 			if (combo.find()) {
 				try {
