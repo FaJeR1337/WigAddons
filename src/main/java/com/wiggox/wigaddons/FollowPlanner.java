@@ -131,6 +131,9 @@ public final class FollowPlanner {
 	private double refX = Double.NaN;
 	private double refZ;
 	private int ticksInWindow;
+	private int prevSector = Integer.MIN_VALUE;
+	/** How far past the edge of its key sector the heading can go before the keys change, in degrees. */
+	private static final double SECTOR_HYSTERESIS = 8.0;
 
 	public FollowPlanner(Params params, Random random) {
 		this.params = params;
@@ -196,13 +199,16 @@ public final class FollowPlanner {
 		}
 		double[] next = detourAround(px, py, pz, nextPoint(target, dist));
 		lastNext = moving ? next : null;
+		if (!moving) {
+			prevSector = Integer.MIN_VALUE;
+		}
 		int forward = 0;
 		int strafe = 0;
 		boolean sprint = false;
 		boolean jump = false;
 		if (moving && next != null) {
 			double moveYaw = RouteFollower.yawTo(next[0] - px, next[2] - pz);
-			int[] keys = keysFor(RouteFollower.wrapDegrees(moveYaw - viewYaw));
+			int[] keys = keysSticky(RouteFollower.wrapDegrees(moveYaw - viewYaw));
 			forward = keys[0];
 			strafe = keys[1];
 			sprint = forward > 0 && dist >= params.sprintDistance();
@@ -546,6 +552,55 @@ public final class FollowPlanner {
 	 * (45 degree steps, so W with A or D up to 67.5, A or D alone to 112.5, S with A or D to 157.5, S alone beyond).
 	 * Returns {forward (1 W, -1 S), strafe (1 A, -1 D)}.
 	 */
+	public int[] keysSticky(double relativeDegrees) {
+		double rel = RouteFollower.wrapDegrees(relativeDegrees);
+		int sector = prevSector != Integer.MIN_VALUE && stillIn(prevSector, rel) ? prevSector : sectorOf(rel);
+		prevSector = sector;
+		return keysOfSector(sector);
+	}
+
+	/** Which key sector an angle falls in: 0 W alone, 1 to 3 ahead, beside and behind to one side (negative the other), 4 straight behind. */
+	private static int sectorOf(double rel) {
+		double a = Math.abs(rel);
+		if (a <= KEYS_W_ONLY) {
+			return 0;
+		}
+		int sector = (int) Math.round(a / 45.0);
+		if (sector == 0) {
+			sector = 1; // past the W alone band but not yet halfway to the next step: the diagonal
+		}
+		return sector >= 4 ? 4 : (rel > 0 ? sector : -sector);
+	}
+
+	private static final double[] SECTOR_LOW = {0, KEYS_W_ONLY, 67.5, 112.5};
+	private static final double[] SECTOR_HIGH = {KEYS_W_ONLY, 67.5, 112.5, 157.5};
+
+	/** Whether the angle is still inside the sector, or just outside it: a heading hovering at the edge of two doesn't flip the keys every tick. */
+	private static boolean stillIn(int sector, double rel) {
+		double a = Math.abs(rel);
+		int p = Math.abs(sector);
+		if (p == 0) {
+			return a <= KEYS_W_ONLY + SECTOR_HYSTERESIS;
+		}
+		if (p >= 4) {
+			return a >= 157.5 - SECTOR_HYSTERESIS;
+		}
+		return Math.signum(rel) == Math.signum(sector) && a >= SECTOR_LOW[p] - SECTOR_HYSTERESIS && a <= SECTOR_HIGH[p] + SECTOR_HYSTERESIS;
+	}
+
+	private static int[] keysOfSector(int sector) {
+		return switch (sector) {
+			case 0 -> new int[] {1, 0};
+			case 1 -> new int[] {1, -1};
+			case 2 -> new int[] {0, -1};
+			case 3 -> new int[] {-1, -1};
+			case -1 -> new int[] {1, 1};
+			case -2 -> new int[] {0, 1};
+			case -3 -> new int[] {-1, 1};
+			default -> new int[] {-1, 0};
+		};
+	}
+
 	public static int[] keysFor(double relativeDegrees) {
 		double rel = RouteFollower.wrapDegrees(relativeDegrees);
 		if (Math.abs(rel) <= KEYS_W_ONLY) {

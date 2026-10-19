@@ -22,6 +22,25 @@ class FollowPlannerTest {
 	}
 
 	@Test
+	void aHeadingAtTheEdgeOfTwoKeySectorsDoesNotFlipTheKeysEveryTick() {
+		FollowPlanner f = new FollowPlanner(params(), new Random(1));
+		assertArrayEquals(new int[] {1, 0}, f.keysSticky(0));
+		// 11 and -11 degrees are outside the W alone band, but within the margin of it: still W alone
+		for (int i = 0; i < 10; i++) {
+			assertArrayEquals(new int[] {1, 0}, f.keysSticky(i % 2 == 0 ? 11 : -11));
+		}
+		// a real change goes through at once
+		assertArrayEquals(new int[] {1, -1}, f.keysSticky(40));
+		assertArrayEquals(new int[] {1, -1}, f.keysSticky(8)); // back near the band: still the diagonal
+		assertArrayEquals(new int[] {1, 0}, f.keysSticky(0));
+		// straight behind, wobbling either side of 180, stays straight behind
+		assertArrayEquals(new int[] {-1, 0}, f.keysSticky(179));
+		assertArrayEquals(new int[] {-1, 0}, f.keysSticky(-175));
+		assertArrayEquals(new int[] {-1, 0}, f.keysSticky(155));
+		assertArrayEquals(new int[] {-1, 0}, f.keysSticky(-150)); // 150 is back in the diagonal's range, but the margin keeps it
+	}
+
+	@Test
 	void keysSnapToTheEightDirectionsWithANarrowWAloneBand() {
 		assertArrayEquals(new int[] {1, 0}, FollowPlanner.keysFor(0));
 		assertArrayEquals(new int[] {1, 0}, FollowPlanner.keysFor(10)); // W alone to 10 degrees
