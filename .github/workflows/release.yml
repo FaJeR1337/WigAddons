@@ -1,0 +1,23 @@
+name: Release
+
+# Pushing a tag like v1.0.0 publishes a release with the jars in downloads/ attached.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" downloads/*.jar \
+            --title "WigAddons ${GITHUB_REF_NAME#v}" \
+            --notes "wigaddons-26.1.2.jar is for Minecraft 26.1.2 (Fabric API 0.155.3+26.1.2) and wigaddons-26.2.jar is for Minecraft 26.2 (Fabric API 0.161.0+26.2)."
