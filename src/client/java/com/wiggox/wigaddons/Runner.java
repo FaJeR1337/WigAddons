@@ -60,7 +60,7 @@ public final class Runner {
 	private static final Random HUNT_RANDOM = new Random();
 	private static int huntTargetId = -1;
 	private static int huntKills;
-	/** A Zealots run: the stats on the HUD. Eyes are the special Zealots killed, counted once they are gone. */
+	/** A Zealots run: the stats on the HUD. Eyes are counted from the chat message for a Summoning Eye drop. */
 	private static boolean zealotsRun;
 	private static int eyes;
 	/** Zealots killed. Only ones this run went for count: it clicked on them, and they were then dead or gone while still near. */
@@ -114,9 +114,6 @@ public final class Runner {
 			// dead, or gone: a kill only if it was close by (further out it may just have left the loaded area) and the last click was recent
 			if (e.lastDistance <= near && ticks - e.lastClick <= KILL_WINDOW_TICKS) {
 				zealotKills++;
-				if (e.special) {
-					eyes++;
-				}
 			}
 			it.remove();
 		}
@@ -1985,7 +1982,13 @@ public final class Runner {
 	/** The protector warp turned out to be locked: no more Protectors this hunt. */
 	private static boolean protBlocked;
 
+	/** "RARE DROP! Summoning Eye", with whatever comes before and after; a colon before the DROP means a player typed it. */
+	private static final java.util.regex.Pattern EYE_DROP = java.util.regex.Pattern.compile("^[^:]{0,40}drop!.*summoning eye", java.util.regex.Pattern.CASE_INSENSITIVE);
+
 	public static void onChatLine(String line) {
+		if (zealotsRun && active() && EYE_DROP.matcher(line).find()) {
+			eyes++;
+		}
 		WigConfig reactCfg = cfg();
 		if (hunting && planner != null && reactCfg.killProtectors && protState != Prot.NONE && ZealotHunter.matches(line, WARP_LOCKED)) {
 			// the warp did not go anywhere: the destination is not unlocked, so there is no protector to get to. Carry on with the Zealots.
