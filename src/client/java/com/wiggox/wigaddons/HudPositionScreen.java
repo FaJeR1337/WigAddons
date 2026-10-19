@@ -32,7 +32,7 @@ public final class HudPositionScreen extends net.minecraft.client.gui.screens.Sc
 		Route route = WigState.selectedRoute();
 		String name = route != null ? route.name() : "My route";
 		ItemStack icon = route != null ? RouteIcons.itemStack(route.icon()) : ItemStack.EMPTY;
-		box = HudOverlay.draw(graphics, minecraft, name, "01:23", icon);
+		box = HudOverlay.draw(graphics, minecraft, name, "01:23", icon, java.util.List.of("Eyes: 0"));
 		graphics.centeredText(font, "Drag the box to move it. Scroll to resize. R puts it back. Esc to finish.", width / 2, height / 2 - 10, 0xFFFFFFFF);
 		graphics.centeredText(font, String.format("Position %.0f%% across, %.0f%% down, scale %.1f", WigState.config.hudX * 100, WigState.config.hudY * 100, WigState.config.hudScale),
 			width / 2, height / 2 + 4, 0xFFAAAAAA);

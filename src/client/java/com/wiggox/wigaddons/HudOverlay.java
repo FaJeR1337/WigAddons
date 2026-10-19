@@ -32,12 +32,12 @@ public final class HudOverlay {
 			if (!Double.isNaN(Runner.followDistance())) {
 				clock += String.format("  %.1f blocks", Runner.followDistance());
 			}
-			draw(graphics, Minecraft.getInstance(), name, clock, icon);
+			draw(graphics, Minecraft.getInstance(), name, clock, icon, Runner.statLines());
 		});
 	}
 
 	/** The size of the box, before scaling. */
-	public static int[] size(Minecraft mc, String name, String clock, ItemStack icon) {
+	public static int[] size(Minecraft mc, String name, String clock, ItemStack icon, java.util.List<String> stats) {
 		WigConfig config = WigState.config;
 		Font font = mc.font;
 		boolean showIcon = config.hudShowIcon && !icon.isEmpty();
@@ -47,6 +47,10 @@ public final class HudOverlay {
 			textWidth = Math.max(textWidth, font.width(clock));
 			lines = 2;
 		}
+		for (String stat : stats) {
+			textWidth = Math.max(textWidth, font.width(stat));
+			lines++;
+		}
 		int width = PADDING * 2 + (showIcon ? ICON + 3 : 0) + textWidth;
 		int height = PADDING * 2 + Math.max(showIcon ? ICON : 0, lines * font.lineHeight + (lines - 1));
 		return new int[] {width, height};
@@ -55,9 +59,9 @@ public final class HudOverlay {
 	/**
 	 * Draws the box where the settings put it and returns where it ended up on screen: left, top, width, height (after scaling).
 	 */
-	public static int[] draw(GuiGraphicsExtractor graphics, Minecraft mc, String name, String clock, ItemStack icon) {
+	public static int[] draw(GuiGraphicsExtractor graphics, Minecraft mc, String name, String clock, ItemStack icon, java.util.List<String> stats) {
 		WigConfig config = WigState.config;
-		int[] size = size(mc, name, clock, icon);
+		int[] size = size(mc, name, clock, icon, stats);
 		double scale = config.hudScale;
 		int scaledWidth = (int) Math.round(size[0] * scale);
 		int scaledHeight = (int) Math.round(size[1] * scale);
@@ -74,11 +78,19 @@ public final class HudOverlay {
 			x += ICON + 3;
 		}
 		Font font = mc.font;
-		int textHeight = (config.hudShowTimer ? 2 * font.lineHeight + 1 : font.lineHeight);
+		int lines = (config.hudShowTimer ? 2 : 1) + stats.size();
+		int textHeight = lines * font.lineHeight + (lines - 1);
 		int y = (size[1] - textHeight) / 2;
 		graphics.text(font, name, x, y, 0xFF000000 | NAME_COLOR, true);
+		int line = 1;
 		if (config.hudShowTimer) {
 			graphics.text(font, clock, x, y + font.lineHeight + 1, 0xFF000000 | TIME_COLOR, true);
+			line = 2;
+		}
+		// the stats of a Zealots run, under the time, always shown
+		for (String stat : stats) {
+			graphics.text(font, stat, x, y + line * (font.lineHeight + 1), 0xFF000000 | NAME_COLOR, true);
+			line++;
 		}
 		graphics.pose().popMatrix();
 		return new int[] {left, top, scaledWidth, scaledHeight};
