@@ -112,6 +112,8 @@ public final class ZealotHunter {
 		Mob bestSpecial = null;
 		Mob best = null;
 		Mob current = null;
+		double currentScore = Double.MAX_VALUE;
+		boolean currentSpecial = false;
 		double specialScore = Double.MAX_VALUE;
 		double bestScore = Double.MAX_VALUE;
 		for (Mob mob : mobs) {
@@ -139,9 +141,18 @@ public final class ZealotHunter {
 			}
 			if (mob.id() == currentId) {
 				current = mob;
+				currentScore = score;
+				currentSpecial = isSpecial;
 			}
 		}
-		Mob chosen = bestSpecial != null ? bestSpecial : current != null ? current : best;
+		// the one being gone for is kept unless another is clearly better, or two close ones (two specials, say) would be swapped every tick
+		double margin = byCrosshair ? 10.0 : 2.0;
+		Mob chosen;
+		if (bestSpecial != null) {
+			chosen = current != null && currentSpecial && currentScore <= specialScore * 1.25 + margin ? current : bestSpecial;
+		} else {
+			chosen = current != null ? current : best;
+		}
 		currentId = chosen == null ? -1 : chosen.id();
 		return chosen;
 	}

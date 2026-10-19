@@ -48,6 +48,19 @@ class ZealotHunterTest {
 	}
 
 	@Test
+	void twoSpecialsNearlyAsGoodDoNotTakeTurnsBeingPicked() {
+		ZealotHunter h = new ZealotHunter();
+		assertEquals(1, pick(h, 0, mob(1, "Special Zealot", 6, 0), mob(2, "Special Zealot", 7, 0)).id());
+		// each tick the other one is a little nearer: the one being gone for stays
+		for (int tick = 1; tick < 20; tick++) {
+			double a = tick % 2 == 0 ? 6.0 : 7.0;
+			assertEquals(1, pick(h, tick, mob(1, "Special Zealot", a, 0), mob(2, "Special Zealot", 13 - a, 0)).id());
+		}
+		// clearly better, though: switch
+		assertEquals(2, pick(h, 30, mob(1, "Special Zealot", 20, 0), mob(2, "Special Zealot", 3, 0)).id());
+	}
+
+	@Test
 	void aMarkedMobIsLeftAloneUntilTheTimeIsUp() {
 		ZealotHunter h = new ZealotHunter();
 		h.markDead(1, 0, 5, 10, new Random(1));
