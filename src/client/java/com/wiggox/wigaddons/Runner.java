@@ -634,12 +634,6 @@ public final class Runner {
 		fishStep(mc, player);
 	}
 
-	/** The human pauses: before reeling in, and before casting again, in milliseconds. */
-	private static final double REEL_MIN_MS = 50;
-	private static final double REEL_MAX_MS = 75;
-	private static final double RECAST_MIN_MS = 50;
-	private static final double RECAST_MAX_MS = 75;
-
 	private static long fishDelay(double minMs, double maxMs) {
 		double lo = Math.min(minMs, maxMs);
 		double hi = Math.max(minMs, maxMs);
@@ -702,23 +696,19 @@ public final class Runner {
 			case WAITING -> {
 				if (hook == null) {
 					fishState = Fish.CAST; // reeled in by something else: cast again
-					fishDueNanos = now + fishDelay(RECAST_MIN_MS, RECAST_MAX_MS);
+					fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
 					return;
 				}
 				if (hook != fishTracked) {
 					fishTracked = hook;
 					fishThrownAt = mc.level.getGameTime(); // the server's tick count when the bobber came out
 				}
-				boolean ready;
-				if (cfg.fishSlug) {
-					// Slug Fish: by the clock, counted in server ticks since the cast, whatever the bobber says
-					ready = fishElapsedTicks(mc) >= Math.round(cfg.fishSlugSeconds * 20.0);
-				} else {
-					ready = bobberText(mc, hook).contains("!!!");
-				}
+				// Slug Fish: nothing is reeled in before the time is up (in server ticks since the cast), and then only on the !!!
+				boolean ready = bobberText(mc, hook).contains("!!!")
+					&& (!cfg.fishSlug || fishElapsedTicks(mc) >= Math.round(cfg.fishSlugSeconds * 20.0));
 				if (ready) {
 					fishState = Fish.REEL;
-					fishDueNanos = now + fishDelay(REEL_MIN_MS, REEL_MAX_MS);
+					fishDueNanos = now + fishDelay(cfg.fishReelMinMs, cfg.fishReelMaxMs);
 				}
 			}
 			case REEL -> {
@@ -731,7 +721,7 @@ public final class Runner {
 					fishCasts++;
 				}
 				fishState = Fish.RECAST;
-				fishDueNanos = now + fishDelay(RECAST_MIN_MS, RECAST_MAX_MS);
+				fishDueNanos = now + fishDelay(cfg.fishRecastMinMs, cfg.fishRecastMaxMs);
 			}
 		}
 	}

@@ -279,16 +279,26 @@ public final class WigGui {
 			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startFish();
 		});
-		b.toggle("slug", "Slug Fish", "Reel in by the clock instead of waiting for !!!: once the bobber has been out for the time below, counted in server ticks since the cast. The timer in seconds shows above the bobber while Slug Fish is on, and turns green once it passes this time.",
+		b.toggle("slug", "Slug Fish", "Do not reel in before the bobber has been out for the time below, counted in server ticks since the cast; after that it reels in on the next !!!. The timer in seconds shows above the bobber while Slug Fish is on, and turns green once it passes this time.",
 			() -> config.fishSlug, v -> {
 				config.fishSlug = v;
 				WigState.saveConfig();
 			});
-		b.slider("slugseconds", "Slug Fish wait (s)", "How many seconds after the cast to reel in, when Slug Fish is on. 10 to 20.",
+		b.slider("slugseconds", "Slug Fish wait (s)", "How many seconds after the cast before it may reel in, when Slug Fish is on. 10 to 20.",
 			10, 20, 1, () -> config.fishSlugSeconds, v -> {
 				config.fishSlugSeconds = v;
 				WigState.saveConfig();
 			});
+		b.section("humanization", "Humanization delays");
+		followNumber(b, "reelmin", "Reel delay, at least (ms)", "The shortest wait between the bobber saying !!! and reeling in.",
+			() -> config.fishReelMinMs, v -> config.fishReelMinMs = v, 0, 2000);
+		followNumber(b, "reelmax", "Reel delay, at most (ms)", "The longest wait between the bobber saying !!! and reeling in.",
+			() -> config.fishReelMaxMs, v -> config.fishReelMaxMs = v, 0, 2000);
+		followNumber(b, "castmin", "Cast delay, at least (ms)", "The shortest wait between reeling in and casting again.",
+			() -> config.fishRecastMinMs, v -> config.fishRecastMinMs = v, 0, 5000);
+		followNumber(b, "castmax", "Cast delay, at most (ms)", "The longest wait between reeling in and casting again.",
+			() -> config.fishRecastMaxMs, v -> config.fishRecastMaxMs = v, 0, 5000);
+		b.endSection();
 	}
 
 	private static void fillHunt(DynCategory category) {

@@ -87,7 +87,12 @@ public final class WigConfig {
 	public double[][] protectorSpots = {{-665, 8, -276}, {-689, 7, -272}, {-639, 7, -328}, {-649, 7, -219}, {-678, 7, -332}, {-727, 7, -284}, {-643, 7, -270}};
 	/** The level the player stands at (feet) round the formations: they are all on the same floor, with the heads four blocks above it. */
 	public int protectorFloorY = 5;
-	/** Slug Fish: reel in this many seconds (10 to 20, in server ticks) after the cast, instead of waiting for the bobber to say !!!. */
+	/** Trophy fishing's human pauses, in milliseconds: before reeling in once the bobber says !!!, and before casting again. */
+	public double fishReelMinMs = 50;
+	public double fishReelMaxMs = 75;
+	public double fishRecastMinMs = 50;
+	public double fishRecastMaxMs = 75;
+	/** Slug Fish: once the bobber has been out this many seconds (10 to 20, in server ticks), reel in on the next !!! (not before the time, whatever the bobber says). */
 	public boolean fishSlug = false;
 	public double fishSlugSeconds = 15;
 	public double protectorSearchSeconds = 10.0;
@@ -360,6 +365,14 @@ public final class WigConfig {
 			|| (protectorSpots.length == 1 && protectorSpots[0].length == 3 && protectorSpots[0][0] == -665 && protectorSpots[0][1] == 8 && protectorSpots[0][2] == -276)) {
 			// nothing set, or still only the one place it started with: the known spawn locations
 			protectorSpots = d.protectorSpots;
+		}
+		if (!(fishReelMinMs >= 0) || !(fishReelMaxMs >= 0)) {
+			fishReelMinMs = d.fishReelMinMs;
+			fishReelMaxMs = d.fishReelMaxMs;
+		}
+		if (!(fishRecastMinMs >= 0) || !(fishRecastMaxMs >= 0)) {
+			fishRecastMinMs = d.fishRecastMinMs;
+			fishRecastMaxMs = d.fishRecastMaxMs;
 		}
 		fishSlugSeconds = Double.isNaN(fishSlugSeconds) ? d.fishSlugSeconds : Math.max(10.0, Math.min(20.0, fishSlugSeconds));
 		if (!(protectorSearchSeconds >= 0)) {
