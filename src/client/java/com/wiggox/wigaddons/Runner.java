@@ -104,6 +104,10 @@ public final class Runner {
 
 	/** Every tick: an engaged mob that is dead or gone while it was near counts once, a special one as an Eye too. */
 	private static void resolveKills(Minecraft mc, LocalPlayer player) {
+		if (cfg().killComboTest) {
+			ENGAGED.clear(); // the Kill Combo messages are counted instead
+			return;
+		}
 		if (ENGAGED.isEmpty() || mc.level == null) {
 			return;
 		}
@@ -2015,7 +2019,20 @@ public final class Runner {
 	/** "RARE DROP! Summoning Eye", with whatever comes before and after; a colon before the DROP means a player typed it. */
 	private static final java.util.regex.Pattern EYE_DROP = java.util.regex.Pattern.compile("^[^:]{0,40}drop!.*summoning eye", java.util.regex.Pattern.CASE_INSENSITIVE);
 
+	/** "Your Kill Combo has expired! You reached a 10 Kill Combo!": that many kills. */
+	private static final java.util.regex.Pattern KILL_COMBO = java.util.regex.Pattern.compile("^Your Kill Combo has expired! You reached a (\\d+) Kill Combo!", java.util.regex.Pattern.CASE_INSENSITIVE);
+
 	public static void onChatLine(String line) {
+		if (zealotsRun && active() && cfg().killComboTest) {
+			var combo = KILL_COMBO.matcher(line.trim());
+			if (combo.find()) {
+				try {
+					zealotKills += Integer.parseInt(combo.group(1));
+				} catch (NumberFormatException e) {
+					// not a number: ignored
+				}
+			}
+		}
 		if (zealotsRun && active() && EYE_DROP.matcher(line).find()) {
 			eyes++;
 		}
