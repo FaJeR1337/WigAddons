@@ -603,6 +603,7 @@ public final class Runner {
 	/** Counts every client tick (the run's own tick count only moves while a run is going). */
 	private static long jerryClock;
 	private static long jerryArmedUntil;
+	private static final java.util.Set<String> JERRY_SEEN = new java.util.HashSet<>();
 	/** The run was started just for the Jerry, and ends with it. */
 	private static boolean jerryOnly;
 	/** The fishing spot and view, to go back to after the Jerry is dead. */
@@ -657,7 +658,7 @@ public final class Runner {
 			return;
 		}
 		// only Jerries with the player's own name: "<name>'s Green Jerry", never anyone else's
-		java.util.regex.Pattern mine = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(player.getName().getString()) + "'s (green|golden|purple|blue) jerry",
+		java.util.regex.Pattern mine = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(player.getName().getString()) + "\\s*['\u2019\u2018`\u00b4\u02bc]\\s*s (green|golden|purple|blue) jerry",
 			java.util.regex.Pattern.CASE_INSENSITIVE);
 		java.util.List<Entity> around = mc.level.getEntities((Entity) null, player.getBoundingBox().inflate(48));
 		Entity best = null;
@@ -690,6 +691,17 @@ public final class Runner {
 			}
 		}
 		if (best == null) {
+			if (jerryClock % 60 == 0) {
+				// every three seconds while looking: what Jerry-like names are about, so a mismatch shows
+				for (Entity entity : around) {
+					if (entity.hasCustomName() && entity.getCustomName() != null && entity.getCustomName().getString().toLowerCase(java.util.Locale.ROOT).contains("jerry")) {
+						String shown = entity.getCustomName().getString() + " (" + entity.getType().toShortString() + ")";
+						if (JERRY_SEEN.add(shown)) {
+							Chat.info("Jerry here but not yours: \"" + shown + "\"; looking for " + player.getName().getString() + "'s.");
+						}
+					}
+				}
+			}
 			return;
 		}
 		if (!active()) {
@@ -2227,6 +2239,8 @@ public final class Runner {
 	public static void onChatLine(String line) {
 		if (WigState.config.jerryKill && JERRY_SPAWN.matcher(line).find()) {
 			jerryArmedUntil = jerryClock + 20 * 90; // look for the player's own Jerry for a minute and a half
+			JERRY_SEEN.clear();
+			Chat.info("A Jerry has spawned: looking for yours.");
 		}
 		if (zealotsRun && active()) {
 			var combo = KILL_COMBO.matcher(line.trim());
