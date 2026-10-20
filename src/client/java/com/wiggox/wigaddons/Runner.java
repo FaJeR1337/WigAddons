@@ -660,7 +660,7 @@ public final class Runner {
 		// only Jerries with the player's own name: "<name>'s Green Jerry", never anyone else's
 		java.util.regex.Pattern mine = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(player.getName().getString()) + "\\s*['\u2019\u2018`\u00b4\u02bc]\\s*s (green|golden|purple|blue) jerry",
 			java.util.regex.Pattern.CASE_INSENSITIVE);
-		java.util.List<Entity> around = mc.level.getEntities((Entity) null, player.getBoundingBox().inflate(48));
+		java.util.List<Entity> around = mc.level.getEntities((Entity) null, player.getBoundingBox().inflate(96));
 		Entity best = null;
 		double bestDistance = Double.MAX_VALUE;
 		for (Entity entity : around) {
@@ -2238,7 +2238,7 @@ public final class Runner {
 
 	public static void onChatLine(String line) {
 		if (WigState.config.jerryKill && JERRY_SPAWN.matcher(line).find()) {
-			jerryArmedUntil = jerryClock + 20 * 90; // look for the player's own Jerry for a minute and a half
+			jerryArmedUntil = jerryClock + 20 * 180; // look for the player's own Jerry for three minutes: it can take a while to show up
 			JERRY_SEEN.clear();
 			Chat.info("A Jerry has spawned: looking for yours.");
 		}
