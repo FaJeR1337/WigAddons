@@ -639,6 +639,11 @@ public final class Runner {
 		return colour && verb;
 	}
 
+	/** For the dev test. */
+	public static String jerryStateName() {
+		return jerryState.name();
+	}
+
 	/** True while the Jerry script has taken over from whatever else is running. */
 	private static boolean jerryBusy() {
 		return jerryState != JerryState.IDLE;
