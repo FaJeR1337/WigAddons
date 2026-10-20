@@ -618,8 +618,10 @@ public final class Runner {
 	private static boolean jerryCanPunch;
 	private static int jerryPunchId = -1;
 	private static long jerryNextPunchNanos;
-	/** How far a punch reaches: it is only thrown, and sneaking only done, within this many blocks. */
-	private static final double JERRY_REACH = 4.0;
+	/** Within this many blocks it stops walking and sneaks. */
+	private static final double JERRY_CLOSE = 2.5;
+	/** Punches start from this far: in sight and with the crosshair on it, even while still walking up to it. */
+	private static final double JERRY_PUNCH_RANGE = 4.0;
 	/** Punches per second: never more than 9, a little random below that (8 to 9). */
 	private static final double JERRY_MAX_CPS = 9.0;
 	private static final double JERRY_CPS_SPREAD = 1.0;
@@ -787,18 +789,21 @@ public final class Runner {
 		Vec3 eye = player.getEyePosition();
 		AABB box = target.getBoundingBox();
 		Vec3 nearest = new Vec3(Math.max(box.minX, Math.min(eye.x, box.maxX)), Math.max(box.minY, Math.min(eye.y, box.maxY)), Math.max(box.minZ, Math.min(eye.z, box.maxZ)));
-		boolean inReach = eye.distanceTo(nearest) <= JERRY_REACH;
+		double reach = eye.distanceTo(nearest);
 		boolean visible = !Double.isInfinite(visiblePartY(mc, player, target));
 		double lookY = target.getY() + target.getBbHeight() * 0.5;
-		if (inReach && visible) {
-			// close enough to hit: stand still, sneak, and punch (at a human rate, see jerryClickStep) while the crosshair is on it
+		// punches from 4 blocks, as long as it is in sight and under the crosshair (see jerryClickStep for the rate)
+		// the game's own crosshair target only reaches 3 blocks, so the look ray is tested against the hitbox here
+		Vec3 end = eye.add(player.getViewVector(1.0F).scale(JERRY_PUNCH_RANGE));
+		boolean onIt = box.inflate(0.1).clip(eye, end).isPresent();
+		jerryCanPunch = reach <= JERRY_PUNCH_RANGE && visible && onIt;
+		jerryPunchId = target.getId();
+		if (reach <= JERRY_CLOSE && visible) {
+			// close: stand still and sneak
 			standStill();
 			sneaking = true;
-			jerryCanPunch = mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit && hit.getEntity() == target;
-			jerryPunchId = target.getId();
 		} else {
-			// not there yet: no punching, no sneaking, run to it
-			jerryCanPunch = false;
+			// not that close yet: no sneaking, keep running up to it
 			if (protState == Prot.NONE) {
 				sneaking = false;
 			}
