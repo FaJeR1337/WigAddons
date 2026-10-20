@@ -149,6 +149,7 @@ public final class WigGui {
 			new DynCategory("hunt", "Hunt", "Hunting mobs with /wig kill."),
 			new DynCategory("zealots", "Zealots", "/wig zealots"),
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
+			new DynCategory("jerry", "Jerry", "Jerries."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
 		fillAll();
@@ -176,6 +177,7 @@ public final class WigGui {
 				case "hunt" -> fillHunt(category);
 				case "zealots" -> fillZealots(category);
 				case "fishing" -> fillFishing(category);
+				case "jerry" -> fillJerry(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
 				default -> {
@@ -270,6 +272,17 @@ public final class WigGui {
 	}
 
 	// ---- HUD ----
+
+	private static void fillJerry(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.toggle("kill", "Kill Jerries", "Will kill your jerries and prioritize them from other scripts running.",
+			() -> config.jerryKill, v -> {
+				config.jerryKill = v;
+				WigState.saveConfig();
+			});
+	}
 
 	private static void fillFishing(DynCategory category) {
 		reset(category);

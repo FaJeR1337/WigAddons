@@ -199,6 +199,9 @@ public final class Runner {
 		if (follower != null) {
 			return runName;
 		}
+		if (jerryOnly && planner != null) {
+			return "Killing Jerry";
+		}
 		if (fishing && planner != null) {
 			return "Trophy fishing";
 		}
@@ -406,6 +409,7 @@ public final class Runner {
 		if (!active()) {
 			return;
 		}
+		jerryArmedUntil = 0; // stopped on purpose: no Jerry takes the run back
 		end();
 		Chat.info("Stopped: " + reason + ".");
 	}
@@ -439,6 +443,7 @@ public final class Runner {
 
 	private static void end() {
 		releaseClicks();
+		jerryReset();
 		protectorReset();
 		huntCfg = null;
 		zealotsRun = false;
@@ -471,6 +476,7 @@ public final class Runner {
 	 */
 	public static void tick(Minecraft mc) {
 		samplePing();
+		jerryPrepare(mc);
 		if (!active()) {
 			return;
 		}
@@ -538,6 +544,9 @@ public final class Runner {
 		checkTeleport(mc, player);
 		ticks++;
 		holdClicks(mc);
+		if (jerryControl(mc, player)) {
+			return; // the Jerry first: nothing else moves the player until it is dead
+		}
 
 		if (planner != null) {
 			if (fishing) {
@@ -584,6 +593,252 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	// ---- Jerry ----
+
+	private enum JerryState { IDLE, KILL, RETURN }
+	private static JerryState jerryState = JerryState.IDLE;
+	private static int jerryTargetId = -1;
+	/** Counts every client tick (the run's own tick count only moves while a run is going). */
+	private static long jerryClock;
+	private static long jerryArmedUntil;
+	/** The run was started just for the Jerry, and ends with it. */
+	private static boolean jerryOnly;
+	/** The fishing spot and view, to go back to after the Jerry is dead. */
+	private static double[] jerryHome;
+	private static float jerryHomeYaw;
+	private static float jerryHomePitch;
+	private static final double[] JERRY_GOAL = new double[3];
+	private static FollowPlanner jerryPlanner;
+	private static double[] jerryGoalRef;
+	private static int jerryStuckTicks;
+	/** Set every tick by the walk to the Jerry: it is close enough, in sight and under the crosshair, so punches may be thrown. */
+	private static boolean jerryCanPunch;
+	private static int jerryPunchId = -1;
+	private static long jerryNextPunchNanos;
+	/** How far a punch reaches: it is only thrown, and sneaking only done, within this many blocks. */
+	private static final double JERRY_REACH = 2.5;
+	/** Punches per second: never more than 9, a little random below that (8 to 9). */
+	private static final double JERRY_MAX_CPS = 9.0;
+	private static final double JERRY_CPS_SPREAD = 1.0;
+	/** The ways the server says a Jerry has spawned, whatever the colour. */
+	private static final java.util.regex.Pattern JERRY_SPAWN = java.util.regex.Pattern.compile(
+		"you found a (?:purple|green|blue|golden) jerry!"
+			+ "|some (?:purple|green|blue|golden) jerry was hiding, but you found it!"
+			+ "|a wild (?:purple|green|blue|golden) jerry spawned!"
+			+ "|a (?:purple|green|blue|golden) jerry appeared!"
+			+ "|there is a (?:purple|green|blue|golden) jerry!"
+			+ "|you located a hidden (?:purple|green|blue|golden) jerry!"
+			+ "|you discovered a (?:purple|green|blue|golden) jerry!",
+		java.util.regex.Pattern.CASE_INSENSITIVE);
+
+	/** True while the Jerry script has taken over from whatever else is running. */
+	private static boolean jerryBusy() {
+		return jerryState != JerryState.IDLE;
+	}
+
+	private static void jerryReset() {
+		jerryState = JerryState.IDLE;
+		jerryTargetId = -1;
+		jerryOnly = false;
+		jerryHome = null;
+		jerryPlanner = null;
+		jerryGoalRef = null;
+		jerryCanPunch = false;
+	}
+
+	/** Every tick, before anything else: finds your own Jerry after its spawn message, and starts a run of its own for it when nothing is running. */
+	private static void jerryPrepare(Minecraft mc) {
+		jerryClock++;
+		LocalPlayer player = mc.player;
+		if (player == null || mc.level == null || !WigState.config.jerryKill || jerryState != JerryState.IDLE
+			|| jerryClock > jerryArmedUntil || jerryClock % 10 != 0) {
+			return;
+		}
+		// only Jerries with the player's own name: "<name>'s Green Jerry", never anyone else's
+		java.util.regex.Pattern mine = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(player.getName().getString()) + "'s (green|golden|purple|blue) jerry",
+			java.util.regex.Pattern.CASE_INSENSITIVE);
+		java.util.List<Entity> around = mc.level.getEntities((Entity) null, player.getBoundingBox().inflate(48));
+		Entity best = null;
+		double bestDistance = Double.MAX_VALUE;
+		for (Entity entity : around) {
+			if (!entity.hasCustomName() || entity.getCustomName() == null || !mine.matcher(entity.getCustomName().getString()).find()) {
+				continue;
+			}
+			Entity body = entity;
+			if (entity instanceof ArmorStand) {
+				// a name tag stand: the Jerry is the mob right under it
+				body = null;
+				double nearest = Double.MAX_VALUE;
+				for (Entity other : around) {
+					if (!(other instanceof LivingEntity) || other instanceof ArmorStand || other == player) {
+						continue;
+					}
+					double flat = Math.hypot(other.getX() - entity.getX(), other.getZ() - entity.getZ());
+					double above = entity.getY() - other.getY();
+					if (flat < NAME_TAG_REACH && above > -0.5 && above < 4.0 && flat < nearest) {
+						nearest = flat;
+						body = other;
+					}
+				}
+			}
+			if (body != null && body != player && body.isAlive() && player.distanceTo(body) < bestDistance) {
+				bestDistance = player.distanceTo(body);
+				best = body;
+			}
+		}
+		if (best == null) {
+			return;
+		}
+		if (!active()) {
+			startFollow("jerry", () -> null);
+			jerryOnly = true;
+		} else if (fishing) {
+			// the spot and view to come back to
+			jerryHome = new double[] {player.getX(), player.getY(), player.getZ()};
+			jerryHomeYaw = player.getYRot();
+			jerryHomePitch = player.getXRot();
+		}
+		jerryTargetId = best.getId();
+		jerryState = JerryState.KILL;
+		jerryGoalRef = null;
+		Chat.info("Going for your Jerry.");
+	}
+
+	/** Called while a run is going: drives the player to the Jerry and punches it. Returns true when it used the tick, so nothing else moves the player. */
+	private static boolean jerryControl(Minecraft mc, LocalPlayer player) {
+		if (jerryState == JerryState.IDLE) {
+			if (jerryOnly) {
+				end(); // a run that was only for the Jerry: over, and nothing left to dispatch this tick
+				return true;
+			}
+			return false;
+		}
+		if (jerryState == JerryState.KILL) {
+			Entity target = mc.level.getEntity(jerryTargetId);
+			if (WigState.config.jerryKill && target != null && target.isAlive()) {
+				killJerry(mc, player, target);
+				return true;
+			}
+			// dead (or gone), or the option was switched off: stop punching and sneaking, then back to the fishing spot if that was running
+			jerryCanPunch = false;
+			if (protState == Prot.NONE) {
+				sneaking = false;
+			}
+			jerryTargetId = -1;
+			if (jerryHome != null && fishing) {
+				jerryState = JerryState.RETURN;
+			} else {
+				jerryState = JerryState.IDLE;
+				if (jerryOnly) {
+					end();
+					return true;
+				}
+				return false;
+			}
+		}
+		// RETURN: walk back to the fishing spot and face the way it was facing
+		double flat = Math.hypot(jerryHome[0] - player.getX(), jerryHome[2] - player.getZ());
+		if (flat > 0.3) {
+			JERRY_GOAL[0] = jerryHome[0];
+			JERRY_GOAL[1] = jerryHome[1];
+			JERRY_GOAL[2] = jerryHome[2];
+			jerryWalk(player, JERRY_GOAL, false, 0.25, 0.5);
+			return true;
+		}
+		standStill();
+		aimYaw = jerryHomeYaw;
+		pitchTarget = jerryHomePitch;
+		haveAim = true;
+		if (Math.abs(RouteFollower.wrapDegrees(player.getYRot() - jerryHomeYaw)) < 2.0 && Math.abs(player.getXRot() - jerryHomePitch) < 2.0) {
+			jerryState = JerryState.IDLE;
+			jerryHome = null;
+			expectedYaw = player.getYRot();
+			expectedPitch = player.getXRot();
+		}
+		return true;
+	}
+
+	private static void killJerry(Minecraft mc, LocalPlayer player, Entity target) {
+		Vec3 eye = player.getEyePosition();
+		AABB box = target.getBoundingBox();
+		Vec3 nearest = new Vec3(Math.max(box.minX, Math.min(eye.x, box.maxX)), Math.max(box.minY, Math.min(eye.y, box.maxY)), Math.max(box.minZ, Math.min(eye.z, box.maxZ)));
+		boolean inReach = eye.distanceTo(nearest) <= JERRY_REACH;
+		boolean visible = !Double.isInfinite(visiblePartY(mc, player, target));
+		double lookY = target.getY() + target.getBbHeight() * 0.5;
+		if (inReach && visible) {
+			// close enough to hit: stand still, sneak, and punch (at a human rate, see jerryClickStep) while the crosshair is on it
+			standStill();
+			sneaking = true;
+			jerryCanPunch = mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit && hit.getEntity() == target;
+			jerryPunchId = target.getId();
+		} else {
+			// not there yet: no punching, no sneaking, run to it
+			jerryCanPunch = false;
+			if (protState == Prot.NONE) {
+				sneaking = false;
+			}
+			JERRY_GOAL[0] = target.getX();
+			JERRY_GOAL[1] = target.getY();
+			JERRY_GOAL[2] = target.getZ();
+			jerryWalk(player, JERRY_GOAL, true, 1.2, 1.8);
+		}
+		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), target.getX(), target.getZ());
+		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), target.getX(), lookY, target.getZ());
+		haveAim = true;
+	}
+
+	/** Runs every tick and every frame: a punch at no more than 9 a second, the gap drawn again each time (8 to 9 a second), only while it can be hit. */
+	private static void jerryClickStep(Minecraft mc, LocalPlayer player) {
+		if (jerryState != JerryState.KILL || !jerryCanPunch || mc.gameMode == null || mc.level == null) {
+			return;
+		}
+		long now = System.nanoTime();
+		if (now < jerryNextPunchNanos) {
+			return;
+		}
+		Entity target = mc.level.getEntity(jerryPunchId);
+		if (target == null || !target.isAlive()) {
+			return;
+		}
+		mc.gameMode.attack(player, target);
+		player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+		double cps = JERRY_MAX_CPS - HUNT_RANDOM.nextDouble() * JERRY_CPS_SPREAD;
+		jerryNextPunchNanos = now + Math.round(1_000_000_000.0 / cps);
+	}
+
+	/** Walks toward the goal with the path finder, straight at it when there is no path: 0 still going, 1 arrived. */
+	private static int jerryWalk(LocalPlayer player, double[] goal, boolean sprint, double stop, double resume) {
+		WigConfig c = WigState.config;
+		if (jerryGoalRef != goal || jerryPlanner == null) {
+			jerryGoalRef = goal;
+			jerryPlanner = new FollowPlanner(new FollowPlanner.Params(stop, resume, 6.0, 1.0, 0, c.followNeverJump, c.stuckTimeoutSeconds, false, 0, 2, true, c.pathJumpCost), new Random());
+			jerryPlanner.setTerrain(new WorldTerrain());
+		}
+		FollowPlanner.Output out = jerryPlanner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
+			new FollowPlanner.Target(goal[0], goal[1], goal[2], goal[1] + 1.62), player.onGround(), player.horizontalCollision);
+		if (out.status() == FollowPlanner.Status.CLOSE) {
+			standStill();
+			return 1;
+		}
+		if (out.status() == FollowPlanner.Status.STUCK) {
+			if (++jerryStuckTicks > 60) {
+				jerryStuckTicks = 0;
+				jerryPlanner = null;
+			}
+			moveForward = 1;
+			strafe = 0;
+			sprintOn = sprint;
+			jump = player.horizontalCollision && player.onGround();
+			return 0;
+		}
+		jerryStuckTicks = 0;
+		moveForward = out.forward();
+		strafe = out.strafe();
+		sprintOn = sprint && out.forward() > 0;
+		jump = out.jump();
+		return 0;
 	}
 
 	// ---- trophy fishing ----
@@ -702,7 +957,7 @@ public final class Runner {
 
 	/** Runs every tick and every frame. */
 	private static void fishStep(Minecraft mc, LocalPlayer player) {
-		if (!fishing || mc.gameMode == null || macroCountdown >= 0) {
+		if (!fishing || mc.gameMode == null || macroCountdown >= 0 || jerryBusy()) {
 			return;
 		}
 		WigConfig cfg = cfg();
@@ -1307,6 +1562,7 @@ public final class Runner {
 			return;
 		}
 		checkView(player);
+		jerryClickStep(mc, player);
 		if (fishing) {
 			fishStep(mc, player); // between ticks too, so the delays are not rounded up to whole ticks
 		}
@@ -1968,6 +2224,9 @@ public final class Runner {
 	private static final java.util.regex.Pattern KILL_COMBO = java.util.regex.Pattern.compile("^Your Kill Combo has expired! You reached a (\\d+) Kill Combo!", java.util.regex.Pattern.CASE_INSENSITIVE);
 
 	public static void onChatLine(String line) {
+		if (WigState.config.jerryKill && JERRY_SPAWN.matcher(line).find()) {
+			jerryArmedUntil = jerryClock + 20 * 90; // look for the player's own Jerry for a minute and a half
+		}
 		if (zealotsRun && active()) {
 			var combo = KILL_COMBO.matcher(line.trim());
 			if (combo.find()) {
