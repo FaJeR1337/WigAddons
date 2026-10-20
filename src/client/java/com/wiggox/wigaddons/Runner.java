@@ -603,7 +603,6 @@ public final class Runner {
 	/** Counts every client tick (the run's own tick count only moves while a run is going). */
 	private static long jerryClock;
 	private static long jerryArmedUntil;
-	private static final java.util.Set<String> JERRY_SEEN = new java.util.HashSet<>();
 	/** The run was started just for the Jerry, and ends with it. */
 	private static boolean jerryOnly;
 	/** The fishing spot and view, to go back to after the Jerry is dead. */
@@ -703,17 +702,6 @@ public final class Runner {
 			}
 		}
 		if (best == null) {
-			if (jerryClock % 60 == 0) {
-				// every three seconds while looking: what Jerry-like names are about, so a mismatch shows
-				for (Entity entity : around) {
-					if (entity.hasCustomName() && entity.getCustomName() != null && entity.getCustomName().getString().toLowerCase(java.util.Locale.ROOT).contains("jerry")) {
-						String shown = entity.getCustomName().getString() + " (" + entity.getType().toShortString() + ")";
-						if (JERRY_SEEN.add(shown)) {
-							Chat.info("Jerry here but not yours: \"" + shown + "\"; looking for " + player.getName().getString() + "'s.");
-						}
-					}
-				}
-			}
 			return;
 		}
 		if (!active()) {
@@ -728,7 +716,6 @@ public final class Runner {
 		jerryTargetId = best.getId();
 		jerryState = JerryState.KILL;
 		jerryGoalRef = null;
-		Chat.info("Going for your Jerry.");
 	}
 
 	/** Called while a run is going: drives the player to the Jerry and punches it. Returns true when it used the tick, so nothing else moves the player. */
@@ -2253,13 +2240,9 @@ public final class Runner {
 
 	public static void onChatLine(String line) {
 		boolean jerrySpawn = WigState.config.jerryKill && isJerrySpawnLine(line);
-		if (WigState.config.jerryKill && !jerrySpawn && !line.startsWith("[WigAddons]") && line.toLowerCase(java.util.Locale.ROOT).contains("jerry")) {
-			Chat.info("A chat line with Jerry in it, not one of the spawn messages: \"" + line + "\"");
-		}
 		if (jerrySpawn) {
 			jerryArmedUntil = jerryClock + 20 * 180; // look for the player's own Jerry for three minutes: it can take a while to show up
-			JERRY_SEEN.clear();
-			Chat.info("A Jerry has spawned: looking for yours.");
+			Chat.info("Jerry spawned, killing it.");
 		}
 		if (zealotsRun && active()) {
 			var combo = KILL_COMBO.matcher(line.trim());
