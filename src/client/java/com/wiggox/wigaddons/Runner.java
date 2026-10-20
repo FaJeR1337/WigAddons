@@ -666,13 +666,14 @@ public final class Runner {
 			if (!entity.hasCustomName() || entity.getCustomName() == null || !mine.matcher(entity.getCustomName().getString()).find()) {
 				continue;
 			}
-			Entity body = entity;
-			if (entity instanceof ArmorStand) {
-				// a name tag stand: the Jerry is the mob right under it
-				body = null;
+			// a Jerry is a villager: the villager itself when it carries the name, else the one right under a name tag stand
+			Entity body = null;
+			if (entity instanceof net.minecraft.world.entity.npc.villager.Villager) {
+				body = entity;
+			} else if (entity instanceof ArmorStand) {
 				double nearest = Double.MAX_VALUE;
 				for (Entity other : around) {
-					if (!(other instanceof LivingEntity) || other instanceof ArmorStand || other == player) {
+					if (!(other instanceof net.minecraft.world.entity.npc.villager.Villager)) {
 						continue;
 					}
 					double flat = Math.hypot(other.getX() - entity.getX(), other.getZ() - entity.getZ());
@@ -683,7 +684,7 @@ public final class Runner {
 					}
 				}
 			}
-			if (body != null && body != player && body.isAlive() && player.distanceTo(body) < bestDistance) {
+			if (body != null && body.isAlive() && player.distanceTo(body) < bestDistance) {
 				bestDistance = player.distanceTo(body);
 				best = body;
 			}
