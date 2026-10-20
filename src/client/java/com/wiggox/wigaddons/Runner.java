@@ -603,6 +603,8 @@ public final class Runner {
 	/** Counts every client tick (the run's own tick count only moves while a run is going). */
 	private static long jerryClock;
 	private static long jerryArmedUntil;
+	/** When the Jerry was taken on: after a minute without killing it the script gives up and the other script carries on. */
+	private static long jerryStartedAt;
 	/** The run was started just for the Jerry, and ends with it. */
 	private static boolean jerryOnly;
 	/** The fishing spot and view, to go back to after the Jerry is dead. */
@@ -714,6 +716,7 @@ public final class Runner {
 			jerryHomePitch = player.getXRot();
 		}
 		jerryTargetId = best.getId();
+		jerryStartedAt = jerryClock;
 		jerryState = JerryState.KILL;
 		jerryGoalRef = null;
 	}
@@ -729,11 +732,12 @@ public final class Runner {
 		}
 		if (jerryState == JerryState.KILL) {
 			Entity target = mc.level.getEntity(jerryTargetId);
-			if (WigState.config.jerryKill && target != null && target.isAlive()) {
+			if (WigState.config.jerryKill && target != null && target.isAlive() && jerryClock - jerryStartedAt < 20 * 60) {
 				killJerry(mc, player, target);
 				return true;
 			}
 			// dead (or gone), or the option was switched off: stop punching and sneaking, then back to the fishing spot if that was running
+			jerryArmedUntil = 0; // done with this Jerry: nothing more is looked for until the next spawn message
 			jerryCanPunch = false;
 			if (protState == Prot.NONE) {
 				sneaking = false;
@@ -2241,7 +2245,7 @@ public final class Runner {
 	public static void onChatLine(String line) {
 		boolean jerrySpawn = WigState.config.jerryKill && isJerrySpawnLine(line);
 		if (jerrySpawn) {
-			jerryArmedUntil = jerryClock + 20 * 180; // look for the player's own Jerry for three minutes: it can take a while to show up
+			jerryArmedUntil = jerryClock + 20 * 60; // look for the player's own Jerry for a minute after the message
 			Chat.info("Jerry spawned, killing it.");
 		}
 		if (zealotsRun && active()) {
