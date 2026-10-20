@@ -666,7 +666,7 @@ public final class Runner {
 	private static void jerryPrepare(Minecraft mc) {
 		jerryClock++;
 		LocalPlayer player = mc.player;
-		if (player == null || mc.level == null || !WigState.config.jerryKill || jerryState != JerryState.IDLE
+		if (player == null || mc.level == null || !WigState.config.jerryKill || !active() || jerryState != JerryState.IDLE
 			|| jerryClock > jerryArmedUntil || jerryClock % 10 != 0) {
 			return;
 		}
@@ -706,10 +706,7 @@ public final class Runner {
 		if (best == null) {
 			return;
 		}
-		if (!active()) {
-			startFollow("jerry", () -> null);
-			jerryOnly = true;
-		} else if (fishing) {
+		if (fishing) {
 			// the spot and view to come back to
 			jerryHome = new double[] {player.getX(), player.getY(), player.getZ()};
 			jerryHomeYaw = player.getYRot();
@@ -2244,7 +2241,7 @@ public final class Runner {
 
 	public static void onChatLine(String line) {
 		boolean jerrySpawn = WigState.config.jerryKill && isJerrySpawnLine(line);
-		if (jerrySpawn) {
+		if (jerrySpawn && active()) {
 			jerryArmedUntil = jerryClock + 20 * 60; // look for the player's own Jerry for a minute after the message
 			Chat.info("Jerry spawned, killing it.");
 		}
