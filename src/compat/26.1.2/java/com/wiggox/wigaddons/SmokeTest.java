@@ -87,7 +87,14 @@ final class SmokeTest {
 					command(mc, "tp @s 0.5 -60 0.5 0 0");
 					command(mc, "gamerule doDaylightCycle false");
 					command(mc, "time set noon");
-					next();
+					// -Dwigaddons.smoke.phase=N skips ahead to one phase, to try only that
+					int jump = Integer.getInteger("wigaddons.smoke.phase", 0);
+					if (jump > 0) {
+						phase = jump;
+						phaseTick = 0;
+					} else {
+						next();
+					}
 				}
 			}
 			case 1 -> {
@@ -126,7 +133,8 @@ final class SmokeTest {
 			case 26 -> teleportCheck(mc);
 			case 27 -> protectorCheck(mc);
 			case 28 -> hudPosition(mc);
-			case 29 -> {
+			case 29 -> jerryCheck(mc);
+			case 30 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -530,6 +538,41 @@ final class SmokeTest {
 	private static String protLast = "";
 
 	/** The Kill Protectors sequence: message, wait near the spot, protector appears, fight at its feet sneaking, down message, hop about, warp back. */
+	/** The Jerry script during a Zealots run: the spawn message, a villager named after the player appears, and it is run to, sneaked at and punched. */
+	private static void jerryCheck(Minecraft mc) {
+		String name = mc.player.getName().getString();
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			command(mc, "kill @e[type=minecraft:villager]");
+			WigState.config.jerryKill = true;
+		}
+		if (phaseTick == 20) {
+			Runner.startZealots();
+		}
+		if (phaseTick == 60) {
+			Runner.onChatLine("\u263a A Purple Jerry appeared!");
+		}
+		if (phaseTick == 100) {
+			command(mc, "summon minecraft:villager 7.5 -60 7.5 {CustomName:\"" + name + "'s Purple Jerry\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Health:3f}");
+			// somebody else's Jerry, which must be left alone
+			command(mc, "summon minecraft:villager -7.5 -60 7.5 {CustomName:\"Somebody's Green Jerry\",CustomNameVisible:1b,NoAI:1b,Silent:1b}");
+		}
+		if (phaseTick >= 100 && phaseTick % 20 == 0) {
+			long mine = mc.level.getEntitiesOfClass(net.minecraft.world.entity.npc.villager.Villager.class, new net.minecraft.world.phys.AABB(-20, -64, -20, 20, -50, 20),
+				v -> v.hasCustomName() && v.getCustomName().getString().startsWith(name) && v.isAlive()).size();
+			log("jerry: tick " + phaseTick + ", state " + Runner.jerryStateName() + ", run " + Runner.runningName() + ", me " + fmt(mc) + ", sneaking " + Runner.isSneaking()
+				+ ", my jerries alive " + mine);
+		}
+		if (phaseTick == 500) {
+			log("jerry: end, state " + Runner.jerryStateName() + ", running " + Runner.runningName());
+			Runner.stop("smoke test over");
+			WigState.config.jerryKill = false;
+			command(mc, "kill @e[type=minecraft:villager]");
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			next();
+		}
+	}
+
 	private static void protectorCheck(Minecraft mc) {
 		if (phaseTick == 1) {
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
