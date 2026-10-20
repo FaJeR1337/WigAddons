@@ -24,6 +24,8 @@ public class WigAddonsClient implements ClientModInitializer {
 				Runner.onChatLine(message.getString());
 			}
 		});
+		// messages sent as player chat (not as a system message) arrive here instead: the Jerry's spawn message might
+		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> Runner.onChatLine(message.getString()));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			Runner.stop("you disconnected");
 			Runner.resetPing();

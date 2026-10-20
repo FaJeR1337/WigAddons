@@ -625,13 +625,13 @@ public final class Runner {
 	private static final double JERRY_CPS_SPREAD = 1.0;
 	/** The ways the server says a Jerry has spawned, whatever the colour. */
 	private static final java.util.regex.Pattern JERRY_SPAWN = java.util.regex.Pattern.compile(
-		"you found a (?:purple|green|blue|golden) jerry!"
+		"^(?:you found a (?:purple|green|blue|golden) jerry!"
 			+ "|some (?:purple|green|blue|golden) jerry was hiding, but you found it!"
 			+ "|a wild (?:purple|green|blue|golden) jerry spawned!"
 			+ "|a (?:purple|green|blue|golden) jerry appeared!"
 			+ "|there is a (?:purple|green|blue|golden) jerry!"
 			+ "|you located a hidden (?:purple|green|blue|golden) jerry!"
-			+ "|you discovered a (?:purple|green|blue|golden) jerry!",
+			+ "|you discovered a (?:purple|green|blue|golden) jerry!)",
 		java.util.regex.Pattern.CASE_INSENSITIVE);
 
 	/** True while the Jerry script has taken over from whatever else is running. */
@@ -2237,7 +2237,12 @@ public final class Runner {
 	private static final java.util.regex.Pattern KILL_COMBO = java.util.regex.Pattern.compile("^Your Kill Combo has expired! You reached a (\\d+) Kill Combo!", java.util.regex.Pattern.CASE_INSENSITIVE);
 
 	public static void onChatLine(String line) {
-		if (WigState.config.jerryKill && JERRY_SPAWN.matcher(line).find()) {
+		// the symbol at the start (a smiley) and any spaces are left off before matching
+		String clean = line.replaceFirst("^[^\\p{L}]+", "").trim();
+		if (WigState.config.jerryKill && !JERRY_SPAWN.matcher(clean).find() && !line.startsWith("[WigAddons]") && line.toLowerCase(java.util.Locale.ROOT).contains("jerry")) {
+			Chat.info("A chat line with Jerry in it, not one of the spawn messages: \"" + line + "\"");
+		}
+		if (WigState.config.jerryKill && JERRY_SPAWN.matcher(clean).find()) {
 			jerryArmedUntil = jerryClock + 20 * 180; // look for the player's own Jerry for three minutes: it can take a while to show up
 			JERRY_SEEN.clear();
 			Chat.info("A Jerry has spawned: looking for yours.");
