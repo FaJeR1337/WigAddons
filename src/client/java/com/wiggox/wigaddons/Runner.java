@@ -619,7 +619,7 @@ public final class Runner {
 	private static int jerryPunchId = -1;
 	private static long jerryNextPunchNanos;
 	/** How far a punch reaches: it is only thrown, and sneaking only done, within this many blocks. */
-	private static final double JERRY_REACH = 2.5;
+	private static final double JERRY_REACH = 4.0;
 	/** Punches per second: never more than 9, a little random below that (8 to 9). */
 	private static final double JERRY_MAX_CPS = 9.0;
 	private static final double JERRY_CPS_SPREAD = 1.0;
