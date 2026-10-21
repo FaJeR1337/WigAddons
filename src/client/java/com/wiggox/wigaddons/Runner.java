@@ -2362,7 +2362,8 @@ public final class Runner {
 	public static void onChatLine(String line) {
 		boolean jerrySpawn = WigState.config.jerryKill && isJerrySpawnLine(line);
 		if (jerrySpawn && active()) {
-			jerryArmedUntil = jerryClock + 20 * 60; // look for the player's own Jerry for a minute after the message
+			// look for the player's own Jerry for a minute after the message, or only 15 seconds with Wait for Spawn (which stands still meanwhile)
+			jerryArmedUntil = jerryClock + 20 * (WigState.config.jerryWait ? 15 : 60);
 			Chat.info("Jerry spawned, killing it.");
 			jerryWaiting = WigState.config.jerryKill && WigState.config.jerryWait && jerryState == JerryState.IDLE;
 		}
