@@ -60,9 +60,30 @@ public final class WigGui {
 		open(null);
 	}
 
+	/** Every tick: remembers which tab the settings screen is on, so it opens there next time. */
+	public static void tick() {
+		if (shown == null || categories == null) {
+			return;
+		}
+		String selected = shown.getSelectedCategory();
+		if (selected == null || selected.equals(WigState.config.guiLastTab)) {
+			return;
+		}
+		for (DynCategory category : categories) {
+			if (category.getIdentifier().equals(selected)) {
+				WigState.config.guiLastTab = selected;
+				WigState.saveConfig();
+				return;
+			}
+		}
+	}
+
 	/** Opens the settings screen on the tab with this id (or the first one if there is no such tab). */
 	public static void open(String categoryId) {
 		show();
+		if (categoryId == null && WigState.config.guiLastTab != null && !WigState.config.guiLastTab.isBlank()) {
+			categoryId = WigState.config.guiLastTab; // back where it was left
+		}
 		if (categoryId != null) {
 			for (DynCategory category : categories) {
 				if (category.getIdentifier().equals(categoryId)) {

@@ -18,6 +18,7 @@ public class WigAddonsClient implements ClientModInitializer {
 
 		// at the end of the tick, after the game has stored the previous rotation, so the camera blends between the two
 		ClientTickEvents.END_CLIENT_TICK.register(Runner::tick);
+		ClientTickEvents.END_CLIENT_TICK.register(mc -> com.wiggox.wigaddons.gui.WigGui.tick());
 		// the server's chat lines arrive as system messages
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (!overlay) {
