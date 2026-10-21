@@ -702,6 +702,12 @@ public final class Runner {
 	private static boolean jerryOnly;
 	/** Standing still after the spawn message, until the Jerry turns up (or the minute is over). */
 	private static boolean jerryWaiting;
+	/** Jerries that could not be reached are left alone until this clock value. */
+	private static final java.util.Map<Integer, Long> JERRY_IGNORED = new java.util.HashMap<>();
+	private static double jerryAnchorX;
+	private static double jerryAnchorZ;
+	private static long jerryAnchorSince;
+	private static boolean jerryGaveUp;
 	/** The fishing spot and view, to go back to after the Jerry is dead. */
 	private static double[] jerryHome;
 	private static float jerryHomeYaw;
@@ -751,6 +757,7 @@ public final class Runner {
 		jerryState = JerryState.IDLE;
 		jerryTargetId = -1;
 		jerryWaiting = false;
+		jerryGaveUp = false;
 		jerryOnly = false;
 		jerryHome = null;
 		jerryPlanner = null;
@@ -794,6 +801,9 @@ public final class Runner {
 					}
 				}
 			}
+			if (body != null && JERRY_IGNORED.getOrDefault(body.getId(), 0L) > jerryClock) {
+				continue; // could not be reached a moment ago
+			}
 			if (body != null && body.isAlive() && player.distanceTo(body) < bestDistance) {
 				bestDistance = player.distanceTo(body);
 				best = body;
@@ -810,6 +820,10 @@ public final class Runner {
 		}
 		jerryTargetId = best.getId();
 		jerryWaiting = false;
+		jerryGaveUp = false;
+		jerryAnchorX = player.getX();
+		jerryAnchorZ = player.getZ();
+		jerryAnchorSince = jerryClock;
 		jerryStartedAt = jerryClock;
 		jerryState = JerryState.KILL;
 		jerryGoalRef = null;
@@ -837,12 +851,14 @@ public final class Runner {
 		}
 		if (jerryState == JerryState.KILL) {
 			Entity target = mc.level.getEntity(jerryTargetId);
-			if (WigState.config.jerryKill && target != null && target.isAlive() && jerryClock - jerryStartedAt < 20 * 60) {
+			if (WigState.config.jerryKill && target != null && target.isAlive() && jerryClock - jerryStartedAt < 20 * 60 && !jerryGaveUp) {
 				killJerry(mc, player, target);
 				return true;
 			}
 			// dead (or gone), or the option was switched off: stop punching and sneaking, then back to the fishing spot if that was running
-			jerryArmedUntil = 0; // done with this Jerry: nothing more is looked for until the next spawn message
+			if (!jerryGaveUp) {
+				jerryArmedUntil = 0; // done with this Jerry: nothing more is looked for until the next spawn message
+			}
 			jerryCanPunch = false;
 			if (protState == Prot.NONE) {
 				sneaking = false;
@@ -898,6 +914,9 @@ public final class Runner {
 			// close: stand still and sneak
 			standStill();
 			sneaking = true;
+			jerryAnchorX = player.getX();
+			jerryAnchorZ = player.getZ();
+			jerryAnchorSince = jerryClock;
 		} else {
 			// not that close yet: no sneaking, keep running up to it
 			if (protState == Prot.NONE) {
@@ -907,11 +926,23 @@ public final class Runner {
 			JERRY_GOAL[1] = target.getY();
 			JERRY_GOAL[2] = target.getZ();
 			jerryWalk(player, JERRY_GOAL, true, 1.2, 1.8);
+			// running at it but not getting anywhere for a second: stuck. Leave it alone for five seconds and let the other script carry on
+			if (Math.hypot(player.getX() - jerryAnchorX, player.getZ() - jerryAnchorZ) >= JERRY_STUCK_BLOCKS) {
+				jerryAnchorX = player.getX();
+				jerryAnchorZ = player.getZ();
+				jerryAnchorSince = jerryClock;
+			} else if (jerryClock - jerryAnchorSince >= JERRY_STUCK_TICKS) {
+				JERRY_IGNORED.put(target.getId(), jerryClock + 20 * 5);
+				jerryGaveUp = true;
+			}
 		}
 		aimYaw = FollowPlanner.yawToward(player.getX(), player.getZ(), target.getX(), target.getZ());
 		pitchTarget = FollowPlanner.pitchToward(player.getX(), player.getEyeY(), player.getZ(), target.getX(), lookY, target.getZ());
 		haveAim = true;
 	}
+
+	private static final double JERRY_STUCK_BLOCKS = 2.0;
+	private static final int JERRY_STUCK_TICKS = 20;
 
 	/** Runs every tick and every frame: a punch at no more than 9 a second, the gap drawn again each time (8 to 9 a second), only while it can be hit. */
 	private static void jerryClickStep(Minecraft mc, LocalPlayer player) {

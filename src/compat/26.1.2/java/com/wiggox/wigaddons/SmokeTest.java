@@ -546,7 +546,8 @@ final class SmokeTest {
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			command(mc, "kill @e[type=minecraft:villager]");
 			WigState.config.jerryKill = true;
-			WigState.config.jerryWait = true;
+			WigState.config.jerryWait = false;
+			command(mc, "fill 4 -60 4 11 -57 11 minecraft:stone hollow"); // a sealed box round the Jerry: it cannot be reached
 		}
 		if (phaseTick == 20) {
 			Runner.startZealots();
@@ -554,7 +555,7 @@ final class SmokeTest {
 		if (phaseTick == 60) {
 			Runner.onChatLine("\u263a A Purple Jerry appeared!");
 		}
-		if (phaseTick == 160) {
+		if (phaseTick == 100) {
 			command(mc, "summon minecraft:villager 7.5 -60 7.5 {CustomName:\"" + name + "'s Purple Jerry\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Health:3f}");
 			// somebody else's Jerry, which must be left alone
 			command(mc, "summon minecraft:villager -7.5 -60 7.5 {CustomName:\"Somebody's Green Jerry\",CustomNameVisible:1b,NoAI:1b,Silent:1b}");
@@ -570,6 +571,7 @@ final class SmokeTest {
 			Runner.stop("smoke test over");
 			WigState.config.jerryKill = false;
 			WigState.config.jerryWait = false;
+			command(mc, "fill 4 -60 4 11 -57 11 minecraft:air");
 			command(mc, "kill @e[type=minecraft:villager]");
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			next();
