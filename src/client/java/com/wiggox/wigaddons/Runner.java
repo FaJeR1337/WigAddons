@@ -1835,7 +1835,6 @@ public final class Runner {
 		if (protDeath == null && mc.player != null) {
 			protDeath = new double[] {mc.player.getX(), mc.player.getY(), mc.player.getZ()};
 		}
-		Chat.info("The End Stone Protector is down. Hopping about for a moment, then warping back.");
 	}
 
 	private static void protectorReset() {
@@ -1957,7 +1956,7 @@ public final class Runner {
 		// the formation's own skin, wherever it is
 		for (HeadScanner.Head head : heads) {
 			if (HeadScanner.matches(head, wanted)) {
-				useHead(player, head, "Found the formation's head");
+				useHead(player, head);
 				return true;
 			}
 		}
@@ -1979,15 +1978,8 @@ public final class Runner {
 			}
 		}
 		if (near != null) {
-			Chat.info("No head with the formation's skin (" + wanted.substring(0, Math.min(8, wanted.length())) + "...) found. Taking the head at "
-				+ near.pos().getX() + " " + near.pos().getY() + " " + near.pos().getZ() + ", near spawn location " + (nearSpot + 1) + ", skin " + near.textureId() + ".");
-			useHead(player, near, "Using that head");
+			useHead(player, near);
 			return true;
-		}
-		if (protTicks % 100 == 0) {
-			Chat.info("Looking for the formation's head: " + heads.size() + " player head(s) loaded around you, none with its skin and none near a spawn location"
-				+ (heads.isEmpty() ? "." : " (nearest: " + heads.get(0).pos().getX() + " " + heads.get(0).pos().getY() + " " + heads.get(0).pos().getZ()
-				+ ", skin " + heads.get(0).textureId() + ")."));
 		}
 		return false;
 	}
@@ -2034,7 +2026,7 @@ public final class Runner {
 	private static final double HEAD_NEAR_SPOT = 5.0;
 
 	/** Takes the formation to be under this head: the ground below it is where to go and look. */
-	private static void useHead(LocalPlayer player, HeadScanner.Head head, String message) {
+	private static void useHead(LocalPlayer player, HeadScanner.Head head) {
 		WorldTerrain terrain = new WorldTerrain();
 		int x = head.pos().getX();
 		int z = head.pos().getZ();
@@ -2043,8 +2035,6 @@ public final class Runner {
 		protSpot = new double[] {x, ground, z};
 		protHeadFound = true;
 		protWait = null;
-		Chat.info(message + " at " + x + " " + head.pos().getY() + " " + z + " ("
-			+ Math.round(Math.hypot(x + 0.5 - player.getX(), z + 0.5 - player.getZ())) + " blocks away, skin " + head.textureId() + ").");
 	}
 
 	/** One tick of the protector sequence (see the Kill Protectors option). */
