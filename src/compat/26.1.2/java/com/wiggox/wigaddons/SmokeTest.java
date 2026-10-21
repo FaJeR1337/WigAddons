@@ -546,6 +546,7 @@ final class SmokeTest {
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			command(mc, "kill @e[type=minecraft:villager]");
 			WigState.config.jerryKill = true;
+			WigState.config.jerryWait = true;
 		}
 		if (phaseTick == 20) {
 			Runner.startZealots();
@@ -553,12 +554,12 @@ final class SmokeTest {
 		if (phaseTick == 60) {
 			Runner.onChatLine("\u263a A Purple Jerry appeared!");
 		}
-		if (phaseTick == 100) {
+		if (phaseTick == 160) {
 			command(mc, "summon minecraft:villager 7.5 -60 7.5 {CustomName:\"" + name + "'s Purple Jerry\",CustomNameVisible:1b,NoAI:1b,Silent:1b,Health:3f}");
 			// somebody else's Jerry, which must be left alone
 			command(mc, "summon minecraft:villager -7.5 -60 7.5 {CustomName:\"Somebody's Green Jerry\",CustomNameVisible:1b,NoAI:1b,Silent:1b}");
 		}
-		if (phaseTick >= 100 && phaseTick % 20 == 0) {
+		if (phaseTick >= 40 && phaseTick % 20 == 0) {
 			long mine = mc.level.getEntitiesOfClass(net.minecraft.world.entity.npc.villager.Villager.class, new net.minecraft.world.phys.AABB(-20, -64, -20, 20, -50, 20),
 				v -> v.hasCustomName() && v.getCustomName().getString().startsWith(name) && v.isAlive()).size();
 			log("jerry: tick " + phaseTick + ", state " + Runner.jerryStateName() + ", run " + Runner.runningName() + ", me " + fmt(mc) + ", sneaking " + Runner.isSneaking()
@@ -568,6 +569,7 @@ final class SmokeTest {
 			log("jerry: end, state " + Runner.jerryStateName() + ", running " + Runner.runningName());
 			Runner.stop("smoke test over");
 			WigState.config.jerryKill = false;
+			WigState.config.jerryWait = false;
 			command(mc, "kill @e[type=minecraft:villager]");
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
 			next();
@@ -583,6 +585,7 @@ final class SmokeTest {
 			Runner.startZealots();
 		}
 		if (phaseTick == 110) {
+			log("tps: " + Runner.serverTps());
 			log("hud: running 5 s in: visible " + Runner.hudVisible() + ", seconds " + Runner.hudSeconds() + ", stats " + Runner.statLines());
 			Runner.onChatLine("Your Kill Combo has expired! You reached a 12 Kill Combo!");
 			Runner.stop("smoke test");

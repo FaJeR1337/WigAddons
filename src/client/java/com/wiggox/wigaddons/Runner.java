@@ -700,6 +700,8 @@ public final class Runner {
 	private static long jerryStartedAt;
 	/** The run was started just for the Jerry, and ends with it. */
 	private static boolean jerryOnly;
+	/** Standing still after the spawn message, until the Jerry turns up (or the minute is over). */
+	private static boolean jerryWaiting;
 	/** The fishing spot and view, to go back to after the Jerry is dead. */
 	private static double[] jerryHome;
 	private static float jerryHomeYaw;
@@ -748,6 +750,7 @@ public final class Runner {
 	private static void jerryReset() {
 		jerryState = JerryState.IDLE;
 		jerryTargetId = -1;
+		jerryWaiting = false;
 		jerryOnly = false;
 		jerryHome = null;
 		jerryPlanner = null;
@@ -806,6 +809,7 @@ public final class Runner {
 			jerryHomePitch = player.getXRot();
 		}
 		jerryTargetId = best.getId();
+		jerryWaiting = false;
 		jerryStartedAt = jerryClock;
 		jerryState = JerryState.KILL;
 		jerryGoalRef = null;
@@ -813,6 +817,17 @@ public final class Runner {
 
 	/** Called while a run is going: drives the player to the Jerry and punches it. Returns true when it used the tick, so nothing else moves the player. */
 	private static boolean jerryControl(Minecraft mc, LocalPlayer player) {
+		if (jerryState == JerryState.IDLE && jerryWaiting) {
+			if (jerryClock > jerryArmedUntil || !WigState.config.jerryKill || !WigState.config.jerryWait) {
+				jerryWaiting = false; // the minute is over (or the option was switched off): carry on
+			} else if (!fishing) {
+				standStill(); // stop where you are, and wait for it
+				if (protState == Prot.NONE) {
+					sneaking = false;
+				}
+				return true;
+			}
+		}
 		if (jerryState == JerryState.IDLE) {
 			if (jerryOnly) {
 				end(); // a run that was only for the Jerry: over, and nothing left to dispatch this tick
@@ -1712,6 +1727,18 @@ public final class Runner {
 	private static final PingTracker PING = new PingTracker();
 	private static int pingSampleTicks;
 	private static boolean macroHighPing;
+	/** Why the warning is yellow: the ping, the server's TPS, or both. */
+	private static String macroLagNote = "";
+	private static final TpsTracker TPS = new TpsTracker();
+
+	/** Every time update from the server (from the packet handler): the server's speed is worked out from how they arrive. */
+	public static double serverTps() {
+		return TPS.tps();
+	}
+
+	public static void onServerTime(long gameTime) {
+		TPS.onTime(gameTime, System.nanoTime());
+	}
 	/** Ticks left of the yellow high ping warning on screen. */
 	private static int lagWarningTicks;
 
@@ -1735,6 +1762,7 @@ public final class Runner {
 
 	/** A new connection is a new session. */
 	public static void resetPing() {
+		TPS.reset();
 		PING.reset();
 		pingSampleTicks = 0;
 	}
@@ -2260,12 +2288,17 @@ public final class Runner {
 		}
 		macroReason = reason;
 		int ping = currentPing();
-		macroHighPing = PING.above(ping);
+		boolean highPing = PING.above(ping);
+		boolean lowTps = TPS.low(System.nanoTime());
+		macroHighPing = highPing || lowTps;
 		if (macroHighPing) {
-			// above the session's average ping it may be only lag: a yellow warning, no alarm, and the run carries on
+			// above the session's average ping, or the server ticking slowly: it may be only lag. A yellow warning, no alarm, and the run carries on
 			lagWarningTicks = Math.max(1, (int) Math.round(cfg().macroWarningSeconds * 20));
-			Chat.info("Possible macro check (" + reason.toLowerCase(java.util.Locale.ROOT) + "), but your ping was " + ping
-				+ " ms, well above your average of " + Math.round(PING.average()) + " ms. Carrying on.");
+			String why = (highPing ? "your ping was " + ping + " ms, well above your average of " + Math.round(PING.average()) + " ms" : "")
+				+ (highPing && lowTps ? " and " : "")
+				+ (lowTps ? "the server was running at " + String.format(java.util.Locale.ROOT, "%.1f", TPS.tps()) + " TPS" : "");
+			macroLagNote = highPing && lowTps ? "high ping, low TPS" : highPing ? "high ping" : "low TPS";
+			Chat.info("Possible macro check (" + reason.toLowerCase(java.util.Locale.ROOT) + "), but " + why + ". Carrying on.");
 			showWarning(Minecraft.getInstance());
 			return;
 		}
@@ -2306,7 +2339,7 @@ public final class Runner {
 		// yellow instead of red when the ping was above the session average: it may well be lag and not a real check
 		int color = macroHighPing ? 0xFFFF55 : 0xFF5555;
 		Compat.setTitle(mc, Component.literal("WARNING").withColor(color));
-		Compat.setSubtitle(mc, Component.literal(macroHighPing ? macroReason + " (high ping)" : macroReason).withColor(color));
+		Compat.setSubtitle(mc, Component.literal(macroHighPing ? macroReason + " (" + macroLagNote + ")" : macroReason).withColor(color));
 	}
 
 	private static void clearWarning() {
@@ -2331,6 +2364,7 @@ public final class Runner {
 		if (jerrySpawn && active()) {
 			jerryArmedUntil = jerryClock + 20 * 60; // look for the player's own Jerry for a minute after the message
 			Chat.info("Jerry spawned, killing it.");
+			jerryWaiting = WigState.config.jerryKill && WigState.config.jerryWait && jerryState == JerryState.IDLE;
 		}
 		if (zealotsRun && active()) {
 			var combo = KILL_COMBO.matcher(line.trim());

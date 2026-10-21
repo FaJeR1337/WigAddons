@@ -3,6 +3,7 @@
 	"package": "com.wiggox.wigaddons.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"ClientPacketListenerMixin",
 		"GameRendererMixin",
 		"KeyboardInputMixin",
 		"MouseHandlerMixin"

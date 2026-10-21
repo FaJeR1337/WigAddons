@@ -303,6 +303,11 @@ public final class WigGui {
 				config.jerryKill = v;
 				WigState.saveConfig();
 			});
+		b.toggle("wait", "Wait for Spawn", "Stops immediately where you are on jerry spawn chat message.",
+			() -> config.jerryWait, v -> {
+				config.jerryWait = v;
+				WigState.saveConfig();
+			});
 	}
 
 	private static void fillFishing(DynCategory category) {

@@ -91,6 +91,8 @@ public final class WigConfig {
 	public String guiLastTab = "";
 	/** Kill the player's own Jerries (name's Green Jerry and so on) when they spawn, ahead of whatever else is running. */
 	public boolean jerryKill = false;
+	/** With Kill Jerries on: stand still where you are from the Jerry's spawn message until it shows up. */
+	public boolean jerryWait = false;
 	/** Trophy fishing's human pauses, in milliseconds: before reeling in once the bobber says !!!, and before casting again. */
 	public double fishReelMinMs = 50;
 	public double fishReelMaxMs = 75;
