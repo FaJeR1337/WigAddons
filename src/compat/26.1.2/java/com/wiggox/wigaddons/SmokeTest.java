@@ -134,7 +134,8 @@ final class SmokeTest {
 			case 27 -> protectorCheck(mc);
 			case 28 -> hudPosition(mc);
 			case 29 -> jerryCheck(mc);
-			case 30 -> {
+			case 30 -> hudSessionCheck(mc);
+			case 31 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -569,6 +570,38 @@ final class SmokeTest {
 			WigState.config.jerryKill = false;
 			command(mc, "kill @e[type=minecraft:villager]");
 			command(mc, "tp @s 0.5 -60 0.5 0 0");
+			next();
+		}
+	}
+
+	/** The HUD after a script stops: the timer freezes, the same script carries on with it, another replaces it. */
+	private static void hudSessionCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 0 0");
+		}
+		if (phaseTick == 10) {
+			Runner.startZealots();
+		}
+		if (phaseTick == 110) {
+			log("hud: running 5 s in: visible " + Runner.hudVisible() + ", seconds " + Runner.hudSeconds() + ", stats " + Runner.statLines());
+			Runner.onChatLine("Your Kill Combo has expired! You reached a 12 Kill Combo!");
+			Runner.stop("smoke test");
+		}
+		if (phaseTick == 130 || phaseTick == 230) {
+			log("hud: stopped, tick " + phaseTick + ": visible " + Runner.hudVisible() + ", seconds " + Runner.hudSeconds() + ", running " + Runner.isRunning() + ", stats " + Runner.statLines());
+		}
+		if (phaseTick == 235) {
+			Runner.onChatLine("Your Kill Combo has expired! You reached a 5 Kill Combo!"); // not running: not counted
+			Runner.startZealots();
+		}
+		if (phaseTick == 335) {
+			log("hud: same script again, 5 s on: seconds " + Runner.hudSeconds() + " (should be about 10), stats " + Runner.statLines());
+			Runner.onChatLine("Your Kill Combo has expired! You reached a 3 Kill Combo!");
+			Runner.startHunt(); // another script
+		}
+		if (phaseTick == 355) {
+			log("hud: another script: name " + Runner.hudName() + ", seconds " + Runner.hudSeconds() + " (should be about 1), stats " + Runner.statLines());
+			Runner.stop("smoke test over");
 			next();
 		}
 	}

@@ -77,7 +77,7 @@ public final class Runner {
 
 	/** The stats shown under the time on the HUD: nothing outside a Zealots run. */
 	public static java.util.List<String> statLines() {
-		if (!zealotsRun) {
+		if (!hudZealots || !hudVisible()) {
 			return java.util.List.of();
 		}
 		String perEye = eyes > 0 ? String.format(java.util.Locale.ROOT, "%.1f", zealotKills / (double) eyes) : "-";
@@ -271,6 +271,7 @@ public final class Runner {
 		runLoop = loop;
 		runRouteForHud = route;
 		runStartNanos = System.nanoTime();
+		hudBegin("route:" + route.name(), route.name(), route, loop, false);
 		runTurnSpeed = route.effectiveTurnSpeed(cfg());
 		follower = new RouteFollower(route.waypoints(), loop, route.radius(), cfg().withHumanizeOffset(route.effectiveHumanizeOffset(cfg())));
 		points = java.util.List.copyOf(route.waypoints());
@@ -300,6 +301,13 @@ public final class Runner {
 	 * @param source where the player is right now, or null when they can't be seen
 	 */
 	public static void startFollow(String name, java.util.function.Supplier<FollowPlanner.Target> source) {
+		beginRun(name, source);
+		if (planner != null) {
+			hudBegin("follow:" + name, "Following " + name, null, false, false);
+		}
+	}
+
+	private static void beginRun(String name, java.util.function.Supplier<FollowPlanner.Target> source) {
 		Minecraft mc = Minecraft.getInstance();
 		LocalPlayer player = mc.player;
 		if (player == null) {
@@ -358,11 +366,10 @@ public final class Runner {
 	}
 
 	private static void startHunt(boolean zealots) {
-		startFollow("mobs", () -> null);
+		beginRun("mobs", () -> null);
 		protBlocked = false;
 		zealotsRun = zealots;
-		eyes = 0;
-		zealotKills = 0;
+		hudBegin(zealots ? "zealots" : "hunt", "Hunting " + (zealots ? WigState.zealots.killName : WigState.config.killName), null, false, zealots);
 		huntStuckId = -1;
 		huntLastClickTick = -100000;
 		huntCfg = WigState.config.copy();
@@ -442,6 +449,7 @@ public final class Runner {
 	}
 
 	private static void end() {
+		hudPause();
 		releaseClicks();
 		jerryReset();
 		protectorReset();
@@ -476,6 +484,7 @@ public final class Runner {
 	 */
 	public static void tick(Minecraft mc) {
 		samplePing();
+		hudHousekeeping(mc);
 		jerryPrepare(mc);
 		if (!active()) {
 			return;
@@ -593,6 +602,90 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	// ---- the HUD session ----
+
+	/** Identifies the script the HUD is showing, so starting it again carries on with its timer and stats. */
+	private static String hudKey;
+	private static String hudName;
+	private static Route hudRoute;
+	private static boolean hudLoop;
+	private static boolean hudZealots;
+	/** Time run so far, without the segment under way. */
+	private static long hudAccumNanos;
+	/** When the run under way began (System.nanoTime), or 0 while it is stopped. */
+	private static long hudSegmentStart;
+	private static long hudStoppedAt;
+	private static Object hudLevel;
+	/** The HUD stays this long after the script stops, unless the player changes server first. */
+	private static final long HUD_LINGER_NANOS = 10L * 60L * 1_000_000_000L;
+
+	/** Called as a script starts. The same script as the HUD shows carries on (timer, kills and eyes kept); another one replaces it. */
+	private static void hudBegin(String key, String name, Route route, boolean loop, boolean zealots) {
+		boolean same = key.equals(hudKey) && hudVisible();
+		if (!same) {
+			hudAccumNanos = 0;
+			eyes = 0;
+			zealotKills = 0;
+		}
+		hudKey = key;
+		hudName = name;
+		hudRoute = route;
+		hudLoop = loop;
+		hudZealots = zealots;
+		hudSegmentStart = System.nanoTime();
+	}
+
+	/** Called as a script ends: the timer and the counting stop, and the HUD stays. */
+	private static void hudPause() {
+		if (hudKey != null && hudSegmentStart != 0) {
+			hudAccumNanos += System.nanoTime() - hudSegmentStart;
+			hudSegmentStart = 0;
+			hudStoppedAt = System.nanoTime();
+			hudLevel = Minecraft.getInstance().level;
+		}
+	}
+
+	/** Takes the HUD away (changing server, or ten minutes without the script). */
+	public static void hudClear() {
+		hudKey = null;
+		hudName = null;
+		hudRoute = null;
+		hudSegmentStart = 0;
+		hudAccumNanos = 0;
+		hudLevel = null;
+	}
+
+	/** Every tick: a stopped script's HUD goes after ten minutes, or when the player ends up in another world (another server). */
+	private static void hudHousekeeping(Minecraft mc) {
+		if (hudKey == null || hudSegmentStart != 0) {
+			return;
+		}
+		if (System.nanoTime() - hudStoppedAt > HUD_LINGER_NANOS || (mc.level != null && hudLevel != null && mc.level != hudLevel)) {
+			hudClear();
+		}
+	}
+
+	public static boolean hudVisible() {
+		return hudKey != null && (hudSegmentStart != 0 || System.nanoTime() - hudStoppedAt <= HUD_LINGER_NANOS);
+	}
+
+	public static String hudName() {
+		return hudName;
+	}
+
+	public static Route hudRoute() {
+		return hudRoute;
+	}
+
+	public static boolean hudLoop() {
+		return hudLoop;
+	}
+
+	public static long hudSeconds() {
+		long total = hudAccumNanos + (hudSegmentStart != 0 ? System.nanoTime() - hudSegmentStart : 0);
+		return total / 1_000_000_000L;
 	}
 
 	// ---- Jerry ----
@@ -916,8 +1009,9 @@ public final class Runner {
 			Chat.error("Hold a fishing rod in your main hand first.");
 			return;
 		}
-		startFollow("fishing", () -> null);
+		beginRun("fishing", () -> null);
 		fishing = true;
+		hudBegin("fishing", "Trophy fishing", null, false, false);
 		fishX = player.getX();
 		fishY = player.getY();
 		fishZ = player.getZ();

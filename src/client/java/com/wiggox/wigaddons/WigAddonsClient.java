@@ -28,6 +28,7 @@ public class WigAddonsClient implements ClientModInitializer {
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> Runner.onChatLine(message.getString()));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			Runner.stop("you disconnected");
+			Runner.hudClear(); // another server: the HUD goes
 			Runner.resetPing();
 			WigState.editing = null;
 		});

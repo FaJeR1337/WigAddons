@@ -22,14 +22,14 @@ public final class HudOverlay {
 	public static void register() {
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("wigaddons", "run_hud"), (graphics, tracker) -> {
 			WigConfig config = WigState.config;
-			String name = Runner.runningName();
-			if (!config.showHud || name == null) {
+			String name = Runner.hudName();
+			if (!config.showHud || name == null || !Runner.hudVisible()) {
 				return;
 			}
-			Route route = Runner.runningRoute();
+			Route route = Runner.hudRoute();
 			ItemStack icon = route == null ? ItemStack.EMPTY : RouteIcons.itemStack(route.icon());
-			String clock = TimeFormat.clock(Runner.elapsedSeconds()) + (Runner.runningOnLoop() ? " (loop)" : "");
-			if (!Double.isNaN(Runner.followDistance())) {
+			String clock = TimeFormat.clock(Runner.hudSeconds()) + (Runner.hudLoop() ? " (loop)" : "");
+			if (Runner.isRunning() && !Double.isNaN(Runner.followDistance())) {
 				clock += String.format("  %.1f blocks", Runner.followDistance());
 			}
 			draw(graphics, Minecraft.getInstance(), name, clock, icon, Runner.statLines());
