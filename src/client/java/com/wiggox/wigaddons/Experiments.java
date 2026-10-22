@@ -36,6 +36,10 @@ public final class Experiments {
 	private static final List<Integer> PATTERN = new ArrayList<>();
 	private static final Map<Integer, Item> PREVIOUS = new HashMap<>();
 	private static boolean remembering;
+	/** Ultrasequencer: the slot of each number (stack size of a dye), as last shown, and how far the clicks have got. */
+	private static final Map<Integer, Integer> ULTRA = new HashMap<>();
+	private static boolean ultraRemembering;
+	private static int ultraIndex;
 	private static int autoIndex; // how many colours of the pattern Auto Experiments has clicked this round
 	private static long closeAt; // when the finished table is closed, 0 while not waiting
 	private static long nextClick; // when the next automatic click is due, in milliseconds
@@ -57,7 +61,14 @@ public final class Experiments {
 		return screen instanceof AbstractContainerScreen<?> chest && chest.getTitle().getString().contains("Chronomatron");
 	}
 
+	private static boolean isUltra(Screen screen) {
+		return screen instanceof AbstractContainerScreen<?> chest && chest.getTitle().getString().contains("Ultrasequencer");
+	}
+
 	private static void reset() {
+		ULTRA.clear();
+		ultraRemembering = false;
+		ultraIndex = 0;
 		CURRENT.clear();
 		PATTERN.clear();
 		PREVIOUS.clear();
@@ -98,6 +109,13 @@ public final class Experiments {
 
 	private static void tick(Minecraft mc) {
 		Screen screen = Compat.screen(mc);
+		if (isUltra(screen)) {
+			ultraTick(mc, (AbstractContainerScreen<?>) screen);
+			return;
+		}
+		if (!ULTRA.isEmpty()) {
+			reset();
+		}
 		if (!isChronomatron(screen)) {
 			if (!PATTERN.isEmpty() || !CURRENT.isEmpty() || !PREVIOUS.isEmpty()) {
 				reset(); // out of the game: the next one starts from nothing
@@ -159,6 +177,48 @@ public final class Experiments {
 			nextClick = System.currentTimeMillis() + 200; // the start delay
 		}
 		autoClick(mc, chest, slots, chestSlots, prompt);
+	}
+
+	/** Ultrasequencer: the dyes show their numbers as stack sizes while "Remember the pattern!" is up; then click them 1, 2, 3... */
+	private static void ultraTick(Minecraft mc, AbstractContainerScreen<?> chest) {
+		List<Slot> slots = chest.getMenu().slots;
+		int chestSlots = Math.max(0, slots.size() - 36);
+		boolean prompt = false;
+		Map<Integer, Integer> seen = new HashMap<>();
+		for (int i = 0; i < chestSlots; i++) {
+			ItemStack stack = slots.get(i).getItem();
+			if (stack.is(Items.GLOWSTONE) && stack.getHoverName().getString().contains("Remember the pattern!")) {
+				prompt = true;
+			} else if (pathOf(stack.getItem()).endsWith("_dye")) {
+				seen.put(stack.getCount(), i);
+			}
+		}
+		long now = System.currentTimeMillis();
+		if (prompt) {
+			if (!seen.isEmpty()) {
+				ULTRA.clear();
+				ULTRA.putAll(seen); // the numbers as they are shown now
+			}
+			ultraRemembering = true;
+			ultraIndex = 0;
+			return;
+		}
+		if (ultraRemembering) {
+			ultraRemembering = false;
+			ultraIndex = 0;
+			nextClick = now + 200; // the start delay
+		}
+		if (!WigState.config.experimentsAuto || mc.gameMode == null || mc.player == null
+				|| ultraIndex >= ULTRA.size() || now < nextClick) {
+			return;
+		}
+		Integer slot = ULTRA.get(ultraIndex + 1);
+		if (slot == null) {
+			return;
+		}
+		mc.gameMode.handleContainerInput(chest.getMenu().containerId, slot, 2, ContainerInput.CLONE, mc.player);
+		ultraIndex++;
+		nextClick = now + 200 + (long) (Math.random() * 51);
 	}
 
 	/** The number on the bookshelf called "Round: X", or 0 when it is not there. */
