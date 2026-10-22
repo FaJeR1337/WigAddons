@@ -58,7 +58,7 @@ final class WideSliderEditor extends ComponentEditor {
 			this.sliderWidth = compact ? COMPACT_SLIDER_WIDTH : WIDE_SLIDER_WIDTH;
 			this.boxWidth = compact ? COMPACT_BOX_WIDTH : WIDE_BOX_WIDTH;
 			this.shift = compact ? COMPACT_SHIFT : -(WIDE_SLIDER_WIDTH / 3f);
-			this.gap = compact ? 3f : 5f;
+			this.gap = compact ? 6f : 5f;
 			this.value = value;
 			this.minValue = min;
 			this.maxValue = max;
