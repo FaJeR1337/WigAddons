@@ -245,7 +245,7 @@ public final class Experiments {
 		}
 		mc.gameMode.handleContainerInput(chest.getMenu().containerId, slot, 2, ContainerInput.CLONE, mc.player);
 		ultraIndex++;
-		nextClick = now + 125 + (long) (Math.random() * 36);
+		nextClick = now + 200 + (long) (Math.random() * 51);
 	}
 
 	/** The number on the bookshelf called "Round: X", or 0 when it is not there. */
