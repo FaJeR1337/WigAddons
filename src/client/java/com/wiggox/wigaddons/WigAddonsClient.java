@@ -15,6 +15,7 @@ public class WigAddonsClient implements ClientModInitializer {
 		HudOverlay.register();
 		SmokeTest.register();
 		WaypointRenderer.register();
+		Experiments.register();
 
 		// at the end of the tick, after the game has stored the previous rotation, so the camera blends between the two
 		ClientTickEvents.END_CLIENT_TICK.register(Runner::tick);

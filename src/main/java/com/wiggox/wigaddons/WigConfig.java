@@ -87,6 +87,10 @@ public final class WigConfig {
 	public double[][] protectorSpots = {{-665, 8, -276}, {-689, 7, -272}, {-639, 7, -328}, {-649, 7, -219}, {-678, 7, -332}, {-727, 7, -284}, {-643, 7, -270}};
 	/** The level the player stands at (feet) round the formations: they are all on the same floor, with the heads four blocks above it. */
 	public int protectorFloorY = 5;
+	/** The Experimentation table: the Auto Experiments switch, how many serums to drink (0 to 3), and the Chronomatron pattern shown beside the chest. */
+	public boolean experimentsAuto = false;
+	public int experimentsSerums = 0;
+	public boolean experimentsHud = true;
 	/** The tab the settings screen was last left on, to open it there next time. */
 	public String guiLastTab = "";
 	/** Kill the player's own Jerries (name's Green Jerry and so on) when they spawn, ahead of whatever else is running. */
@@ -382,6 +386,7 @@ public final class WigConfig {
 			fishRecastMinMs = d.fishRecastMinMs;
 			fishRecastMaxMs = d.fishRecastMaxMs;
 		}
+		experimentsSerums = Math.max(0, Math.min(3, experimentsSerums));
 		fishSlugSeconds = Double.isNaN(fishSlugSeconds) ? d.fishSlugSeconds : Math.max(10.0, Math.min(20.0, fishSlugSeconds));
 		if (!(protectorSearchSeconds >= 0)) {
 			protectorSearchSeconds = d.protectorSearchSeconds;

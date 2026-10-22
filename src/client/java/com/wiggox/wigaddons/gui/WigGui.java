@@ -171,6 +171,7 @@ public final class WigGui {
 			new DynCategory("zealots", "Zealots", "/wig zealots"),
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("jerry", "Jerry", "Jerries."),
+			new DynCategory("experimentation", "Experimentation", "The Experimentation table."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
 		fillAll();
@@ -199,6 +200,7 @@ public final class WigGui {
 				case "zealots" -> fillZealots(category);
 				case "fishing" -> fillFishing(category);
 				case "jerry" -> fillJerry(category);
+				case "experimentation" -> fillExperimentation(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
 				default -> {
@@ -293,6 +295,27 @@ public final class WigGui {
 	}
 
 	// ---- HUD ----
+
+	private static void fillExperimentation(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.toggle("auto", "Auto Experiments", "",
+			() -> config.experimentsAuto, v -> {
+				config.experimentsAuto = v;
+				WigState.saveConfig();
+			});
+		b.slider("serums", "Serums", "Select amount of serums consumed.",
+			0, 3, 1, () -> config.experimentsSerums, v -> {
+				config.experimentsSerums = (int) Math.round(v);
+				WigState.saveConfig();
+			});
+		b.toggle("overlay", "Chronomatron Overlay", "Lists the pattern beside the chest while you are in Chronomatron.",
+			() -> config.experimentsHud, v -> {
+				config.experimentsHud = v;
+				WigState.saveConfig();
+			});
+	}
 
 	private static void fillJerry(DynCategory category) {
 		reset(category);

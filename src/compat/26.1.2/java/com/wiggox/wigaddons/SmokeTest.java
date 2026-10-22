@@ -135,7 +135,8 @@ final class SmokeTest {
 			case 28 -> hudPosition(mc);
 			case 29 -> jerryCheck(mc);
 			case 30 -> hudSessionCheck(mc);
-			case 31 -> {
+			case 31 -> chronomatronCheck(mc);
+			case 32 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -607,6 +608,58 @@ final class SmokeTest {
 		if (phaseTick == 355) {
 			log("hud: another script: name " + Runner.hudName() + ", seconds " + Runner.hudSeconds() + " (should be about 1), stats " + Runner.statLines());
 			Runner.stop("smoke test over");
+			next();
+		}
+	}
+
+	private static net.minecraft.world.SimpleContainer chronoContainer;
+
+	private static void chronoSet(int slot, net.minecraft.world.item.Item item) {
+		chronoContainer.setItem(slot, new net.minecraft.world.item.ItemStack(item));
+	}
+
+	/** A fake Chronomatron chest: glass lights up as terracotta one colour after another under the "Remember the pattern!" glowstone. */
+	private static void chronomatronCheck(Minecraft mc) {
+		var items = net.minecraft.world.item.Items.class;
+		if (phaseTick == 1) {
+			chronoContainer = new net.minecraft.world.SimpleContainer(54);
+			chronoSet(11, net.minecraft.world.item.Items.RED_STAINED_GLASS);
+			chronoSet(12, net.minecraft.world.item.Items.LIME_STAINED_GLASS_PANE);
+			chronoSet(13, net.minecraft.world.item.Items.LIGHT_BLUE_STAINED_GLASS);
+			chronoSet(14, net.minecraft.world.item.Items.GREEN_STAINED_GLASS);
+			var menu = net.minecraft.world.inventory.ChestMenu.sixRows(0, mc.player.getInventory(), chronoContainer);
+			mc.setScreen(new net.minecraft.client.gui.screens.inventory.ContainerScreen(menu, mc.player.getInventory(), net.minecraft.network.chat.Component.literal("Chronomatron (Metaphysical)")));
+		}
+		if (phaseTick == 20) {
+			var glow = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GLOWSTONE);
+			glow.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Remember the pattern!"));
+			chronoContainer.setItem(49, glow);
+		}
+		// the colours lit, in order: red, green, light blue, red, lime (a pane), green
+		int[] slots = {11, 14, 13, 11, 12, 14};
+		net.minecraft.world.item.Item[] lit = {net.minecraft.world.item.Items.RED_TERRACOTTA, net.minecraft.world.item.Items.GREEN_TERRACOTTA, net.minecraft.world.item.Items.LIGHT_BLUE_TERRACOTTA,
+			net.minecraft.world.item.Items.RED_TERRACOTTA, net.minecraft.world.item.Items.LIME_TERRACOTTA, net.minecraft.world.item.Items.GREEN_TERRACOTTA};
+		net.minecraft.world.item.Item[] glass = {net.minecraft.world.item.Items.RED_STAINED_GLASS, net.minecraft.world.item.Items.GREEN_STAINED_GLASS, net.minecraft.world.item.Items.LIGHT_BLUE_STAINED_GLASS,
+			net.minecraft.world.item.Items.RED_STAINED_GLASS, net.minecraft.world.item.Items.LIME_STAINED_GLASS_PANE, net.minecraft.world.item.Items.GREEN_STAINED_GLASS};
+		for (int i = 0; i < slots.length; i++) {
+			if (phaseTick == 30 + i * 20) {
+				chronoSet(slots[i], lit[i]);
+			}
+			if (phaseTick == 40 + i * 20) {
+				chronoSet(slots[i], glass[i]);
+			}
+		}
+		if (phaseTick == 100) {
+			log("chrono: while recording: " + Experiments.shownNames());
+			photograph(mc, "chrono-recording");
+		}
+		if (phaseTick == 160) {
+			chronoContainer.setItem(49, net.minecraft.world.item.ItemStack.EMPTY); // the showing is over
+		}
+		if (phaseTick == 180) {
+			log("chrono: after the showing: " + Experiments.shownNames());
+			photograph(mc, "chrono-pattern");
+			mc.setScreen(null);
 			next();
 		}
 	}
