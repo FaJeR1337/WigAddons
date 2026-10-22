@@ -92,7 +92,12 @@ final class OptionBuilder {
 			setter.accept(((Number) v).doubleValue());
 			return true;
 		});
-		put(option, new GuiOptionEditorSlider(option, (float) min, (float) max, (float) step));
+		if (min >= 0 && max <= 9 && step >= 1) {
+			// one digit: the compact slider, as wide as a switch and lined up with them
+			put(option, new WideSliderEditor(option, (float) min, (float) max, (float) step, true));
+		} else {
+			put(option, new GuiOptionEditorSlider(option, (float) min, (float) max, (float) step));
+		}
 	}
 
 	/**

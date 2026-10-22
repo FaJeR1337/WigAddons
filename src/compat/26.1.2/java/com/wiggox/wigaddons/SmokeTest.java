@@ -32,6 +32,7 @@ final class SmokeTest {
 		{"hud", "", ""},
 		{"safety", "safety.macro", ""},
 		{"safety", "safety.alarm", ""},
+		{"experimentation", "", ""},
 	};
 	private static final int TOUR_STEP_TICKS = 25;
 	/** Flat world: grass is at y -61, so the player stands at y -60. */

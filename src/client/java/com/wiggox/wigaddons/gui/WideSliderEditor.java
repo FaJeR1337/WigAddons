@@ -16,14 +16,22 @@ import org.jetbrains.annotations.NotNull;
 
 /** The ordinary slider with its number box, but with a number box wide enough for three digits (the standard one is cut off at 100). */
 final class WideSliderEditor extends ComponentEditor {
-	private static final int SLIDER_WIDTH = 55;
-	private static final int BOX_WIDTH = 34;
+	private static final int WIDE_SLIDER_WIDTH = 55;
+	private static final int WIDE_BOX_WIDTH = 34;
+	/** The compact form, for a single digit (0 to 3, say): track and box together as wide as a switch, lined up with the switches above and below. */
+	private static final int COMPACT_SLIDER_WIDTH = 27;
+	private static final int COMPACT_BOX_WIDTH = 15;
+	private static final float COMPACT_SHIFT = -7.5f;
 
 	private final GuiComponent component;
 
 	WideSliderEditor(ProcessedOption option, float min, float max, float step) {
+		this(option, min, max, step, false);
+	}
+
+	WideSliderEditor(ProcessedOption option, float min, float max, float step, boolean compact) {
 		super(option);
-		component = wrapComponent(new WideSlider((GetSetter<Float>) option.intoProperty(), min, max, step));
+		component = wrapComponent(new WideSlider((GetSetter<Float>) option.intoProperty(), min, max, step, compact));
 	}
 
 	@Override
@@ -39,8 +47,18 @@ final class WideSliderEditor extends ComponentEditor {
 		private final TextFieldComponent box;
 		private String editing = "";
 
-		WideSlider(GetSetter<Float> value, float min, float max, float step) {
-			super(value, min, max, step, SLIDER_WIDTH);
+		private final int sliderWidth;
+		private final int boxWidth;
+		/** Where the track starts, from the editor's left. */
+		private final float shift;
+		private final float gap;
+
+		WideSlider(GetSetter<Float> value, float min, float max, float step, boolean compact) {
+			super(value, min, max, step, compact ? COMPACT_SLIDER_WIDTH : WIDE_SLIDER_WIDTH);
+			this.sliderWidth = compact ? COMPACT_SLIDER_WIDTH : WIDE_SLIDER_WIDTH;
+			this.boxWidth = compact ? COMPACT_BOX_WIDTH : WIDE_BOX_WIDTH;
+			this.shift = compact ? COMPACT_SHIFT : -(WIDE_SLIDER_WIDTH / 3f);
+			this.gap = compact ? 3f : 5f;
 			this.value = value;
 			this.minValue = min;
 			this.maxValue = max;
@@ -71,20 +89,20 @@ final class WideSliderEditor extends ComponentEditor {
 					}
 					value.set(parsed);
 				}
-			}, BOX_WIDTH, GetSetter.constant(true), "", IMinecraft.INSTANCE.getDefaultFontRenderer(), Set.of('§'));
+			}, boxWidth, GetSetter.constant(true), "", IMinecraft.INSTANCE.getDefaultFontRenderer(), Set.of('§'));
 			self[0] = box;
 		}
 
 		@Override
 		public void render(@NotNull GuiImmediateContext context) {
-			context.getRenderContext().translate(-(SLIDER_WIDTH / 3), 0f);
+			context.getRenderContext().translate(shift, 0f);
 			super.render(context);
-			context.getRenderContext().translate(60f, -5f);
+			context.getRenderContext().translate(sliderWidth + gap, -5f);
 			box.render(context.translated(60, -5, box.getWidth(), 18));
 		}
 
 		private boolean hovered(GuiImmediateContext context) {
-			return context.getMouseX() >= -SLIDER_WIDTH / 3 && context.getMouseX() < SLIDER_WIDTH - 13
+			return context.getMouseX() >= shift && context.getMouseX() < shift + sliderWidth + gap
 				&& context.getMouseY() >= 0 && context.getMouseY() < context.getHeight();
 		}
 
@@ -100,7 +118,7 @@ final class WideSliderEditor extends ComponentEditor {
 				setValueFromContext(context);
 				return true;
 			}
-			return box.mouseEvent(mouseEvent, context.translated(45, -5, box.getWidth(), 18));
+			return box.mouseEvent(mouseEvent, context.translated(Math.round(shift + sliderWidth + gap - 3), -5, box.getWidth(), 18));
 		}
 
 		@Override
@@ -111,7 +129,7 @@ final class WideSliderEditor extends ComponentEditor {
 
 		@Override
 		public void setValueFromContext(@NotNull GuiImmediateContext context) {
-			float v = (context.getMouseX() + SLIDER_WIDTH / 3f) * (maxValue - minValue) / context.getWidth() + minValue;
+			float v = (context.getMouseX() - shift) * (maxValue - minValue) / sliderWidth + minValue;
 			v = Math.max(minValue, Math.min(maxValue, v));
 			v = Math.round(v / step) * step;
 			value.set(v);

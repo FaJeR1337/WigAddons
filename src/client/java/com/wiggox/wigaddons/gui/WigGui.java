@@ -300,7 +300,7 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
-		b.toggle("auto", "Auto Experiments", "",
+		b.toggle("auto", "Auto Experiments", "Main Toggle",
 			() -> config.experimentsAuto, v -> {
 				config.experimentsAuto = v;
 				WigState.saveConfig();
