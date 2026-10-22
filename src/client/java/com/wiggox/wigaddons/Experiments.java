@@ -159,7 +159,7 @@ public final class Experiments {
 		autoClick(mc, chest, slots, chestSlots, prompt);
 	}
 
-	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 150 to 200 ms apart. */
+	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 200 to 250 ms apart. */
 	private static void autoClick(Minecraft mc, AbstractContainerScreen<?> chest, List<Slot> slots, int chestSlots, boolean prompt) {
 		if (!WigState.config.experimentsAuto || prompt || mc.gameMode == null || mc.player == null
 				|| autoIndex >= PATTERN.size() || System.currentTimeMillis() < nextClick) {
@@ -171,7 +171,7 @@ public final class Experiments {
 			if (colorOf(path, "_stained_glass") == want || colorOf(path, "_stained_glass_pane") == want) {
 				mc.gameMode.handleContainerInput(chest.getMenu().containerId, i, 2, ContainerInput.CLONE, mc.player);
 				autoIndex++;
-				nextClick = System.currentTimeMillis() + 150 + (long) (Math.random() * 51);
+				nextClick = System.currentTimeMillis() + 200 + (long) (Math.random() * 51);
 				return;
 			}
 		}
