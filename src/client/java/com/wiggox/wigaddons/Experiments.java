@@ -123,13 +123,20 @@ public final class Experiments {
 		if (skipTicks > 0) {
 			skipTicks--;
 		}
+		boolean[] alreadyLit = new boolean[IDS.length]; // colours that were terracotta on the last tick: their group is still lighting up
+		for (Item item : PREVIOUS.values()) {
+			int color = terracottaColor(item);
+			if (color >= 0) {
+				alreadyLit[color] = true;
+			}
+		}
 		boolean lit = false; // several blocks light up together: that is still one colour of the pattern
 		for (int i = 0; i < chestSlots; i++) {
 			Item now = slots.get(i).getItem().getItem();
 			Item before = PREVIOUS.get(i);
 			if (!starting && (prompt || remembering) && before != null && isGlass(before)) {
 				int color = terracottaColor(now);
-				if (color >= 0 && !lit) {
+				if (color >= 0 && !lit && !alreadyLit[color]) {
 					lit = true;
 					CURRENT.add(color); // a glass lit up as terracotta: the next colour of the pattern
 				}
