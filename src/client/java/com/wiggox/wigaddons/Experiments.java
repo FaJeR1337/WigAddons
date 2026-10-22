@@ -36,7 +36,7 @@ public final class Experiments {
 	private static final List<Integer> PATTERN = new ArrayList<>();
 	private static final Map<Integer, Item> PREVIOUS = new HashMap<>();
 	private static boolean remembering;
-	/** Ultrasequencer: the slot of each number (stack size of a dye), as last shown, and how far the clicks have got. */
+	/** Ultrasequencer: the slot of each number (its name), as last shown, and how far the clicks have got. */
 	private static final Map<Integer, Integer> ULTRA = new HashMap<>();
 	private static boolean ultraRemembering;
 	private static int ultraIndex;
@@ -185,7 +185,13 @@ public final class Experiments {
 			return false;
 		}
 		String path = pathOf(stack.getItem());
-		return !path.contains("glass") && !path.equals("barrier");
+		return !path.contains("glass") && !path.equals("barrier") && numberOf(stack) > 0;
+	}
+
+	/** The number in the item's name ("1", "2", "3"...), or -1: the stack size is only drawn by another mod. */
+	private static int numberOf(ItemStack stack) {
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d+").matcher(stack.getHoverName().getString());
+		return m.find() ? Integer.parseInt(m.group()) : -1;
 	}
 
 	/** Ultrasequencer: the numbered items show their numbers as stack sizes while "Remember the pattern!" is up; then click them 1, 2, 3... */
@@ -199,7 +205,7 @@ public final class Experiments {
 			if (stack.is(Items.GLOWSTONE) && stack.getHoverName().getString().contains("Remember the pattern!")) {
 				prompt = true;
 			} else if (isNumbered(stack)) {
-				seen.put(stack.getCount(), i);
+				seen.put(numberOf(stack), i);
 			}
 		}
 		long now = System.currentTimeMillis();
