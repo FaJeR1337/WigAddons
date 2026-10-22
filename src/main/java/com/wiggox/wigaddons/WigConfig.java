@@ -133,6 +133,8 @@ public final class WigConfig {
 	public double killCloseSmoothing = 0;
 	public double killPreciseAngle = 25;
 	public boolean killShowTags = true;
+	/** The box round every hunted mob; only drawn while killShowTags is on. */
+	public boolean killShowHitboxes = true;
 	/** How big those name tags are, the same at any distance (they shrink with distance like any name tag). About 0.45 is the size of an ordinary name tag. */
 	public double killTagScale = 0.45;
 	public String killType = "minecraft:enderman";

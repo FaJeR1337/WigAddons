@@ -76,6 +76,9 @@ public final class WaypointRenderer {
 			// the same scale at every distance, like an ordinary name tag: it shrinks with distance in the world
 			float scale = (float) WigState.config.killTagScale;
 			Gizmos.billboardText(text, new Vec3(mark.x(), mark.eyeY() + 1.2, mark.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(scale)).setAlwaysOnTop();
+			if (!WigState.config.killShowHitboxes) {
+				continue;
+			}
 			Gizmos.cuboid(new net.minecraft.world.phys.AABB(mark.x() - 0.4, mark.y(), mark.z() - 0.4, mark.x() + 0.4, mark.eyeY() + 0.3, mark.z() + 0.4),
 				GizmoStyle.stroke(color, 2.0F)).setAlwaysOnTop();
 		}
