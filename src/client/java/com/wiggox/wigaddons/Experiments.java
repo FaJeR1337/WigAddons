@@ -159,11 +159,29 @@ public final class Experiments {
 		autoClick(mc, chest, slots, chestSlots, prompt);
 	}
 
+	/** The number on the bookshelf called "Round: X", or 0 when it is not there. */
+	private static int roundOf(List<Slot> slots, int chestSlots) {
+		for (int i = 0; i < chestSlots; i++) {
+			ItemStack stack = slots.get(i).getItem();
+			if (stack.is(Items.BOOKSHELF)) {
+				java.util.regex.Matcher m = java.util.regex.Pattern.compile("Round:\\s*(\\d+)").matcher(stack.getHoverName().getString());
+				if (m.find()) {
+					return Integer.parseInt(m.group(1));
+				}
+			}
+		}
+		return 0;
+	}
+
 	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 200 to 250 ms apart. */
 	private static void autoClick(Minecraft mc, AbstractContainerScreen<?> chest, List<Slot> slots, int chestSlots, boolean prompt) {
 		if (!WigState.config.experimentsAuto || prompt || mc.gameMode == null || mc.player == null
 				|| autoIndex >= PATTERN.size() || System.currentTimeMillis() < nextClick) {
 			return;
+		}
+		int round = roundOf(slots, chestSlots);
+		if (round >= 13 - WigState.config.experimentsSerums) {
+			return; // the last round: each serum drunk takes one round off the 13
 		}
 		int want = PATTERN.get(autoIndex);
 		for (int i = 0; i < chestSlots; i++) {
