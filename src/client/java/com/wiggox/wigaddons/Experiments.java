@@ -37,6 +37,7 @@ public final class Experiments {
 	private static final Map<Integer, Item> PREVIOUS = new HashMap<>();
 	private static boolean remembering;
 	private static int autoIndex; // how many colours of the pattern Auto Experiments has clicked this round
+	private static long closeAt; // when the finished table is closed, 0 while not waiting
 	private static long nextClick; // when the next automatic click is due, in milliseconds
 	private static int skipTicks; // ticks after a showing starts in which changes are still your own click
 
@@ -63,6 +64,7 @@ public final class Experiments {
 		remembering = false;
 		skipTicks = 0;
 		autoIndex = 0;
+		closeAt = 0;
 	}
 
 	/** The index of the dye colour at the start of the path ("red_stained_glass" is 14), or -1. */
@@ -175,13 +177,23 @@ public final class Experiments {
 
 	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 200 to 250 ms apart. */
 	private static void autoClick(Minecraft mc, AbstractContainerScreen<?> chest, List<Slot> slots, int chestSlots, boolean prompt) {
-		if (!WigState.config.experimentsAuto || prompt || mc.gameMode == null || mc.player == null
-				|| autoIndex >= PATTERN.size() || System.currentTimeMillis() < nextClick) {
+		if (!WigState.config.experimentsAuto || mc.gameMode == null || mc.player == null) {
 			return;
 		}
-		int round = roundOf(slots, chestSlots);
-		if (round >= 13 - WigState.config.experimentsSerums) {
-			return; // the last round: each serum drunk takes one round off the 13
+		long now = System.currentTimeMillis();
+		if (roundOf(slots, chestSlots) >= 13 - WigState.config.experimentsSerums) {
+			// the last round: each serum drunk takes one round off the 13, so the table is done and closes
+			if (closeAt == 0) {
+				closeAt = now + 200;
+			} else if (now >= closeAt) {
+				closeAt = 0;
+				mc.player.closeContainer();
+			}
+			return;
+		}
+		closeAt = 0;
+		if (prompt || autoIndex >= PATTERN.size() || now < nextClick) {
+			return;
 		}
 		int want = PATTERN.get(autoIndex);
 		for (int i = 0; i < chestSlots; i++) {
