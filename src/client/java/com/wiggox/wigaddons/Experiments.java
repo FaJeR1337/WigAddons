@@ -110,11 +110,12 @@ public final class Experiments {
 		if (prompt && !remembering) {
 			CURRENT.clear(); // a new showing starts: the whole pattern comes again from the first colour
 		}
+		boolean starting = prompt && !remembering; // your own last click turns glass to terracotta on this very tick
 		boolean lit = false; // several blocks light up together: that is still one colour of the pattern
 		for (int i = 0; i < chestSlots; i++) {
 			Item now = slots.get(i).getItem().getItem();
 			Item before = PREVIOUS.get(i);
-			if ((prompt || remembering) && before != null && isGlass(before)) {
+			if (!starting && (prompt || remembering) && before != null && isGlass(before)) {
 				int color = terracottaColor(now);
 				if (color >= 0 && !lit) {
 					lit = true;
