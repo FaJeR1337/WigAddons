@@ -12,6 +12,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -35,6 +36,8 @@ public final class Experiments {
 	private static final List<Integer> PATTERN = new ArrayList<>();
 	private static final Map<Integer, Item> PREVIOUS = new HashMap<>();
 	private static boolean remembering;
+	private static int autoIndex; // how many colours of the pattern Auto Experiments has clicked this round
+	private static long nextClick; // when the next automatic click is due, in milliseconds
 	private static int skipTicks; // ticks after a showing starts in which changes are still your own click
 
 	private Experiments() {
@@ -59,6 +62,7 @@ public final class Experiments {
 		PREVIOUS.clear();
 		remembering = false;
 		skipTicks = 0;
+		autoIndex = 0;
 	}
 
 	/** The index of the dye colour at the start of the path ("red_stained_glass" is 14), or -1. */
@@ -136,7 +140,34 @@ public final class Experiments {
 			PATTERN.clear();
 			PATTERN.addAll(CURRENT); // the showing is over: that is the pattern to repeat
 		}
+		boolean showed = remembering && !prompt;
 		remembering = prompt;
+		if (prompt) {
+			autoIndex = 0;
+		}
+		if (showed) {
+			autoIndex = 0;
+			nextClick = System.currentTimeMillis() + 200; // the start delay
+		}
+		autoClick(mc, chest, slots, chestSlots, prompt);
+	}
+
+	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 150 to 200 ms apart. */
+	private static void autoClick(Minecraft mc, AbstractContainerScreen<?> chest, List<Slot> slots, int chestSlots, boolean prompt) {
+		if (!WigState.config.experimentsAuto || prompt || mc.gameMode == null || mc.player == null
+				|| autoIndex >= PATTERN.size() || System.currentTimeMillis() < nextClick) {
+			return;
+		}
+		int want = PATTERN.get(autoIndex);
+		for (int i = 0; i < chestSlots; i++) {
+			String path = pathOf(slots.get(i).getItem().getItem());
+			if (colorOf(path, "_stained_glass") == want || colorOf(path, "_stained_glass_pane") == want) {
+				mc.gameMode.handleContainerInput(chest.getMenu().containerId, i, 2, ContainerInput.CLONE, mc.player);
+				autoIndex++;
+				nextClick = System.currentTimeMillis() + 150 + (long) (Math.random() * 51);
+				return;
+			}
+		}
 	}
 
 	private static void draw(Screen screen, GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
