@@ -37,7 +37,7 @@ public final class WaypointRenderer {
 				if (HeadScanner.showing) {
 					drawHeads();
 				}
-				if (Runner.isHunting() && WigState.config.killShowTags) {
+				if (Runner.isHunting() && (WigState.config.killShowTags || WigState.config.killShowHitboxes)) {
 					drawHuntTags();
 				}
 				if (WigState.config.followShowTrail) {
@@ -75,7 +75,9 @@ public final class WaypointRenderer {
 				+ (mark.dead() ? " \u00a78(dead?)" : !mark.visible() ? " \u00a78(hidden)" : "");
 			// the same scale at every distance, like an ordinary name tag: it shrinks with distance in the world
 			float scale = (float) WigState.config.killTagScale;
-			Gizmos.billboardText(text, new Vec3(mark.x(), mark.eyeY() + 1.2, mark.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(scale)).setAlwaysOnTop();
+			if (WigState.config.killShowTags) {
+				Gizmos.billboardText(text, new Vec3(mark.x(), mark.eyeY() + 1.2, mark.z()), TextGizmo.Style.forColorAndCentered(0xFFFFFFFF).withScale(scale)).setAlwaysOnTop();
+			}
 			if (!WigState.config.killShowHitboxes) {
 				continue;
 			}

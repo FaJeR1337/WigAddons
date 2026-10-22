@@ -412,12 +412,12 @@ public final class WigGui {
 		followNumber(b, "markmax", "Dead for at most (s)", "The longest the mob is ignored after an attack, in seconds.",
 			() -> config.killMarkMaxSeconds, v -> config.killMarkMaxSeconds = v, 0, 300);
 		followNumber(b, "click", "Click length (ticks)", "How long the right click button is held for each attack.", () -> config.killClickTicks, v -> config.killClickTicks = (int) Math.round(v), 1, 40);
-		b.toggle("tags", "Custom Nametags", "Draws the mod's own name tag (white, like an ordinary one) over every mob being hunted, through walls, and a box around it if Hitboxes below is on.",
+		b.toggle("tags", "Custom Nametags", "Draws the mod's own name tag (white, like an ordinary one) over every mob being hunted, through walls.",
 			() -> config.killShowTags, v -> {
 				config.killShowTags = v;
 				WigState.saveConfig();
 			});
-		b.toggle("hitboxes", "Hitboxes", "A box around every mob being hunted, through walls: gold for special mobs, green for the current target, red for the others and grey for ones assumed dead. Needs Custom Nametags on.",
+		b.toggle("hitboxes", "Hitboxes", "A box around every mob being hunted, through walls: gold for special mobs, green for the current target, red for the others and grey for ones assumed dead.",
 			() -> config.killShowHitboxes, v -> {
 				config.killShowHitboxes = v;
 				WigState.saveConfig();
@@ -598,12 +598,12 @@ public final class WigGui {
 			() -> config.killReactEarlySeconds, v -> config.killReactEarlySeconds = v, 0, 30);
 		b.endSection();
 		b.section("tags", "Display");
-		b.toggle("tags", "Custom Nametags", "Draws the mod's own name tag (white, like an ordinary one) over every mob being hunted, through walls, and a box around it if Hitboxes below is on.",
+		b.toggle("tags", "Custom Nametags", "Draws the mod's own name tag (white, like an ordinary one) over every mob being hunted, through walls.",
 			() -> config.killShowTags, v -> {
 				config.killShowTags = v;
 				WigState.saveZealots();
 			});
-		b.toggle("hitboxes", "Hitboxes", "A box around every mob being hunted, through walls: gold for special mobs, green for the current target, red for the others and grey for ones assumed dead. Needs Custom Nametags on.",
+		b.toggle("hitboxes", "Hitboxes", "A box around every mob being hunted, through walls: gold for special mobs, green for the current target, red for the others and grey for ones assumed dead.",
 			() -> config.killShowHitboxes, v -> {
 				config.killShowHitboxes = v;
 				WigState.saveZealots();
