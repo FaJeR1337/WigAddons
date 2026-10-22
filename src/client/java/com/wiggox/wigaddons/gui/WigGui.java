@@ -525,7 +525,6 @@ public final class WigGui {
 			com.wiggox.wigaddons.Compat.setScreen(Minecraft.getInstance(), null);
 			Runner.startZealots();
 		});
-		b.info("places", "Home spot", "/wig zealots home sets the spot you stand on as home, /wig zealots home clear removes it. This home is separate from the Hunt tab's");
 		b.section("looking", "Looking and turning");
 		b.slider("turnspeed", "Turn speed", "The fastest the view turns while hunting, in degrees per tick. This is separate from the default turn speed that routes and following use (10).",
 			1, 60, 1, () -> config.killTurnSpeed, v -> {
@@ -553,6 +552,7 @@ public final class WigGui {
 		zealotNumber(b, "margin", "Aim margin", "How much bigger than the mob's hitbox still counts as looking at it, in blocks.", () -> config.killAimMargin, v -> config.killAimMargin = v, 0, 2);
 		b.endSection();
 		b.section("home", "Home and wandering");
+		b.button("sethome", "Home Spot", "Automatically walk here if no target was found, runs /wig zealots home.", "Set Home", () -> com.wiggox.wigaddons.WigCommands.setHuntHome(true, true));
 		b.toggle("wander", "Wander at home", "While nothing is in range, stroll to random spots around the home spot, resting a moment between them, instead of standing still.",
 			() -> config.killWander, v -> {
 				config.killWander = v;
@@ -564,6 +564,7 @@ public final class WigGui {
 				WigState.saveZealots();
 			});
 		zealotNumber(b, "wanderradius", "Wander radius", "How far from the home spot to stroll, in blocks.", () -> config.killWanderRadius, v -> config.killWanderRadius = v, 0, 50);
+		b.button("clearhome", "Clear Home", "Runs /wig zealots home clear.", "Clear", () -> com.wiggox.wigaddons.WigCommands.setHuntHome(false, true));
 		b.endSection();
 		b.section("targets", "Choosing targets");
 		zealotNumber(b, "radius", "Search radius", "How many blocks away to look for something to hunt.", () -> config.killSearchRadius, v -> config.killSearchRadius = v, 1, 500);

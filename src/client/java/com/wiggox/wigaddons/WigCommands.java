@@ -532,7 +532,7 @@ public final class WigCommands {
 		return 1;
 	}
 
-	private static int setHuntHome(boolean set, boolean zealots) {
+	public static int setHuntHome(boolean set, boolean zealots) {
 		var mc = net.minecraft.client.Minecraft.getInstance();
 		if (set && mc.player == null) {
 			return 0;
