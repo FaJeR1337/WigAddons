@@ -179,7 +179,16 @@ public final class Experiments {
 		autoClick(mc, chest, slots, chestSlots, prompt);
 	}
 
-	/** Ultrasequencer: the dyes show their numbers as stack sizes while "Remember the pattern!" is up; then click them 1, 2, 3... */
+	/** An item that carries a number in Ultrasequencer: any item but the glass background, the timer clock and the prompt. */
+	private static boolean isNumbered(ItemStack stack) {
+		if (stack.isEmpty() || stack.is(Items.CLOCK) || stack.is(Items.GLOWSTONE) || stack.is(Items.BOOKSHELF)) {
+			return false;
+		}
+		String path = pathOf(stack.getItem());
+		return !path.contains("glass") && !path.equals("barrier");
+	}
+
+	/** Ultrasequencer: the numbered items show their numbers as stack sizes while "Remember the pattern!" is up; then click them 1, 2, 3... */
 	private static void ultraTick(Minecraft mc, AbstractContainerScreen<?> chest) {
 		List<Slot> slots = chest.getMenu().slots;
 		int chestSlots = Math.max(0, slots.size() - 36);
@@ -189,7 +198,7 @@ public final class Experiments {
 			ItemStack stack = slots.get(i).getItem();
 			if (stack.is(Items.GLOWSTONE) && stack.getHoverName().getString().contains("Remember the pattern!")) {
 				prompt = true;
-			} else if (pathOf(stack.getItem()).endsWith("_dye")) {
+			} else if (isNumbered(stack)) {
 				seen.put(stack.getCount(), i);
 			}
 		}
