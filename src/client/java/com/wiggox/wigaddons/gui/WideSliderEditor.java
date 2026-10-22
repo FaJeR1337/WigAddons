@@ -87,7 +87,7 @@ final class WideSliderEditor extends ComponentEditor {
 					} catch (NumberFormatException e) {
 						parsed = 0f;
 					}
-					value.set(parsed);
+					value.set(Math.max(minValue, Math.min(maxValue, parsed))); // typing past the ends stops at them
 				}
 			}, boxWidth, GetSetter.constant(true), "", IMinecraft.INSTANCE.getDefaultFontRenderer(), Set.of('§'));
 			self[0] = box;
