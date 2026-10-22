@@ -194,6 +194,18 @@ public final class Experiments {
 			}
 		}
 		long now = System.currentTimeMillis();
+		int highest = seen.keySet().stream().max(Integer::compare).orElse(0);
+		if (WigState.config.experimentsAuto && mc.player != null && highest >= 9 - WigState.config.experimentsSerums) {
+			// the 9 is on the board (each serum drunk lowers it by one): the table is done and closes
+			if (closeAt == 0) {
+				closeAt = now + 200;
+			} else if (now >= closeAt) {
+				closeAt = 0;
+				mc.player.closeContainer();
+			}
+			return;
+		}
+		closeAt = 0;
 		if (prompt) {
 			if (!seen.isEmpty()) {
 				ULTRA.clear();
