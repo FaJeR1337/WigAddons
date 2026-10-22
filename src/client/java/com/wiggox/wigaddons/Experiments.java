@@ -35,6 +35,7 @@ public final class Experiments {
 	private static final List<Integer> PATTERN = new ArrayList<>();
 	private static final Map<Integer, Item> PREVIOUS = new HashMap<>();
 	private static boolean remembering;
+	private static int skipTicks; // ticks after a showing starts in which changes are still your own click
 
 	private Experiments() {
 	}
@@ -57,6 +58,7 @@ public final class Experiments {
 		PATTERN.clear();
 		PREVIOUS.clear();
 		remembering = false;
+		skipTicks = 0;
 	}
 
 	/** The index of the dye colour at the start of the path ("red_stained_glass" is 14), or -1. */
@@ -110,7 +112,13 @@ public final class Experiments {
 		if (prompt && !remembering) {
 			CURRENT.clear(); // a new showing starts: the whole pattern comes again from the first colour
 		}
-		boolean starting = prompt && !remembering; // your own last click turns glass to terracotta on this very tick
+		if (prompt && !remembering) {
+			skipTicks = 2; // your own last click turns glass to terracotta on this tick and the one after
+		}
+		boolean starting = skipTicks > 0;
+		if (skipTicks > 0) {
+			skipTicks--;
+		}
 		boolean lit = false; // several blocks light up together: that is still one colour of the pattern
 		for (int i = 0; i < chestSlots; i++) {
 			Item now = slots.get(i).getItem().getItem();
