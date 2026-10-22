@@ -171,7 +171,7 @@ public final class WigGui {
 			new DynCategory("zealots", "Zealots", "/wig zealots"),
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("jerry", "Jerry", "Jerries."),
-			new DynCategory("experimentation", "Experimentation", "The Experimentation table."),
+			new DynCategory("experimentation", "Exp. Table", "The Experimentation table."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
 		fillAll();
