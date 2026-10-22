@@ -19,7 +19,7 @@ final class WideSliderEditor extends ComponentEditor {
 	private static final int WIDE_SLIDER_WIDTH = 55;
 	private static final int WIDE_BOX_WIDTH = 34;
 	/** The compact form, for a single digit (0 to 3, say): track and box together as wide as a switch, lined up with the switches above and below. */
-	private static final int COMPACT_SLIDER_WIDTH = 27;
+	private static final int COMPACT_SLIDER_WIDTH = 32;
 	private static final int COMPACT_BOX_WIDTH = 15;
 	private static final float COMPACT_SHIFT = -7.5f;
 
