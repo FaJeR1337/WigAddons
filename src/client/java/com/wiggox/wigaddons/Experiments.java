@@ -28,7 +28,6 @@ public final class Experiments {
 	private static final String[] NAMES = {"White", "Orange", "Magenta", "Light Blue", "Yellow", "Lime", "Pink", "Gray", "Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black"};
 	private static final int[] COLORS = {0xFFFFFF, 0xFFA040, 0xFF55FF, 0x55CCFF, 0xFFFF55, 0x88FF33, 0xFF99BB, 0x8A8A8A, 0xD5D5D5, 0x22DDDD, 0xAA44DD, 0x5577FF, 0xAA7744, 0x2FAA2F, 0xFF4444, 0x666666};
 	private static final int GOLD = 0xFFAA00;
-	private static final int BACKGROUND = 0x99000000;
 	private static final int PADDING = 4;
 
 	/** The colours of the pattern being shown now, in order, and the last full pattern. */
@@ -152,12 +151,17 @@ public final class Experiments {
 			left = (screen.width + 176) / 2 + 6;
 		}
 		int top = Math.max(2, (screen.height - 222) / 2);
-		graphics.fill(left, top, left + boxWidth, top + boxHeight, BACKGROUND);
 		for (int i = 0; i < list.size(); i++) {
 			int y = top + PADDING + i * line;
-			graphics.text(font, (i + 1) + ".", left + PADDING, y, 0xFF000000 | GOLD, true);
-			graphics.text(font, NAMES[list.get(i)], left + PADDING + numberWidth, y, 0xFF000000 | COLORS[list.get(i)], true);
+			// no background: the text carries its own black shadow, one pixel down and right, under the game's usual one
+			shadowed(graphics, font, (i + 1) + ".", left + PADDING, y, 0xFF000000 | GOLD);
+			shadowed(graphics, font, NAMES[list.get(i)], left + PADDING + numberWidth, y, 0xFF000000 | COLORS[list.get(i)]);
 		}
+	}
+
+	private static void shadowed(GuiGraphicsExtractor graphics, Font font, String text, int x, int y, int color) {
+		graphics.text(font, text, x + 1, y + 1, 0xFF000000, false);
+		graphics.text(font, text, x, y, color, true);
 	}
 
 	/** For the dev test: the colours of the pattern being shown. */
