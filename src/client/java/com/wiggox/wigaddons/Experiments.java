@@ -245,7 +245,7 @@ public final class Experiments {
 		}
 		mc.gameMode.handleContainerInput(chest.getMenu().containerId, slot, 2, ContainerInput.CLONE, mc.player);
 		ultraIndex++;
-		nextClick = now + 200 + (long) (Math.random() * 51);
+		nextClick = now + 125 + (long) (Math.random() * 36);
 	}
 
 	/** The number on the bookshelf called "Round: X", or 0 when it is not there. */
@@ -262,7 +262,7 @@ public final class Experiments {
 		return 0;
 	}
 
-	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 200 to 250 ms apart. */
+	/** Auto Experiments: pick-block (middle click) a glass of each colour of the pattern in order, 125 to 160 ms apart. */
 	private static void autoClick(Minecraft mc, AbstractContainerScreen<?> chest, List<Slot> slots, int chestSlots, boolean prompt) {
 		if (!WigState.config.experimentsAuto || mc.gameMode == null || mc.player == null) {
 			return;
@@ -282,13 +282,18 @@ public final class Experiments {
 		if (prompt || autoIndex >= PATTERN.size() || now < nextClick) {
 			return;
 		}
+		for (int i = 0; i < chestSlots; i++) {
+			if (terracottaColor(slots.get(i).getItem().getItem()) >= 0) {
+				return; // the last click is still lit: wait until every block is glass again
+			}
+		}
 		int want = PATTERN.get(autoIndex);
 		for (int i = 0; i < chestSlots; i++) {
 			String path = pathOf(slots.get(i).getItem().getItem());
 			if (colorOf(path, "_stained_glass") == want || colorOf(path, "_stained_glass_pane") == want) {
 				mc.gameMode.handleContainerInput(chest.getMenu().containerId, i, 2, ContainerInput.CLONE, mc.player);
 				autoIndex++;
-				nextClick = System.currentTimeMillis() + 200 + (long) (Math.random() * 51);
+				nextClick = System.currentTimeMillis() + 125 + (long) (Math.random() * 36);
 				return;
 			}
 		}
