@@ -42,6 +42,7 @@ public final class Experiments {
 	private static int ultraIndex;
 	private static int autoIndex; // how many colours of the pattern Auto Experiments has clicked this round
 	private static long closeAt; // when the finished table is closed, 0 while not waiting
+	private static boolean awaitLit; // clicked, and the terracotta of that click has not shown up yet
 	private static long nextClick; // when the next automatic click is due, in milliseconds
 	private static int skipTicks; // ticks after a showing starts in which changes are still your own click
 
@@ -76,6 +77,7 @@ public final class Experiments {
 		skipTicks = 0;
 		autoIndex = 0;
 		closeAt = 0;
+		awaitLit = false;
 	}
 
 	/** The index of the dye colour at the start of the path ("red_stained_glass" is 14), or -1. */
@@ -174,6 +176,7 @@ public final class Experiments {
 		}
 		if (showed) {
 			autoIndex = 0;
+			awaitLit = false;
 			nextClick = System.currentTimeMillis() + 200; // the start delay
 		}
 		autoClick(mc, chest, slots, chestSlots, prompt);
@@ -282,10 +285,23 @@ public final class Experiments {
 		if (prompt || autoIndex >= PATTERN.size() || now < nextClick) {
 			return;
 		}
-		for (int i = 0; i < chestSlots; i++) {
-			if (terracottaColor(slots.get(i).getItem().getItem()) >= 0) {
-				return; // the last click is still lit: wait until every block is glass again
+		boolean anyLit = false;
+		for (int i = 0; i < chestSlots && !anyLit; i++) {
+			anyLit = terracottaColor(slots.get(i).getItem().getItem()) >= 0;
+		}
+		if (awaitLit) {
+			// the server has not shown the last click yet (ping): wait for its terracotta, but not for ever
+			if (anyLit || now > nextClick + 1500) {
+				awaitLit = false;
 			}
+			if (anyLit) {
+				nextClick = now + 125 + (long) (Math.random() * 36);
+			}
+			return;
+		}
+		if (anyLit) {
+			nextClick = now + 125 + (long) (Math.random() * 36); // the delay counts from when the blocks are glass again
+			return;
 		}
 		int want = PATTERN.get(autoIndex);
 		for (int i = 0; i < chestSlots; i++) {
@@ -293,6 +309,7 @@ public final class Experiments {
 			if (colorOf(path, "_stained_glass") == want || colorOf(path, "_stained_glass_pane") == want) {
 				mc.gameMode.handleContainerInput(chest.getMenu().containerId, i, 2, ContainerInput.CLONE, mc.player);
 				autoIndex++;
+				awaitLit = true;
 				nextClick = System.currentTimeMillis() + 125 + (long) (Math.random() * 36);
 				return;
 			}
