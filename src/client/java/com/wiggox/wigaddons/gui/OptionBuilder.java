@@ -119,6 +119,12 @@ final class OptionBuilder {
 		put(option, new GuiOptionEditorButton(option, -1, StructuredText.of(label), config));
 	}
 
+	/** A button wider than the standard 48 GUI units, for a label that doesn't fit. */
+	void button(String key, String name, String description, String label, int width, Runnable action) {
+		DynOption option = add(key, name, description, Runnable.class, () -> action, v -> false);
+		put(option, new WideButtonEditor(option, StructuredText.of(label), width, action));
+	}
+
 	/** A row with its own editor, such as a waypoint or an icon picker. */
 	DynOption custom(String key, String name, String description, java.lang.reflect.Type type, Supplier<Object> getter,
 		java.util.function.Predicate<Object> setter, BiFunction<DynOption, Config, GuiOptionEditor> editorFactory) {
