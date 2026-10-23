@@ -549,8 +549,9 @@ public final class WigCommands {
 		} else {
 			WigState.saveConfig();
 		}
-		Chat.info(set ? "Hunt home set here. With nothing to hunt you walk back here and wander around it."
-			: "Hunt home cleared. With nothing to hunt you stand still.");
+		String name = zealots ? "Zealots" : "Hunt"; // the home of the script it was set for
+		Chat.info(set ? name + " home set here. With nothing to hunt you walk back here and wander around it."
+			: name + " home cleared. With nothing to hunt you stand still.");
 		return 1;
 	}
 }
