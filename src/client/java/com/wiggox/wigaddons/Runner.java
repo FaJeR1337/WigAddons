@@ -2268,7 +2268,7 @@ public final class Runner {
 		lastTickPos = null;
 	}
 
-	/** Raises a macro check when the player is moved further than three blocks in one tick, or ends up in another world, by something other than itself. */
+	/** Raises a macro check when the player is moved further than five blocks in one tick, or ends up in another world, by something other than itself. */
 	private static void checkTeleport(Minecraft mc, LocalPlayer player) {
 		Vec3 now = player.position();
 		if (expectTeleportTicks > 0) {
