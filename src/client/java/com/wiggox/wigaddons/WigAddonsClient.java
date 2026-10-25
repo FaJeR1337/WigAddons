@@ -16,6 +16,7 @@ public class WigAddonsClient implements ClientModInitializer {
 		SmokeTest.register();
 		WaypointRenderer.register();
 		Experiments.register();
+		Autoclicker.register();
 
 		// at the end of the tick, after the game has stored the previous rotation, so the camera blends between the two
 		ClientTickEvents.END_CLIENT_TICK.register(Runner::tick);

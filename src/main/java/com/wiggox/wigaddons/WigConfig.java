@@ -90,6 +90,12 @@ public final class WigConfig {
 	/** The Experimentation table: the Auto Experiments switch, how many serums to drink (0 to 3), and the Chronomatron pattern shown beside the chest. */
 	public boolean experimentsAuto = false;
 	public int experimentsSerums = 0;
+	/** The autoclicker: the main switch, and for each button its clicks per second (0 to 20) and the key that runs it while held (0 is none). */
+	public boolean autoclickerOn = false;
+	public int autoLeftCps = 10;
+	public int autoLeftKey = 0;
+	public int autoRightCps = 10;
+	public int autoRightKey = 0;
 	public boolean experimentsHud = true;
 	/** The tab the settings screen was last left on, to open it there next time. */
 	public String guiLastTab = "";
@@ -389,6 +395,8 @@ public final class WigConfig {
 			fishRecastMaxMs = d.fishRecastMaxMs;
 		}
 		experimentsSerums = Math.max(0, Math.min(3, experimentsSerums));
+		autoLeftCps = Math.max(0, Math.min(20, autoLeftCps));
+		autoRightCps = Math.max(0, Math.min(20, autoRightCps));
 		fishSlugSeconds = Double.isNaN(fishSlugSeconds) ? d.fishSlugSeconds : Math.max(10.0, Math.min(20.0, fishSlugSeconds));
 		if (!(protectorSearchSeconds >= 0)) {
 			protectorSearchSeconds = d.protectorSearchSeconds;

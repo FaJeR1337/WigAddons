@@ -7,6 +7,7 @@ import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorAccordio
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorBoolean;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorButton;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorInfoText;
+import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorKeybind;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorSlider;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorText;
 import java.util.ArrayDeque;
@@ -16,6 +17,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /** Adds rows to one category, keeping track of which collapsible section they sit in. */
@@ -75,6 +78,15 @@ final class OptionBuilder {
 			return true;
 		});
 		put(option, new GuiOptionEditorBoolean(option, -1, config));
+	}
+
+	/** A key picker: click it, then press the key. The value is the key code, 0 for none. */
+	void keybind(String key, String name, String description, IntSupplier getter, IntConsumer setter) {
+		DynOption option = add(key, name, description, int.class, getter::getAsInt, v -> {
+			setter.accept(((Number) v).intValue());
+			return true;
+		});
+		put(option, new GuiOptionEditorKeybind(option, 0));
 	}
 
 	/** A slider whose number box is wide enough for three digits. */

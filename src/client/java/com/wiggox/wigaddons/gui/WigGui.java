@@ -172,6 +172,7 @@ public final class WigGui {
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("jerry", "Jerry", "Jerries."),
 			new DynCategory("experimentation", "Exp. Table", "The Experimentation table."),
+			new DynCategory("autoclicker", "Autoclicker", "Clicks for you while a key is held."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
 		fillAll();
@@ -201,6 +202,7 @@ public final class WigGui {
 				case "fishing" -> fillFishing(category);
 				case "jerry" -> fillJerry(category);
 				case "experimentation" -> fillExperimentation(category);
+				case "autoclicker" -> fillAutoclicker(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
 				default -> {
@@ -295,6 +297,37 @@ public final class WigGui {
 	}
 
 	// ---- HUD ----
+
+	private static void fillAutoclicker(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.toggle("main", "Main Toggle", "",
+			() -> config.autoclickerOn, v -> {
+				config.autoclickerOn = v;
+				WigState.saveConfig();
+			});
+		b.section("left", "Left Click");
+		b.slider("leftcps", "CPS", "Recommended 10 anything above is own risk", 0, 20, 1, () -> config.autoLeftCps, v -> {
+			config.autoLeftCps = (int) Math.round(v);
+			WigState.saveConfig();
+		});
+		b.keybind("leftkey", "Keybind", "Holding this key turns the autoclicker on for the left button.", () -> config.autoLeftKey, v -> {
+			config.autoLeftKey = v;
+			WigState.saveConfig();
+		});
+		b.endSection();
+		b.section("right", "Right Click");
+		b.slider("rightcps", "CPS", "Recommended 10 anything above is own risk", 0, 20, 1, () -> config.autoRightCps, v -> {
+			config.autoRightCps = (int) Math.round(v);
+			WigState.saveConfig();
+		});
+		b.keybind("rightkey", "Keybind", "Holding this key turns the autoclicker on for the right button.", () -> config.autoRightKey, v -> {
+			config.autoRightKey = v;
+			WigState.saveConfig();
+		});
+		b.endSection();
+	}
 
 	private static void fillExperimentation(DynCategory category) {
 		reset(category);
