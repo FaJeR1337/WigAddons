@@ -29,7 +29,7 @@ public final class Autoclicker {
 			return;
 		}
 		long now = System.currentTimeMillis();
-		if (held(mc, config.autoLeftKey) && config.autoLeftCps > 0) {
+		if (held(mc, config.autoLeftKey) && !isAttackOrUse(mc, config.autoLeftKey) && config.autoLeftCps > 0) {
 			if (now >= nextLeft) {
 				click(mc.options.keyAttack);
 				nextLeft = now + interval(config.autoLeftCps);
@@ -37,7 +37,7 @@ public final class Autoclicker {
 		} else {
 			nextLeft = 0;
 		}
-		if (held(mc, config.autoRightKey) && config.autoRightCps > 0) {
+		if (held(mc, config.autoRightKey) && !isAttackOrUse(mc, config.autoRightKey) && config.autoRightCps > 0) {
 			if (now >= nextRight) {
 				click(mc.options.keyUse);
 				nextRight = now + interval(config.autoRightCps);
@@ -57,18 +57,24 @@ public final class Autoclicker {
 		KeyMapping.click(InputConstants.getKey(mapping.saveString()));
 	}
 
-	/** Whether the picked key is down. 0 and -1 are none; -100, -99 and -98 are the left, right and middle mouse buttons. */
+	/** The picked key in the picker's numbering: the key code, or -100 plus the button for the mouse. */
+	private static int codeOf(KeyMapping mapping) {
+		InputConstants.Key bound = InputConstants.getKey(mapping.saveString());
+		return bound.getType() == InputConstants.Type.MOUSE ? bound.getValue() - 100 : bound.getValue();
+	}
+
+	/** Whether the key is the one bound to attack or to use/place: those are what this clicks, so holding one would fight the clicks. */
+	public static boolean isAttackOrUse(Minecraft mc, int key) {
+		return key != 0 && (key == codeOf(mc.options.keyAttack) || key == codeOf(mc.options.keyUse));
+	}
+
+	/** Whether the picked key is down. 0 and -1 are none; -100 and below are mouse buttons (-100 is the left one, -99 the right, and so on). */
 	private static boolean held(Minecraft mc, int key) {
 		if (key == 0 || key == -1) {
 			return false;
 		}
 		if (key < -1) {
-			return switch (key + 100) {
-				case 0 -> mc.mouseHandler.isLeftPressed();
-				case 1 -> mc.mouseHandler.isRightPressed();
-				case 2 -> mc.mouseHandler.isMiddlePressed();
-				default -> false;
-			};
+			return org.lwjgl.glfw.GLFW.glfwGetMouseButton(mc.getWindow().handle(), key + 100) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
 		}
 		return InputConstants.isKeyDown(mc.getWindow(), key);
 	}

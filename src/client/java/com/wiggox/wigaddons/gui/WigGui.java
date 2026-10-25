@@ -313,6 +313,10 @@ public final class WigGui {
 			WigState.saveConfig();
 		});
 		b.keybind("leftkey", "Keybind", "Holding this key turns the autoclicker on for the left button.", () -> config.autoLeftKey, v -> {
+			if (com.wiggox.wigaddons.Autoclicker.isAttackOrUse(Minecraft.getInstance(), v)) {
+				Chat.info("That is your attack or use key, pick another.");
+				return;
+			}
 			config.autoLeftKey = v;
 			WigState.saveConfig();
 		});
@@ -323,6 +327,10 @@ public final class WigGui {
 			WigState.saveConfig();
 		});
 		b.keybind("rightkey", "Keybind", "Holding this key turns the autoclicker on for the right button.", () -> config.autoRightKey, v -> {
+			if (com.wiggox.wigaddons.Autoclicker.isAttackOrUse(Minecraft.getInstance(), v)) {
+				Chat.info("That is your attack or use key, pick another.");
+				return;
+			}
 			config.autoRightKey = v;
 			WigState.saveConfig();
 		});
