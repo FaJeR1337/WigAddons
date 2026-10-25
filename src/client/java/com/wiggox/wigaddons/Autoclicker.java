@@ -75,10 +75,9 @@ public final class Autoclicker {
 		KeyMapping.click(InputConstants.getKey(mapping.saveString()));
 	}
 
-	/** The picked key in the picker's numbering: the key code, or -100 plus the button for the mouse. */
+	/** The key bound to the mapping in the picker's numbering: a key code, or the plain button number for the mouse. */
 	private static int codeOf(KeyMapping mapping) {
-		InputConstants.Key bound = InputConstants.getKey(mapping.saveString());
-		return bound.getType() == InputConstants.Type.MOUSE ? bound.getValue() - 100 : bound.getValue();
+		return InputConstants.getKey(mapping.saveString()).getValue();
 	}
 
 	/** Whether the key is the one bound to attack or to use/place: those are what this clicks, so holding one would fight the clicks. */
@@ -86,7 +85,7 @@ public final class Autoclicker {
 		return key != 0 && (key == codeOf(mc.options.keyAttack) || key == codeOf(mc.options.keyUse));
 	}
 
-	/** Whether the picked key is down. 0 and -1 are none; -100 and below are mouse buttons (-100 is the left one, -99 the right, and so on). */
+	/** Whether the picked key is down. 0 and -1 are none; 1 to 9 are mouse buttons (the picker keeps them as their number). */
 	private static boolean held(Minecraft mc, int key) {
 		if (key == 0 || key == -1) {
 			return false;
@@ -94,8 +93,9 @@ public final class Autoclicker {
 		if (testHeld) {
 			return true;
 		}
-		if (key < -1) {
-			return org.lwjgl.glfw.GLFW.glfwGetMouseButton(mc.getWindow().handle(), key + 100) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+		if (key >= 1 && key <= 9) {
+			// the picker keeps a mouse button as its plain number: 1 right, 2 middle, 3 and 4 the side buttons (0, the left one, can't be told from none)
+			return org.lwjgl.glfw.GLFW.glfwGetMouseButton(mc.getWindow().handle(), key) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
 		}
 		return InputConstants.isKeyDown(mc.getWindow(), key);
 	}
