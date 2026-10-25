@@ -11,6 +11,11 @@ import net.minecraft.client.Minecraft;
  * The speed is the chosen clicks per second, a little different every click (one more or less) so it isn't a fixed beat.
  */
 public final class Autoclicker {
+	/** Dev test only: pretend every picked key is held, and count the clicks sent. */
+	public static boolean testHeld;
+	public static int clicks;
+	private static boolean pressedLeft;
+	private static boolean pressedRight;
 	private static long nextLeft;
 	private static long nextRight;
 
@@ -23,6 +28,15 @@ public final class Autoclicker {
 
 	private static void tick(Minecraft mc) {
 		WigConfig config = WigState.config;
+		// the press of the last click ends one tick after it started, like a real click, so blocks get their break progress
+		if (pressedLeft) {
+			mc.options.keyAttack.setDown(false);
+			pressedLeft = false;
+		}
+		if (pressedRight) {
+			mc.options.keyUse.setDown(false);
+			pressedRight = false;
+		}
 		if (!config.autoclickerOn || mc.player == null || Compat.screen(mc) != null) {
 			nextLeft = 0;
 			nextRight = 0;
@@ -32,6 +46,7 @@ public final class Autoclicker {
 		if (held(mc, config.autoLeftKey) && !isAttackOrUse(mc, config.autoLeftKey) && config.autoLeftCps > 0) {
 			if (now >= nextLeft) {
 				click(mc.options.keyAttack);
+				pressedLeft = true;
 				nextLeft = now + interval(config.autoLeftCps);
 			}
 		} else {
@@ -40,6 +55,7 @@ public final class Autoclicker {
 		if (held(mc, config.autoRightKey) && !isAttackOrUse(mc, config.autoRightKey) && config.autoRightCps > 0) {
 			if (now >= nextRight) {
 				click(mc.options.keyUse);
+				pressedRight = true;
 				nextRight = now + interval(config.autoRightCps);
 			}
 		} else {
@@ -54,6 +70,8 @@ public final class Autoclicker {
 	}
 
 	private static void click(KeyMapping mapping) {
+		clicks++;
+		mapping.setDown(true);
 		KeyMapping.click(InputConstants.getKey(mapping.saveString()));
 	}
 
@@ -72,6 +90,9 @@ public final class Autoclicker {
 	private static boolean held(Minecraft mc, int key) {
 		if (key == 0 || key == -1) {
 			return false;
+		}
+		if (testHeld) {
+			return true;
 		}
 		if (key < -1) {
 			return org.lwjgl.glfw.GLFW.glfwGetMouseButton(mc.getWindow().handle(), key + 100) == org.lwjgl.glfw.GLFW.GLFW_PRESS;

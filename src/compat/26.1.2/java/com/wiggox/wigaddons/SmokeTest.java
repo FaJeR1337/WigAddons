@@ -137,13 +137,39 @@ final class SmokeTest {
 			case 29 -> jerryCheck(mc);
 			case 30 -> hudSessionCheck(mc);
 			case 31 -> chronomatronCheck(mc);
-			case 32 -> {
+			case 32 -> autoclickerCheck(mc);
+			case 33 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
 			}
 			default -> {
 			}
+		}
+	}
+
+	private static int swingTicks;
+
+	/** The autoclicker with its keys held: the clicks are sent and the player swings. */
+	private static void autoclickerCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			WigState.config.autoclickerOn = true;
+			WigState.config.autoLeftKey = 65;
+			WigState.config.autoLeftCps = 10;
+			WigState.config.autoRightKey = 66;
+			WigState.config.autoRightCps = 5;
+			Autoclicker.testHeld = true;
+			Autoclicker.clicks = 0;
+			swingTicks = 0;
+		}
+		if (mc.player != null && mc.player.swinging) {
+			swingTicks++;
+		}
+		if (phaseTick == 60) {
+			Autoclicker.testHeld = false;
+			WigState.config.autoclickerOn = false;
+			log("autoclicker: " + Autoclicker.clicks + " clicks in 3 s, swinging on " + swingTicks + " ticks");
+			next();
 		}
 	}
 
