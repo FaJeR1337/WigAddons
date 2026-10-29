@@ -24,8 +24,6 @@ public final class TeleportPath {
 	private static final double LIFT = 2.0;
 	/** A hop along a route only lands where there is a block to stand on within this many blocks below. */
 	private static final int GROUND_WITHIN = 3;
-	/** A landing counts as on the route when it is this close to the spot LIFT blocks above a cell of it. */
-	private static final double LAND_WITHIN = 1.0;
 	/** How many hops the search may try before it gives up on a way. */
 	private static final int SEARCH_BUDGET = 3000;
 	/** The most a hop may turn away from the one before it, so the route bends gently; given up on only where nothing else is clear. */
@@ -109,20 +107,21 @@ public final class TeleportPath {
 			for (int i = guide.size() - 1; i >= fromIndex && best == null; i--) {
 				double[] g = guide.get(i);
 				double dx = g[0] - at[0];
-				double dy = g[1] + LIFT - at[1]; // aim at the spot above the route
+				boolean relaxed = relaxFirst && n == 0;
+				// aim at the middle of the cell above the route; the relaxed first hop just goes along the route, at its own height
+				double dy = g[1] + (relaxed ? 0.5 : LIFT + 0.5) - at[1];
 				double dz = g[2] - at[2];
 				double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-				boolean relaxed = relaxFirst && n == 0;
 				if (relaxed ? length < hop * 0.5 : Math.abs(length - hop) > 1.5) {
 					continue; // not about one hop away (for the relaxed first hop: not at least half a hop away)
 				}
 				double[] direction = {dx / length, dy / length, dz / length};
 				double[] landing = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
 					direction[0], direction[1], direction[2]};
-				double offX = landing[0] - g[0];
-				double offY = landing[1] - (g[1] + LIFT);
-				double offZ = landing[2] - g[2];
-				if ((relaxed || offX * offX + offY * offY + offZ * offZ <= LAND_WITHIN * LAND_WITHIN)
+				// a hop lands in exactly the cell LIFT blocks above the route's cell, with no give: a landing next to it could be where
+				// the walking route can't go
+				boolean onTheSpot = Math.abs(landing[0] - g[0]) < 1e-6 && Math.abs(landing[2] - g[2]) < 1e-6 && Math.abs(landing[1] - (g[1] + LIFT)) < 1e-6;
+				if ((relaxed || onTheSpot)
 					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
 					&& groundBelow(landing, air) && clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
 					best = landing;

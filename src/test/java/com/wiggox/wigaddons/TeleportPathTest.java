@@ -89,8 +89,8 @@ class TeleportPathTest {
 		List<double[]> hops = TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, new double[] {60.5, 60, 0.5}, 12, 10, FLOOR);
 		assertTrue(hops.size() >= 4, "hops: " + hops.size());
 		for (double[] hop : hops) {
-			assertEquals(62.0, hop[1], 1.0); // within a block of the spot two blocks above the route
-			assertEquals(0.5, hop[2], 1.0);
+			assertEquals(62.0, hop[1], 1e-9); // exactly the cell two blocks above the route
+			assertEquals(0.5, hop[2], 1e-9);
 		}
 		assertTrue(Math.hypot(60.5 - hops.get(hops.size() - 1)[0], 0) <= 10);
 	}
