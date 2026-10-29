@@ -45,6 +45,12 @@ final class WorldTerrain implements ObstacleAvoider.Terrain {
 		return level != null && level.getBlockState(new BlockPos(x, y, z)).getBlock() instanceof StairBlock;
 	}
 
+	/** Whether the cell has nothing solid in it, so a teleporting player passes through (unloaded cells count as open). */
+	static boolean passable(int x, int y, int z) {
+		VoxelShape shape = shape(x, y, z);
+		return shape == null || shape.isEmpty();
+	}
+
 	private static VoxelShape shape(int x, int y, int z) {
 		ClientLevel level = Minecraft.getInstance().level;
 		if (level == null) {

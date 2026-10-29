@@ -40,6 +40,7 @@ public final class WaypointRenderer {
 				if (Runner.isHunting() && (WigState.config.killShowTags || WigState.config.killShowHitboxes)) {
 					drawHuntTags();
 				}
+				drawTeleportPlan();
 				if (WigState.config.followShowTrail) {
 					drawTrail();
 				}
@@ -57,6 +58,25 @@ public final class WaypointRenderer {
 			Gizmos.cuboid(pos, GizmoStyle.stroke(0xFFFF55FF, 3.0F)).setAlwaysOnTop();
 			Gizmos.billboardText("head " + pos.getX() + " " + pos.getY() + " " + pos.getZ(), new Vec3(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5),
 				TextGizmo.Style.forColorAndCentered(0xFFFF55FF).withScale(0.6F)).setAlwaysOnTop();
+		}
+	}
+
+	/** The hops Teleport home has planned: the block the player lands in for each, numbered, with a dotted line through them. */
+	private static void drawTeleportPlan() {
+		java.util.List<double[]> plan = Runner.teleportPlan();
+		net.minecraft.client.player.LocalPlayer player = net.minecraft.client.Minecraft.getInstance().player;
+		if (plan.isEmpty() || player == null) {
+			return;
+		}
+		Vec3 previous = player.position().add(0, 0.9, 0);
+		int number = 1;
+		for (double[] point : plan) {
+			BlockPos block = new BlockPos((int) Math.floor(point[0]), (int) Math.floor(point[1]), (int) Math.floor(point[2]));
+			Gizmos.cuboid(block, GizmoStyle.strokeAndFill(0xFF55FFFF, 3.0F, 0x5555FFFF)).setAlwaysOnTop();
+			Vec3 middle = new Vec3(point[0], point[1] + 0.9, point[2]);
+			dotted(previous, middle, 0xFF55FFFF);
+			Gizmos.billboardText("TP " + number++, new Vec3(point[0], point[1] + 1.6, point[2]), TextGizmo.Style.forColorAndCentered(0xFF55FFFF).withScale(0.6F)).setAlwaysOnTop();
+			previous = middle;
 		}
 	}
 

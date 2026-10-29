@@ -138,13 +138,50 @@ final class SmokeTest {
 			case 30 -> hudSessionCheck(mc);
 			case 31 -> chronomatronCheck(mc);
 			case 32 -> autoclickerCheck(mc);
-			case 33 -> {
+			case 33 -> teleportHomeCheck(mc);
+			case 34 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
 			}
 			default -> {
 			}
+		}
+	}
+
+	private static int seenTeleportClicks;
+
+	/** Teleport home: an item with the ability, a home 70 blocks away; each click is answered with a real 12 block hop along the view. */
+	private static void teleportHomeCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "tp @s 0.5 -60 0.5 -90 0");
+			command(mc, "give @s minecraft:diamond_sword[lore=['{\"text\":\"Ability: Instant Transmission\"}','{\"text\":\"Teleport 12 blocks ahead of you\"}']]");
+			WigState.config.killHomeSet = true;
+			WigState.config.killHomeX = 0.5 + 70;
+			WigState.config.killHomeY = -60;
+			WigState.config.killHomeZ = 0.5;
+			WigState.config.killWander = false;
+			WigState.config.killTeleportHome = true;
+			seenTeleportClicks = 0;
+		}
+		if (phaseTick == 20) {
+			mc.player.getInventory().setSelectedSlot(4);
+			log("teleport home: start, slot " + mc.player.getInventory().getSelectedSlot() + ", at " + fmt(mc));
+			Runner.startHunt();
+		}
+		if (phaseTick > 20 && Runner.teleportClicks() != seenTeleportClicks) {
+			seenTeleportClicks = Runner.teleportClicks();
+			log("teleport home: click " + seenTeleportClicks + " at " + fmt(mc) + ", plan " + Runner.teleportPlan().size() + " hops left, slot " + mc.player.getInventory().getSelectedSlot());
+			command(mc, "tp @s ^ ^ ^12");
+		}
+		if (phaseTick == 60) {
+			photograph(mc, "teleport");
+		}
+		if (phaseTick == 400) {
+			log("teleport home: end at " + fmt(mc) + ", slot " + mc.player.getInventory().getSelectedSlot() + ", clicks " + Runner.teleportClicks());
+			Runner.stop("done");
+			WigState.config.killTeleportHome = false;
+			next();
 		}
 	}
 

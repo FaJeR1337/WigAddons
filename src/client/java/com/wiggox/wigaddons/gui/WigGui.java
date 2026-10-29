@@ -594,6 +594,11 @@ public final class WigGui {
 		b.endSection();
 		b.section("home", "Home and wandering");
 		b.button("sethome", "Home Spot", "Automatically walk here if no target was found, runs /wig zealots home.", "Set Home", 53, () -> com.wiggox.wigaddons.WigCommands.setHuntHome(true, true));
+		b.toggle("teleporthome", "Teleport home", "Use aote/aotv to get to home spot.",
+			() -> config.killTeleportHome, v -> {
+				config.killTeleportHome = v;
+				WigState.saveZealots();
+			});
 		b.toggle("wander", "Wander at home", "While nothing is in range, stroll to random spots around the home spot, resting a moment between them, instead of standing still.",
 			() -> config.killWander, v -> {
 				config.killWander = v;

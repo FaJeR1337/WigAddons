@@ -449,6 +449,8 @@ public final class Runner {
 	}
 
 	private static void end() {
+		teleportAbort(Minecraft.getInstance().player);
+		tpGaveUp = false;
 		hudPause();
 		releaseClicks();
 		jerryReset();
@@ -552,6 +554,9 @@ public final class Runner {
 		}
 		checkTeleport(mc, player);
 		ticks++;
+		if (tpPhase != TP_IDLE && tpLastTick < ticks - 1) {
+			teleportAbort(player); // something else has taken over: put the held slot back
+		}
 		holdClicks(mc);
 		if (jerryControl(mc, player)) {
 			return; // the Jerry first: nothing else moves the player until it is dead
@@ -1429,6 +1434,9 @@ public final class Runner {
 			return;
 		}
 		huntWaitingTold = false;
+		if (cfg.killTeleportHome && teleportHome(mc, player, cfg)) {
+			return; // teleporting there: nothing else moves the player meanwhile
+		}
 		double toHome = Math.hypot(cfg.killHomeX - player.getX(), cfg.killHomeZ - player.getZ());
 		double[] goal = idleGoal;
 		if (goal == null) {
@@ -1492,6 +1500,206 @@ public final class Runner {
 		haveAim = true;
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
+	}
+
+	// ---- Teleport home: hops through the air with an Aspect of the End or Void ----
+	private static final int TP_IDLE = 0;
+	private static final int TP_PREPARE = 1;
+	private static final int TP_AIM = 2;
+	private static final int TP_WAIT = 3;
+	private static final int TP_RESTORE = 4;
+	private static final int TP_DONE = 5;
+	/** Ticks between one teleport and the next: 300 ms. */
+	private static final int TP_COOLDOWN_TICKS = 6;
+	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
+	private static int tpPhase = TP_IDLE;
+	private static int tpWait;
+	private static int tpAimTicks;
+	private static int tpItemSlot;
+	private static int tpSlotBefore;
+	private static double tpHop = 8;
+	private static int tpFailures;
+	private static boolean tpGaveUp;
+	private static long tpLastTick;
+	private static Vec3 tpStart;
+	private static int tpClicks;
+	private static java.util.List<double[]> tpPlan = java.util.List.of();
+
+	/** How many teleports have been clicked, for the dev test. */
+	public static int teleportClicks() {
+		return tpClicks;
+	}
+
+	/** The hop points planned, for drawing; empty while no teleporting is going on. */
+	public static java.util.List<double[]> teleportPlan() {
+		return tpPhase == TP_IDLE ? java.util.List.of() : tpPlan;
+	}
+
+	/** The hotbar slot of the first item with the Instant Transmission ability, or -1; the hop length is read from its description. */
+	private static int findTeleportItem(LocalPlayer player) {
+		for (int slot = 0; slot < 9; slot++) {
+			net.minecraft.world.item.ItemStack stack = player.getInventory().getItem(slot);
+			net.minecraft.world.item.component.ItemLore lore = stack.isEmpty() ? null : stack.get(net.minecraft.core.component.DataComponents.LORE);
+			if (lore == null) {
+				continue;
+			}
+			boolean ability = false;
+			double hop = 0;
+			for (Component line : lore.lines()) {
+				String text = line.getString();
+				if (text.contains("Ability: Instant Transmission")) {
+					ability = true;
+				}
+				java.util.regex.Matcher m = TP_BLOCKS.matcher(text);
+				if (m.find()) {
+					hop = Integer.parseInt(m.group(1));
+				}
+			}
+			if (ability) {
+				tpHop = hop > 0 ? hop : 8;
+				return slot;
+			}
+		}
+		return -1;
+	}
+
+	/** Gives the sequence up for this trip, puts the slot back and says why. */
+	private static void teleportGiveUp(String why) {
+		Chat.info("Teleport home: " + why);
+		tpGaveUp = true;
+		tpPhase = TP_RESTORE;
+		tpWait = 2 + HUNT_RANDOM.nextInt(3);
+	}
+
+	/**
+	 * Going home by teleporting: switches to the Aspect of the End or Void, turns to each hop point and right clicks, 300 ms
+	 * apart, until within the wander radius of home, then switches back. Macro checks are off for the whole of it, from a
+	 * tick before the switch to a tick after the switch back. Returns whether it is in charge of the player this tick.
+	 */
+	private static boolean teleportHome(Minecraft mc, LocalPlayer player, WigConfig cfg) {
+		double radius = cfg.killWander ? cfg.killWanderRadius : 3.0;
+		double distance = Math.hypot(cfg.killHomeX - player.getX(), cfg.killHomeZ - player.getZ());
+		double[] goal = {cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ};
+		double[] feet = {player.getX(), player.getY(), player.getZ()};
+		if (tpPhase == TP_IDLE) {
+			if (distance <= radius) {
+				tpGaveUp = false; // arrived: the next trip starts afresh
+				tpFailures = 0;
+			}
+			if (tpGaveUp || distance <= radius + 2) {
+				return false;
+			}
+			int slot = findTeleportItem(player);
+			if (slot < 0) {
+				Chat.info("Teleport home: no Aote/Aotv in hotbar.");
+				tpGaveUp = true;
+				return false;
+			}
+			java.util.List<double[]> plan = TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
+			if (plan == null) {
+				Chat.info("Teleport home: no clear path, walking.");
+				tpGaveUp = true;
+				return false;
+			}
+			if (plan.isEmpty()) {
+				return false; // too near for a hop to help: walk
+			}
+			tpPlan = plan;
+			tpItemSlot = slot;
+			tpSlotBefore = player.getInventory().getSelectedSlot();
+			tpFailures = 0;
+			tpPhase = TP_PREPARE;
+			tpWait = 0;
+			idleGoal = null;
+		}
+		tpLastTick = ticks;
+		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+		standStill();
+		mc.options.keyShift.setDown(false); // sneaking with an Aspect of the Void is a different teleport
+		switch (tpPhase) {
+			case TP_PREPARE -> {
+				if (++tpWait >= 2) { // the checks have been off for a tick
+					player.getInventory().setSelectedSlot(tpItemSlot);
+					startSlot = tpItemSlot;
+					tpPhase = TP_AIM;
+					tpAimTicks = 0;
+				}
+			}
+			case TP_AIM -> {
+				tpAimTicks++;
+				java.util.List<double[]> plan = TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
+				if (plan == null) {
+					teleportGiveUp("no clear path, walking.");
+					break;
+				}
+				if (plan.isEmpty()) {
+					tpPhase = TP_RESTORE; // within the radius, or too near for a hop to help
+					tpWait = 2 + HUNT_RANDOM.nextInt(3);
+					break;
+				}
+				tpPlan = plan;
+				double[] target = plan.get(0);
+				double dx = target[0] - feet[0];
+				double dy = target[1] - feet[1];
+				double dz = target[2] - feet[2];
+				aimYaw = FollowPlanner.yawToward(feet[0], feet[2], target[0], target[2]);
+				pitchTarget = -Math.toDegrees(Math.asin(dy / Math.sqrt(dx * dx + dy * dy + dz * dz)));
+				haveAim = true;
+				boolean lined = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 1.5 && Math.abs(player.getXRot() - pitchTarget) < 1.5;
+				if (tpAimTicks > 100) {
+					teleportGiveUp("couldn't turn to aim, walking.");
+				} else if (lined && tpAimTicks >= 3) {
+					mc.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+					player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+					tpStart = player.position();
+					tpClicks++;
+					tpPhase = TP_WAIT;
+					tpWait = TP_COOLDOWN_TICKS;
+				}
+			}
+			case TP_WAIT -> {
+				if (--tpWait <= 0) {
+					if (player.position().distanceTo(tpStart) >= tpHop * 0.5) {
+						tpFailures = 0;
+						tpPhase = TP_AIM;
+						tpAimTicks = 0;
+					} else if (++tpFailures >= 2) {
+						teleportGiveUp("the hop didn't happen, walking.");
+					} else {
+						tpPhase = TP_AIM;
+						tpAimTicks = 0;
+					}
+				}
+			}
+			case TP_RESTORE -> {
+				if (--tpWait <= 0) {
+					player.getInventory().setSelectedSlot(tpSlotBefore);
+					startSlot = tpSlotBefore;
+					tpPhase = TP_DONE;
+				}
+			}
+			case TP_DONE -> {
+				tpPhase = TP_IDLE; // the checks stay off one more tick, from the line above
+				tpPlan = java.util.List.of();
+			}
+			default -> {
+			}
+		}
+		return true;
+	}
+
+	/** Stops the sequence where it stands, putting the held slot back, with the macro checks off a moment longer. */
+	private static void teleportAbort(LocalPlayer player) {
+		if (tpPhase == TP_IDLE) {
+			return;
+		}
+		if (player != null && tpPhase >= TP_AIM && tpPhase != TP_DONE && player.getInventory().getSelectedSlot() != tpSlotBefore) {
+			player.getInventory().setSelectedSlot(tpSlotBefore);
+			startSlot = tpSlotBefore;
+		}
+		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+		tpPhase = TP_IDLE;
+		tpPlan = java.util.List.of();
 	}
 
 	private static void standStill() {
