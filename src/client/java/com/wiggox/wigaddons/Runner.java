@@ -1516,8 +1516,8 @@ public final class Runner {
 	private static final int TP_DONE = 5;
 	/** Ticks between one teleport and the next: 150 ms. */
 	private static final int TP_COOLDOWN_TICKS = 3;
-	/** Ticks to wait for the server to move the player after a click, ping included, before taking the hop as missed: 800 ms. */
-	private static final int TP_ARRIVE_TICKS = 16;
+	/** Ticks to wait for the server to move the player after a click, ping included, before taking the hop as missed, and the longest the macro checks stay off for a teleport to land: 1 second. */
+	private static final int TP_ARRIVE_TICKS = 20;
 	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
 	private static int tpPhase = TP_IDLE;
 	private static int tpWait;
@@ -1844,9 +1844,7 @@ public final class Runner {
 					tpPhase = TP_AIM;
 					tpAimTicks = 0;
 				} else if (!arrived && tpWaited >= TP_ARRIVE_TICKS) {
-					// still not moved after waiting for the server (ping): the hop didn't happen, or it is very late; the macro checks stay off
-					// for three seconds more, so a teleport that lands after all isn't taken for something else
-					macroSuppressTicks = Math.max(macroSuppressTicks, 60);
+					// still not moved after waiting a second for the server: the hop didn't happen, and the macro checks are on again
 					if (++tpFailures >= 2) {
 						teleportGiveUp("the hop didn't happen, walking.");
 					} else {
@@ -1881,8 +1879,8 @@ public final class Runner {
 			player.getInventory().setSelectedSlot(tpSlotBefore);
 			startSlot = tpSlotBefore;
 		}
-		// a teleport that has been clicked and not yet landed is still on its way: no macro check until it has
-		macroSuppressTicks = Math.max(macroSuppressTicks, tpPhase == TP_WAIT ? 60 : 3);
+		// a teleport that has been clicked and not yet landed is still on its way: no macro check until it has, for a second at most
+		macroSuppressTicks = Math.max(macroSuppressTicks, tpPhase == TP_WAIT ? Math.max(3, TP_ARRIVE_TICKS - tpWaited) : 3); // at most a second from the click
 		tpPhase = TP_IDLE;
 		tpPlan = java.util.List.of();
 	}
