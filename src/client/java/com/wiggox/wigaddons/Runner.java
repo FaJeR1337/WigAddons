@@ -1590,19 +1590,19 @@ public final class Runner {
 	 * the way a walker would go home, else any way through the air. Null means none at all.
 	 */
 	private static java.util.List<double[]> chooseTeleportPlan(double[] feet, double[] goal, double radius, WigConfig cfg) {
-		java.util.List<double[]> straight = TeleportPath.planGentle(feet, goal, tpHop, radius, WorldTerrain::passable);
+		java.util.List<double[]> straight = TeleportPath.planGentle(planFeet(feet), goal, tpHop, radius, WorldTerrain::passable);
 		if (straight != null) {
 			return straight;
 		}
 		java.util.List<double[]> guide = GridPath.find(new WorldTerrain(), (int) Math.floor(feet[0]), (int) Math.floor(feet[1] + 0.01), (int) Math.floor(feet[2]),
 			(int) Math.floor(goal[0]), (int) Math.floor(goal[1] + 0.01), (int) Math.floor(goal[2]), true, cfg.killMaxDrop, cfg.pathJumpCost);
 		if (guide != null && !guide.isEmpty()) {
-			java.util.List<double[]> along = TeleportPath.planAlong(feet, guide, goal, tpHop, radius, WorldTerrain::passable);
+			java.util.List<double[]> along = TeleportPath.planAlong(planFeet(feet), liftGuide(guide), goal, tpHop, radius, WorldTerrain::passable);
 			if (!along.isEmpty()) {
 				return along;
 			}
 		}
-		return TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
+		return TeleportPath.plan(planFeet(feet), goal, tpHop, radius, WorldTerrain::passable);
 	}
 
 	/** What the running sequence is for: home trips (0) or walking to a spot (1), with the spot and how close is close enough, so the hops still to come can be updated as the player runs. */
@@ -1660,6 +1660,30 @@ public final class Runner {
 		return true;
 	}
 
+	/**
+	 * Teleporting counts a slab as a full block: stood on one, the player is on top of a whole block, not half way up it. So
+	 * where the feet are in a cell that has a block in it, the planning feet are the cell above.
+	 */
+	private static double[] planFeet(double[] feet) {
+		int x = (int) Math.floor(feet[0]);
+		int y = (int) Math.floor(feet[1] + 0.01);
+		int z = (int) Math.floor(feet[2]);
+		if (!WorldTerrain.passable(x, y, z)) {
+			return new double[] {feet[0], y + 1.0, feet[2]};
+		}
+		return feet;
+	}
+
+	/** The cells of a walking route with the ones a slab (or stair) fills raised to the block above, as teleporting sees them. */
+	private static java.util.List<double[]> liftGuide(java.util.List<double[]> guide) {
+		java.util.List<double[]> lifted = new java.util.ArrayList<>(guide.size());
+		for (double[] cell : guide) {
+			boolean filled = !WorldTerrain.passable((int) Math.floor(cell[0]), (int) Math.floor(cell[1] + 0.01), (int) Math.floor(cell[2]));
+			lifted.add(filled ? new double[] {cell[0], cell[1] + 1.0, cell[2]} : cell);
+		}
+		return lifted;
+	}
+
 	/** The hops along the walking route to a spot, from the route search (or a straight line where it finds none). */
 	private static java.util.List<double[]> walkTeleportPlan(double[] feet, double[] goal, WigConfig cfg) {
 		java.util.List<double[]> guide = GridPath.find(new WorldTerrain(), (int) Math.floor(feet[0]), (int) Math.floor(feet[1] + 0.01), (int) Math.floor(feet[2]),
@@ -1668,7 +1692,7 @@ public final class Runner {
 			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
 			guide = straightGuide(feet, goal);
 		}
-		return TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable);
+		return TeleportPath.planAlong(planFeet(feet), liftGuide(guide), goal, tpHop, 2.0, WorldTerrain::passable);
 	}
 
 	/**
@@ -1812,8 +1836,11 @@ public final class Runner {
 				double dx = target[0] - feet[0];
 				double dy = target[1] - feet[1];
 				double dz = target[2] - feet[2];
-				if (dx * dx + dy * dy + dz * dz < 1.0) {
-					tpIndex++; // already at this point
+				double tooNear = Math.max(1.0, tpHop - 2);
+				if (dx * dx + dy * dy + dz * dz < tooNear * tooNear) {
+					// within the teleport distance less two blocks (the run has brought the player up to it): a hop can't land there
+					// any more, so the waypoint is dropped and the next is picked
+					tpIndex++;
 					break;
 				}
 				// toward the planned landing from where the player is now (the run has moved it on a little): the hop carries on along
@@ -1893,7 +1920,7 @@ public final class Runner {
 		double yaw = Math.toRadians(player.getYRot());
 		double pitch = Math.toRadians(player.getXRot());
 		double[] direction = {-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)};
-		return TeleportPath.hopClear(new double[] {player.getX(), player.getY(), player.getZ()}, direction, tpHop, WorldTerrain::passable);
+		return TeleportPath.hopClear(planFeet(new double[] {player.getX(), player.getY(), player.getZ()}), direction, tpHop, WorldTerrain::passable);
 	}
 
 	/** Stops the sequence where it stands, putting the held slot back, with the macro checks off a moment longer. */
