@@ -1515,8 +1515,8 @@ public final class Runner {
 	private static final int TP_WAIT = 3;
 	private static final int TP_RESTORE = 4;
 	private static final int TP_DONE = 5;
-	/** Ticks between one teleport and the next: 150 ms. */
-	private static final int TP_COOLDOWN_TICKS = 3;
+	/** Ticks between one teleport and the next: half a second. */
+	private static final int TP_COOLDOWN_TICKS = 10;
 	/** Ticks to wait for the server to move the player after a click, ping included, before taking the hop as missed, and the longest the macro checks stay off for a teleport to land: 1 second. */
 	private static final int TP_ARRIVE_TICKS = 20;
 	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
@@ -1612,8 +1612,8 @@ public final class Runner {
 	private static int tpRefresh;
 	private static int tpWalkRecheck;
 	private static long tpWalkSeen;
-	/** Ticks between tries at a hop along the walking route: a quarter of a second. */
-	private static final int TP_WALK_RETRY_TICKS = 5;
+	/** Ticks between tries at a hop along the walking route: a tenth of a second. */
+	private static final int TP_WALK_RETRY_TICKS = 2;
 	private static boolean tpWalkTold;
 
 	/**
@@ -1668,7 +1668,7 @@ public final class Runner {
 			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
 			guide = straightGuide(feet, goal);
 		}
-		return TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable, false, true);
+		return TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable);
 	}
 
 	/**
@@ -1771,7 +1771,7 @@ public final class Runner {
 		tpLastTick = ticks;
 		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
 		if ((tpPhase == TP_PREPARE || tpPhase == TP_AIM) && --tpRefresh <= 0) {
-			tpRefresh = 5; // a quarter of a second
+			tpRefresh = 2; // a tenth of a second
 			teleportRefresh(player, cfg);
 		}
 		// the walk carries on along the view, which turns to each hop in the direction of the way home
@@ -1850,6 +1850,7 @@ public final class Runner {
 					player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 					tpStart = player.position();
 					tpClicks++;
+					tpCooldownUntil = Math.max(tpCooldownUntil, ticks + TP_COOLDOWN_TICKS); // half a second to the next teleport, whichever starts it
 					tpWaited = 0;
 					tpPhase = TP_WAIT;
 					tpWait = TP_COOLDOWN_TICKS;
