@@ -1844,7 +1844,9 @@ public final class Runner {
 					tpPhase = TP_AIM;
 					tpAimTicks = 0;
 				} else if (!arrived && tpWaited >= TP_ARRIVE_TICKS) {
-					// still not moved after waiting for the server (ping): the hop didn't happen
+					// still not moved after waiting for the server (ping): the hop didn't happen, or it is very late; the macro checks stay off
+					// for three seconds more, so a teleport that lands after all isn't taken for something else
+					macroSuppressTicks = Math.max(macroSuppressTicks, 60);
 					if (++tpFailures >= 2) {
 						teleportGiveUp("the hop didn't happen, walking.");
 					} else {
@@ -1879,7 +1881,8 @@ public final class Runner {
 			player.getInventory().setSelectedSlot(tpSlotBefore);
 			startSlot = tpSlotBefore;
 		}
-		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+		// a teleport that has been clicked and not yet landed is still on its way: no macro check until it has
+		macroSuppressTicks = Math.max(macroSuppressTicks, tpPhase == TP_WAIT ? 60 : 3);
 		tpPhase = TP_IDLE;
 		tpPlan = java.util.List.of();
 	}
