@@ -1524,6 +1524,9 @@ public final class Runner {
 	private static boolean tpGaveUp;
 	private static boolean tpToldNoPath;
 	private static int tpRecheck;
+	private static long tpIdleSeen;
+	/** Ticks to wait before trying to teleport home, from when there is nothing to hunt and home is far, and between tries while walking: 3 seconds. */
+	private static final int TP_TRY_DELAY_TICKS = 60;
 	private static long tpLastTick;
 	private static Vec3 tpStart;
 	private static int tpClicks;
@@ -1609,6 +1612,10 @@ public final class Runner {
 		double[] goal = {cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ};
 		double[] feet = {player.getX(), player.getY(), player.getZ()};
 		if (tpPhase == TP_IDLE) {
+			if (ticks - tpIdleSeen > 2) {
+				tpRecheck = TP_TRY_DELAY_TICKS; // a new spell of nothing to hunt: wait before the first try
+			}
+			tpIdleSeen = ticks;
 			if (distance <= radius) {
 				tpGaveUp = false; // arrived: the next trip starts afresh
 				tpToldNoPath = false;
@@ -1618,10 +1625,10 @@ public final class Runner {
 				return false;
 			}
 			if (tpRecheck > 0) {
-				tpRecheck--; // walking meanwhile: a way to teleport is looked for again every second
+				tpRecheck--; // walking meanwhile: a way to teleport is looked for again every 3 seconds
 				return false;
 			}
-			tpRecheck = 20;
+			tpRecheck = TP_TRY_DELAY_TICKS;
 			int slot = findTeleportItem(player);
 			if (slot < 0) {
 				Chat.info("Teleport home: no Aote/Aotv in hotbar.");
