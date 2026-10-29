@@ -1600,6 +1600,11 @@ public final class Runner {
 		return TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
 	}
 
+	/** What the running sequence is for: home trips (0) or walking to a spot (1), with the spot and how close is close enough, so the hops still to come can be updated as the player runs. */
+	private static int tpMode;
+	private static double[] tpGoal = {0, 0, 0};
+	private static double tpRadius;
+	private static int tpRefresh;
 	private static int tpWalkRecheck;
 	private static boolean tpWalkTold;
 
@@ -1624,17 +1629,15 @@ public final class Runner {
 		if (Math.hypot(goal[0] - feet[0], goal[2] - feet[2]) < tpHop - 1.5) {
 			return false; // nearer than a hop
 		}
-		java.util.List<double[]> guide = GridPath.find(new WorldTerrain(), (int) Math.floor(feet[0]), (int) Math.floor(feet[1] + 0.01), (int) Math.floor(feet[2]),
-			(int) Math.floor(goal[0]), (int) Math.floor(goal[1] + 0.01), (int) Math.floor(goal[2]), true, cfg.killMaxDrop, cfg.pathJumpCost);
-		if (guide == null || guide.isEmpty()) {
-			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
-			guide = straightGuide(feet, goal);
-		}
-		java.util.List<double[]> plan = TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable);
+		java.util.List<double[]> plan = walkTeleportPlan(feet, goal, cfg);
 		if (plan.isEmpty()) {
 			return false;
 		}
 		tpPlan = plan;
+		tpMode = 1;
+		tpGoal = goal;
+		tpRadius = 2.0;
+		tpRefresh = 0;
 		tpIndex = 0;
 		tpItemSlot = slot;
 		tpSlotBefore = player.getInventory().getSelectedSlot();
@@ -1642,8 +1645,35 @@ public final class Runner {
 		tpPhase = TP_PREPARE;
 		tpWait = 0;
 		tpLastTick = ticks; // running from now: the check for something else taking over counts from here
+		macroSuppressTicks = Math.max(macroSuppressTicks, 3); // the checks are off from this tick, so the switch can be the next
 		idleGoal = null;
 		return true;
+	}
+
+	/** The hops along the walking route to a spot, from the route search (or a straight line where it finds none). */
+	private static java.util.List<double[]> walkTeleportPlan(double[] feet, double[] goal, WigConfig cfg) {
+		java.util.List<double[]> guide = GridPath.find(new WorldTerrain(), (int) Math.floor(feet[0]), (int) Math.floor(feet[1] + 0.01), (int) Math.floor(feet[2]),
+			(int) Math.floor(goal[0]), (int) Math.floor(goal[1] + 0.01), (int) Math.floor(goal[2]), true, cfg.killMaxDrop, cfg.pathJumpCost);
+		if (guide == null || guide.isEmpty()) {
+			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
+			guide = straightGuide(feet, goal);
+		}
+		return TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable);
+	}
+
+	/**
+	 * The hops still to come, made again from where the player has got to (running moves it on), so the waypoints follow the
+	 * run a little at a time. A fresh plan that finds nothing leaves the old one as it is: it never stops the sequence.
+	 */
+	private static void teleportRefresh(LocalPlayer player, WigConfig cfg) {
+		double[] feet = {player.getX(), player.getY(), player.getZ()};
+		java.util.List<double[]> fresh = tpMode == 0 ? chooseTeleportPlan(feet, tpGoal, tpRadius, cfg) : walkTeleportPlan(feet, tpGoal, cfg);
+		if (fresh == null || fresh.isEmpty()) {
+			return;
+		}
+		java.util.List<double[]> merged = new java.util.ArrayList<>(tpPlan.subList(0, Math.min(tpIndex, tpPlan.size())));
+		merged.addAll(fresh);
+		tpPlan = merged;
 	}
 
 	/** The cells of a straight walk from one spot to another, a block apart, as the walking route would list them. */
@@ -1715,16 +1745,25 @@ public final class Runner {
 				return false; // too near for a hop to help: walk
 			}
 			tpPlan = plan;
+			tpMode = 0;
+			tpGoal = goal;
+			tpRadius = radius;
+			tpRefresh = 0;
 			tpIndex = 0;
 			tpItemSlot = slot;
 			tpSlotBefore = player.getInventory().getSelectedSlot();
 			tpFailures = 0;
 			tpPhase = TP_PREPARE;
 			tpWait = 0;
+			macroSuppressTicks = Math.max(macroSuppressTicks, 3); // the checks are off from this tick, so the switch can be the next
 			idleGoal = null;
 		}
 		tpLastTick = ticks;
 		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+		if ((tpPhase == TP_PREPARE || tpPhase == TP_AIM) && --tpRefresh <= 0) {
+			tpRefresh = 5; // a quarter of a second
+			teleportRefresh(player, cfg);
+		}
 		// the run carries on along the view, which turns to each hop in the direction of the way home
 		standStill();
 		moveForward = 1;
@@ -1732,7 +1771,20 @@ public final class Runner {
 		mc.options.keyShift.setDown(false); // sneaking with an Aspect of the Void is a different teleport
 		switch (tpPhase) {
 			case TP_PREPARE -> {
-				if (++tpWait >= 2) { // the checks have been off for a tick
+				if (tpIndex < tpPlan.size()) {
+					// already turning to the first hop while the item is taken out
+					double[] first = tpPlan.get(tpIndex);
+					double fx = first[0] - feet[0];
+					double fy = first[1] - feet[1];
+					double fz = first[2] - feet[2];
+					double firstLength = Math.sqrt(fx * fx + fy * fy + fz * fz);
+					if (firstLength > 1.0) {
+						aimYaw = FollowPlanner.yawToward(feet[0], feet[2], first[0], first[2]);
+						pitchTarget = -Math.toDegrees(Math.asin(fy / firstLength));
+						haveAim = true;
+					}
+				}
+				if (++tpWait >= 1) { // the checks have been off since the tick before
 					player.getInventory().setSelectedSlot(tpItemSlot);
 					startSlot = tpItemSlot;
 					tpPhase = TP_AIM;
@@ -1760,7 +1812,7 @@ public final class Runner {
 				aimYaw = FollowPlanner.yawToward(feet[0], feet[2], target[0], target[2]);
 				pitchTarget = -Math.toDegrees(Math.asin(dy / length));
 				haveAim = true;
-				if (tpAimTicks == 1 && tpIndex > 0 && Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 45 && Math.abs(player.getXRot() - pitchTarget) < 45) {
+				if (tpAimTicks == 1 && Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 45 && Math.abs(player.getXRot() - pitchTarget) < 45) {
 					// the server has just put the view back to what it was before the teleport, so a turn can't be done ahead of it:
 					// set the view to the next hop straight away, to click without waiting for the turn
 					player.setYRot((float) aimYaw);
