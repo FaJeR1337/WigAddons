@@ -141,7 +141,7 @@ public final class WigConfig {
 	public boolean killShowTags = true;
 	/** Going home: teleport there with an Aspect of the End or Void in the hotbar instead of walking the whole way. */
 	public boolean killTeleportHome = false;
-	/** Walking to a spot with nothing to hunt (home, a stroll): teleport along stretches of the way that are straight for as far as the item carries. */
+	/** Walking to a spot with nothing to hunt (home, a stroll): teleport to spots on the walking route that are as far away as the item carries. */
 	public boolean killTeleportWalk = false;
 	/** The box round every hunted mob; only drawn while killShowTags is on. */
 	public boolean killShowHitboxes = true;

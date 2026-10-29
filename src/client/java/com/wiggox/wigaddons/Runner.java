@@ -1604,8 +1604,8 @@ public final class Runner {
 	private static boolean tpWalkTold;
 
 	/**
-	 * While walking to a spot: where the way ahead is a straight line for as far as the teleport item carries, starts a
-	 * sequence of hops along it. Looked for once a second, with the walking route from the same search the walker uses.
+	 * While walking to a spot: where the walking route has a spot a hop away (the length the teleport item carries, landing on the route or a block above
+	 * it) that a clear teleport reaches, starts a sequence of hops along the route. Looked for once a second, with the walking route from the same search the walker uses.
 	 */
 	private static boolean teleportWalkStart(LocalPlayer player, WigConfig cfg, double[] goal) {
 		if (tpGaveUp || --tpWalkRecheck > 0) {
@@ -1630,7 +1630,7 @@ public final class Runner {
 			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
 			guide = straightGuide(feet, goal);
 		}
-		java.util.List<double[]> plan = TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable, true);
+		java.util.List<double[]> plan = TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable);
 		if (plan.isEmpty()) {
 			return false;
 		}

@@ -599,7 +599,7 @@ public final class WigGui {
 				config.killTeleportHome = v;
 				WigState.saveZealots();
 			});
-		b.toggle("teleportwalk", "Teleport while walking", "Uses aote/aotv when the path ahead is straight for as many blocks as the item teleports.",
+		b.toggle("teleportwalk", "Teleport while walking", "Uses aote/aotv to hop to a spot on the walking path that is as far away as the item teleports.",
 			() -> config.killTeleportWalk, v -> {
 				config.killTeleportWalk = v;
 				WigState.saveZealots();
