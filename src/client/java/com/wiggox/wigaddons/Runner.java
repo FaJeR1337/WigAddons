@@ -451,6 +451,7 @@ public final class Runner {
 	private static void end() {
 		teleportAbort(Minecraft.getInstance().player);
 		tpGaveUp = false;
+		tpCooldownUntil = 0;
 		tpWalkTold = false;
 		hudPause();
 		releaseClicks();
@@ -1527,6 +1528,9 @@ public final class Runner {
 	private static double tpHop = 8;
 	private static int tpFailures;
 	private static boolean tpGaveUp;
+	/** No new teleport before this tick: ten seconds after one that failed. */
+	private static long tpCooldownUntil;
+	private static final int TP_FAIL_COOLDOWN_TICKS = 200;
 	private static boolean tpToldNoPath;
 	private static int tpRecheck;
 	private static long tpIdleSeen;
@@ -1620,7 +1624,7 @@ public final class Runner {
 			tpWalkRecheck = 0; // a new spell of walking: the first try is made at once
 		}
 		tpWalkSeen = ticks;
-		if (tpGaveUp || --tpWalkRecheck > 0) {
+		if (tpGaveUp || ticks < tpCooldownUntil || --tpWalkRecheck > 0) {
 			return false;
 		}
 		tpWalkRecheck = TP_WALK_RETRY_TICKS;
@@ -1693,10 +1697,10 @@ public final class Runner {
 		return cells;
 	}
 
-	/** Gives the sequence up for this trip, puts the slot back and says why. */
+	/** Gives the sequence up for ten seconds, puts the slot back and says why. */
 	private static void teleportGiveUp(String why) {
-		Chat.info("Teleport home: " + why);
-		tpGaveUp = true;
+		Chat.info((tpMode == 1 ? "Teleport while walking: " : "Teleport home: ") + why + " Trying again in 10 seconds.");
+		tpCooldownUntil = ticks + TP_FAIL_COOLDOWN_TICKS;
 		tpPhase = TP_RESTORE;
 		tpWait = 2 + HUNT_RANDOM.nextInt(3);
 	}
@@ -1724,7 +1728,7 @@ public final class Runner {
 				tpToldNoPath = false;
 				tpFailures = 0;
 			}
-			if (tpGaveUp || distance <= radius + 2) {
+			if (tpGaveUp || ticks < tpCooldownUntil || distance <= radius + 2) {
 				return false;
 			}
 			if (tpRecheck > 0) {
@@ -1850,12 +1854,7 @@ public final class Runner {
 					tpAimTicks = 0;
 				} else if (!arrived && tpWaited >= TP_ARRIVE_TICKS) {
 					// still not moved after waiting a second for the server: the hop didn't happen, and the macro checks are on again
-					if (++tpFailures >= 2) {
-						teleportGiveUp("the hop didn't happen, walking.");
-					} else {
-						tpPhase = TP_AIM;
-						tpAimTicks = 0;
-					}
+					teleportGiveUp("the hop didn't happen, walking.");
 				}
 			}
 			case TP_RESTORE -> {
