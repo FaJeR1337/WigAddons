@@ -23,7 +23,7 @@ public final class TeleportPath {
 	/** A hop along a walking route lands this many blocks above the route's cell (or on it): up in the air over the way, not on it. */
 	private static final double LIFT = 2.0;
 	/** A landing counts as on the route when it is this close to the spot LIFT blocks above a cell of it. */
-	private static final double LAND_WITHIN = 1.5;
+	private static final double LAND_WITHIN = 1.0;
 	/** How many hops the search may try before it gives up on a way. */
 	private static final int SEARCH_BUDGET = 3000;
 	/** The most a hop may turn away from the one before it, so the route bends gently; given up on only where nothing else is clear. */

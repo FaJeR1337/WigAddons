@@ -1637,6 +1637,7 @@ public final class Runner {
 		if (plan.isEmpty()) {
 			return false;
 		}
+		plan = plan.subList(0, 1); // one teleport at a time: the next is looked for once this one has landed
 		tpPlan = plan;
 		tpMode = 1;
 		tpGoal = goal;
@@ -1676,7 +1677,7 @@ public final class Runner {
 			return;
 		}
 		java.util.List<double[]> merged = new java.util.ArrayList<>(tpPlan.subList(0, Math.min(tpIndex, tpPlan.size())));
-		merged.addAll(fresh);
+		merged.addAll(tpMode == 1 ? fresh.subList(0, 1) : fresh); // walking teleports are one at a time
 		tpPlan = merged;
 	}
 
