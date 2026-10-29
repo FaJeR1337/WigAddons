@@ -1511,6 +1511,8 @@ public final class Runner {
 	private static final int TP_DONE = 5;
 	/** Ticks between one teleport and the next: 150 ms. */
 	private static final int TP_COOLDOWN_TICKS = 3;
+	/** Ticks to wait for the server to move the player after a click, ping included, before taking the hop as missed: 800 ms. */
+	private static final int TP_ARRIVE_TICKS = 16;
 	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
 	private static int tpPhase = TP_IDLE;
 	private static int tpWait;
@@ -1525,6 +1527,7 @@ public final class Runner {
 	private static int tpClicks;
 	/** Which hop of tpPlan is next: the route is planned once, when the trip starts, and not again after each hop. */
 	private static int tpIndex;
+	private static int tpWaited;
 	private static java.util.List<double[]> tpPlan = java.util.List.of();
 
 	/** How many teleports have been clicked, for the dev test. */
@@ -1647,6 +1650,14 @@ public final class Runner {
 				aimYaw = FollowPlanner.yawToward(0, 0, target[3], target[5]);
 				pitchTarget = -Math.toDegrees(Math.asin(target[4]));
 				haveAim = true;
+				if (tpAimTicks == 1 && tpIndex > 0 && Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 45 && Math.abs(player.getXRot() - pitchTarget) < 45) {
+					// the server has just put the view back to what it was before the teleport, so a turn can't be done ahead of it:
+					// set the view to the next hop straight away, to click without waiting for the turn
+					player.setYRot((float) aimYaw);
+					player.yRotO = (float) aimYaw;
+					player.setXRot((float) pitchTarget);
+					player.xRotO = (float) pitchTarget;
+				}
 				boolean lined = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 1.5 && Math.abs(player.getXRot() - pitchTarget) < 1.5;
 				if (tpAimTicks > 100) {
 					teleportGiveUp("couldn't turn to aim, walking.");
@@ -1655,25 +1666,24 @@ public final class Runner {
 					player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 					tpStart = player.position();
 					tpClicks++;
+					tpWaited = 0;
 					tpPhase = TP_WAIT;
 					tpWait = TP_COOLDOWN_TICKS;
 				}
 			}
 			case TP_WAIT -> {
-				if (tpIndex + 1 < tpPlan.size()) {
-					// turn to the next hop while waiting, so the click comes the moment the wait is over
-					double[] next = tpPlan.get(tpIndex + 1);
-					aimYaw = FollowPlanner.yawToward(0, 0, next[3], next[5]);
-					pitchTarget = -Math.toDegrees(Math.asin(next[4]));
-					haveAim = true;
-				}
-				if (--tpWait <= 0) {
-					if (player.position().distanceTo(tpStart) >= tpHop * 0.5) {
-						tpFailures = 0;
-						tpIndex++;
-						tpPhase = TP_AIM;
-						tpAimTicks = 0;
-					} else if (++tpFailures >= 2) {
+				tpWaited++;
+				boolean arrived = player.position().distanceTo(tpStart) >= tpHop * 0.5;
+				tpWait--;
+				if (arrived && tpWait <= 0) {
+					// it landed, and the cooldown is over: the next hop
+					tpFailures = 0;
+					tpIndex++;
+					tpPhase = TP_AIM;
+					tpAimTicks = 0;
+				} else if (!arrived && tpWaited >= TP_ARRIVE_TICKS) {
+					// still not moved after waiting for the server (ping): the hop didn't happen
+					if (++tpFailures >= 2) {
 						teleportGiveUp("the hop didn't happen, walking.");
 					} else {
 						tpPhase = TP_AIM;
