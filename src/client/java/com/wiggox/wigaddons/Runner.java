@@ -1509,8 +1509,8 @@ public final class Runner {
 	private static final int TP_WAIT = 3;
 	private static final int TP_RESTORE = 4;
 	private static final int TP_DONE = 5;
-	/** Ticks between one teleport and the next: 300 ms. */
-	private static final int TP_COOLDOWN_TICKS = 6;
+	/** Ticks between one teleport and the next: 150 ms. */
+	private static final int TP_COOLDOWN_TICKS = 3;
 	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
 	private static int tpPhase = TP_IDLE;
 	private static int tpWait;
@@ -1650,7 +1650,7 @@ public final class Runner {
 				boolean lined = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 1.5 && Math.abs(player.getXRot() - pitchTarget) < 1.5;
 				if (tpAimTicks > 100) {
 					teleportGiveUp("couldn't turn to aim, walking.");
-				} else if (lined && tpAimTicks >= 3) {
+				} else if (lined && tpAimTicks >= 1) {
 					mc.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
 					player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 					tpStart = player.position();
@@ -1660,6 +1660,13 @@ public final class Runner {
 				}
 			}
 			case TP_WAIT -> {
+				if (tpIndex + 1 < tpPlan.size()) {
+					// turn to the next hop while waiting, so the click comes the moment the wait is over
+					double[] next = tpPlan.get(tpIndex + 1);
+					aimYaw = FollowPlanner.yawToward(0, 0, next[3], next[5]);
+					pitchTarget = -Math.toDegrees(Math.asin(next[4]));
+					haveAim = true;
+				}
 				if (--tpWait <= 0) {
 					if (player.position().distanceTo(tpStart) >= tpHop * 0.5) {
 						tpFailures = 0;
