@@ -22,6 +22,8 @@ public final class TeleportPath {
 	private static final int MAX_HOPS = 40;
 	/** A hop along a walking route lands this many blocks above the route's cell (or on it): up in the air over the way, not on it. */
 	private static final double LIFT = 2.0;
+	/** A landing counts as on the route when it is this close to the spot LIFT blocks above a cell of it. */
+	private static final double LAND_WITHIN = 1.5;
 	/** How many hops the search may try before it gives up on a way. */
 	private static final int SEARCH_BUDGET = 3000;
 	/** The most a hop may turn away from the one before it, so the route bends gently; given up on only where nothing else is clear. */
@@ -105,7 +107,10 @@ public final class TeleportPath {
 				double[] direction = {dx / length, dy / length, dz / length};
 				double[] landing = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
 					direction[0], direction[1], direction[2]};
-				if (Math.abs(landing[0] - g[0]) <= 1.0 && Math.abs(landing[2] - g[2]) <= 1.0 && landing[1] >= g[1] && landing[1] <= g[1] + LIFT
+				double offX = landing[0] - g[0];
+				double offY = landing[1] - (g[1] + LIFT);
+				double offZ = landing[2] - g[2];
+				if (offX * offX + offY * offY + offZ * offZ <= LAND_WITHIN * LAND_WITHIN
 					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
 					&& clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
 					best = landing;

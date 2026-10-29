@@ -1725,7 +1725,10 @@ public final class Runner {
 		}
 		tpLastTick = ticks;
 		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+		// the run carries on along the view, which turns to each hop in the direction of the way home
 		standStill();
+		moveForward = 1;
+		sprintOn = true;
 		mc.options.keyShift.setDown(false); // sneaking with an Aspect of the Void is a different teleport
 		switch (tpPhase) {
 			case TP_PREPARE -> {
@@ -1751,9 +1754,11 @@ public final class Runner {
 					tpIndex++; // already at this point
 					break;
 				}
-				// the look direction that was planned for this landing, which the server turns into the middle of the block
-				aimYaw = FollowPlanner.yawToward(0, 0, target[3], target[5]);
-				pitchTarget = -Math.toDegrees(Math.asin(target[4]));
+				// toward the planned landing from where the player is now (the run has moved it on a little): the hop carries on along
+				// that line, so it ends at the landing or a little past it, further along the way
+				double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+				aimYaw = FollowPlanner.yawToward(feet[0], feet[2], target[0], target[2]);
+				pitchTarget = -Math.toDegrees(Math.asin(dy / length));
 				haveAim = true;
 				if (tpAimTicks == 1 && tpIndex > 0 && Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 45 && Math.abs(player.getXRot() - pitchTarget) < 45) {
 					// the server has just put the view back to what it was before the teleport, so a turn can't be done ahead of it:
@@ -1778,7 +1783,7 @@ public final class Runner {
 			}
 			case TP_WAIT -> {
 				tpWaited++;
-				boolean arrived = player.position().distanceTo(tpStart) >= tpHop * 0.5;
+				boolean arrived = player.position().distanceTo(tpStart) >= tpHop * 0.75; // more than the run alone covers in the wait
 				tpWait--;
 				if (arrived && tpWait <= 0) {
 					// it landed, and the cooldown is over: the next hop
