@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 
 class TeleportPathTest {
 	private static final TeleportPath.Air OPEN = (x, y, z) -> true;
-	/** Open air above a floor: everything below y 58 is solid, so a landing near y 62 has ground within five blocks under it. */
-	private static final TeleportPath.Air FLOOR = (x, y, z) -> y >= 58;
+	/** Open air above a floor: everything below y 60 is solid, so a landing near y 62 has ground within three blocks under it. */
+	private static final TeleportPath.Air FLOOR = (x, y, z) -> y >= 60;
 
 	private static double sideways(double[] a, double[] b) {
 		return Math.hypot(a[0] - b[0], a[2] - b[2]);
@@ -129,16 +129,16 @@ class TeleportPathTest {
 	}
 
 	@Test
-	void hopsAlongARouteLandOnlyWithGroundWithinFiveBlocksBelow() {
+	void hopsAlongARouteLandOnlyWithGroundWithinThreeBlocksBelow() {
 		List<double[]> guide = new java.util.ArrayList<>();
 		for (int x = 1; x <= 40; x++) {
 			guide.add(new double[] {x + 0.5, 60, 0.5});
 		}
 		double[] goal = {40.5, 60, 0.5};
-		// solid ground only at and below y 52: the landing around y 62 has nothing within five blocks under it
-		TeleportPath.Air highUp = (x, y, z) -> y > 52;
+		// solid ground only at and below y 55: the landing around y 62 has nothing within three blocks under it
+		TeleportPath.Air highUp = (x, y, z) -> y > 55;
 		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, highUp).isEmpty());
-		TeleportPath.Air nearGround = (x, y, z) -> y > 58;
+		TeleportPath.Air nearGround = (x, y, z) -> y > 59;
 		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, nearGround).isEmpty());
 	}
 
