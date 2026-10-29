@@ -1606,6 +1606,9 @@ public final class Runner {
 	private static double tpRadius;
 	private static int tpRefresh;
 	private static int tpWalkRecheck;
+	private static long tpWalkSeen;
+	/** Ticks between tries at a hop along the walking route: a quarter of a second. */
+	private static final int TP_WALK_RETRY_TICKS = 5;
 	private static boolean tpWalkTold;
 
 	/**
@@ -1613,10 +1616,14 @@ public final class Runner {
 	 * it) that a clear teleport reaches, starts a sequence of hops along the route. Looked for once a second, with the walking route from the same search the walker uses.
 	 */
 	private static boolean teleportWalkStart(LocalPlayer player, WigConfig cfg, double[] goal) {
+		if (ticks - tpWalkSeen > 2) {
+			tpWalkRecheck = 0; // a new spell of walking: the first try is made at once
+		}
+		tpWalkSeen = ticks;
 		if (tpGaveUp || --tpWalkRecheck > 0) {
 			return false;
 		}
-		tpWalkRecheck = TP_RETRY_TICKS;
+		tpWalkRecheck = TP_WALK_RETRY_TICKS;
 		int slot = findTeleportItem(player);
 		if (slot < 0) {
 			if (!tpWalkTold) {
