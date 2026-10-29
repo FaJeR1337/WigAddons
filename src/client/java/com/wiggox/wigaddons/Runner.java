@@ -1523,6 +1523,8 @@ public final class Runner {
 	private static long tpLastTick;
 	private static Vec3 tpStart;
 	private static int tpClicks;
+	/** Which hop of tpPlan is next: the route is planned once, when the trip starts, and not again after each hop. */
+	private static int tpIndex;
 	private static java.util.List<double[]> tpPlan = java.util.List.of();
 
 	/** How many teleports have been clicked, for the dev test. */
@@ -1532,7 +1534,7 @@ public final class Runner {
 
 	/** The hop points planned, for drawing; empty while no teleporting is going on. */
 	public static java.util.List<double[]> teleportPlan() {
-		return tpPhase == TP_IDLE ? java.util.List.of() : tpPlan;
+		return tpPhase == TP_IDLE ? java.util.List.of() : tpPlan.subList(Math.min(tpIndex, tpPlan.size()), tpPlan.size());
 	}
 
 	/** The hotbar slot of the first item with the Instant Transmission ability, or -1; the hop length is read from its description. */
@@ -1605,6 +1607,7 @@ public final class Runner {
 				return false; // too near for a hop to help: walk
 			}
 			tpPlan = plan;
+			tpIndex = 0;
 			tpItemSlot = slot;
 			tpSlotBefore = player.getInventory().getSelectedSlot();
 			tpFailures = 0;
@@ -1627,21 +1630,19 @@ public final class Runner {
 			}
 			case TP_AIM -> {
 				tpAimTicks++;
-				java.util.List<double[]> plan = TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
-				if (plan == null) {
-					teleportGiveUp("no clear path, walking.");
-					break;
-				}
-				if (plan.isEmpty()) {
-					tpPhase = TP_RESTORE; // within the radius, or too near for a hop to help
+				if (tpIndex >= tpPlan.size()) {
+					tpPhase = TP_RESTORE; // the last hop of the plan is done
 					tpWait = 2 + HUNT_RANDOM.nextInt(3);
 					break;
 				}
-				tpPlan = plan;
-				double[] target = plan.get(0);
+				double[] target = tpPlan.get(tpIndex);
 				double dx = target[0] - feet[0];
 				double dy = target[1] - feet[1];
 				double dz = target[2] - feet[2];
+				if (dx * dx + dy * dy + dz * dz < 1.0) {
+					tpIndex++; // already at this point
+					break;
+				}
 				aimYaw = FollowPlanner.yawToward(feet[0], feet[2], target[0], target[2]);
 				pitchTarget = -Math.toDegrees(Math.asin(dy / Math.sqrt(dx * dx + dy * dy + dz * dz)));
 				haveAim = true;
@@ -1661,6 +1662,7 @@ public final class Runner {
 				if (--tpWait <= 0) {
 					if (player.position().distanceTo(tpStart) >= tpHop * 0.5) {
 						tpFailures = 0;
+						tpIndex++;
 						tpPhase = TP_AIM;
 						tpAimTicks = 0;
 					} else if (++tpFailures >= 2) {
