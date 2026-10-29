@@ -1643,8 +1643,9 @@ public final class Runner {
 					tpIndex++; // already at this point
 					break;
 				}
-				aimYaw = FollowPlanner.yawToward(feet[0], feet[2], target[0], target[2]);
-				pitchTarget = -Math.toDegrees(Math.asin(dy / Math.sqrt(dx * dx + dy * dy + dz * dz)));
+				// the look direction that was planned for this landing, which the server turns into the middle of the block
+				aimYaw = FollowPlanner.yawToward(0, 0, target[3], target[5]);
+				pitchTarget = -Math.toDegrees(Math.asin(target[4]));
 				haveAim = true;
 				boolean lined = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 1.5 && Math.abs(player.getXRot() - pitchTarget) < 1.5;
 				if (tpAimTicks > 100) {

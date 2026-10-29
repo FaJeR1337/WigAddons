@@ -71,7 +71,7 @@ public final class WaypointRenderer {
 		Vec3 previous = player.position().add(0, 0.9, 0);
 		int number = 1;
 		for (double[] point : plan) {
-			BlockPos block = new BlockPos((int) Math.floor(point[0]), (int) Math.floor(point[1]), (int) Math.floor(point[2]));
+			BlockPos block = new BlockPos((int) Math.floor(point[0]), (int) Math.floor(point[1] + 1e-6), (int) Math.floor(point[2]));
 			Gizmos.cuboid(block, GizmoStyle.strokeAndFill(0xFF55FFFF, 3.0F, 0x5555FFFF)).setAlwaysOnTop();
 			Vec3 middle = new Vec3(point[0], point[1] + 0.9, point[2]);
 			dotted(previous, middle, 0xFF55FFFF);

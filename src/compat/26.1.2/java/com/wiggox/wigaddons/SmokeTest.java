@@ -172,7 +172,8 @@ final class SmokeTest {
 		if (phaseTick > 20 && Runner.teleportClicks() != seenTeleportClicks) {
 			seenTeleportClicks = Runner.teleportClicks();
 			log("teleport home: click " + seenTeleportClicks + " at " + fmt(mc) + ", plan " + Runner.teleportPlan().size() + " hops left, slot " + mc.player.getInventory().getSelectedSlot());
-			command(mc, "tp @s ^ ^ ^12");
+			double[] landing = Runner.teleportPlan().get(0);
+			command(mc, "tp @s " + landing[0] + " " + landing[1] + " " + landing[2]); // the server puts the player in the middle of the block
 		}
 		if (phaseTick == 60) {
 			photograph(mc, "teleport");

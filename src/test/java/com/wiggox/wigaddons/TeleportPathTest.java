@@ -24,7 +24,10 @@ class TeleportPathTest {
 		double[] previous = {0, 60, 0};
 		for (double[] point : plan) {
 			double length = Math.sqrt(Math.pow(point[0] - previous[0], 2) + Math.pow(point[1] - previous[1], 2) + Math.pow(point[2] - previous[2], 2));
-			assertEquals(12.0, length, 1e-6);
+			assertEquals(12.0, length, 1.3); // the landing is the middle of a block, up to a block from where the full hop ends
+			assertEquals(0.5, point[0] - Math.floor(point[0]), 1e-9);
+			assertEquals(0.5, point[2] - Math.floor(point[2]), 1e-9);
+			assertEquals(0.0, point[1] - Math.floor(point[1]), 1e-9);
 			previous = point;
 		}
 		assertTrue(sideways(previous, goal) <= 10);

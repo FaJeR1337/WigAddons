@@ -6,8 +6,9 @@ import java.util.List;
 
 /**
  * The hops of an Aspect of the End or Void (a teleport of a fixed length along the view) from where the player is to a
- * spot, through open air: a chain of points, each a full hop from the one before, with clear room for the player all the
- * way along every hop.
+ * spot, through open air: a chain of landing blocks, each a full hop from the one before, with clear room for the player
+ * all the way along every hop. The server puts the player in the exact middle of the block the hop ends in (on top of
+ * it, in the air or not), so every landing here is the middle of a block cell, with its feet at the cell's floor.
  */
 public final class TeleportPath {
 	/** Whether the cell has nothing in it to stop a teleporting player. */
@@ -36,10 +37,11 @@ public final class TeleportPath {
 	}
 
 	/**
-	 * The points the player is teleported to, in order, to end up within {@code radius} blocks (sideways) of {@code goal}.
-	 * Every hop is exactly {@code hop} blocks long, so the last one may carry past the goal; a hop is only made where it
-	 * brings the player closer. An empty list means no hop is needed or worth making (the rest is walked), and null means
-	 * there is no way through the air.
+	 * The hops that take the player to within {@code radius} blocks (sideways) of {@code goal}, in order. Each is
+	 * {x, y, z, dx, dy, dz}: where the feet land (the middle of a block, on its floor) and the look direction (a unit
+	 * vector) that gives that landing from the point before it. Every hop carries {@code hop} blocks along the view, so
+	 * the last one may carry past the goal; a hop is only made where it brings the player closer. An empty list means no
+	 * hop is needed or worth making (the rest is walked), and null means there is no way through the air.
 	 *
 	 * @param from where the player's feet are
 	 * @param goal the spot to get to
@@ -64,7 +66,10 @@ public final class TeleportPath {
 			for (double[] offset : OFFSETS) {
 				double a = azimuth + Math.toRadians(offset[0]);
 				double e = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, elevation + Math.toRadians(offset[1])));
-				double[] candidate = {at[0] + hop * Math.cos(e) * Math.cos(a), at[1] + hop * Math.sin(e), at[2] + hop * Math.cos(e) * Math.sin(a)};
+				double[] direction = {Math.cos(e) * Math.cos(a), Math.sin(e), Math.cos(e) * Math.sin(a)};
+				// the hop ends in a block cell, and the player stands in the middle of it, on its floor
+				double[] candidate = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
+					direction[0], direction[1], direction[2]};
 				double after = Math.hypot(goal[0] - candidate[0], goal[2] - candidate[2]);
 				if (after >= distance - 0.5 && after > radius) {
 					continue; // no nearer, and not there either
@@ -78,7 +83,7 @@ public final class TeleportPath {
 				return null;
 			}
 			hops.add(next);
-			at = next;
+			at = new double[] {next[0], next[1], next[2]};
 		}
 		return null;
 	}
