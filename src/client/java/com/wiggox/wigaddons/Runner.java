@@ -1769,10 +1769,10 @@ public final class Runner {
 			tpRefresh = 5; // a quarter of a second
 			teleportRefresh(player, cfg);
 		}
-		// the run carries on along the view, which turns to each hop in the direction of the way home
+		// the walk carries on along the view, which turns to each hop in the direction of the way home
 		standStill();
 		moveForward = 1;
-		sprintOn = true;
+		sprintOn = false; // walking, not running, while it teleports
 		mc.options.keyShift.setDown(false); // sneaking with an Aspect of the Void is a different teleport
 		switch (tpPhase) {
 			case TP_PREPARE -> {

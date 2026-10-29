@@ -22,6 +22,8 @@ public final class TeleportPath {
 	private static final int MAX_HOPS = 40;
 	/** A hop along a walking route lands this many blocks above the route's cell (or on it): up in the air over the way, not on it. */
 	private static final double LIFT = 2.0;
+	/** A hop along a route only lands where there is a block to stand on within this many blocks below. */
+	private static final int GROUND_WITHIN = 5;
 	/** A landing counts as on the route when it is this close to the spot LIFT blocks above a cell of it. */
 	private static final double LAND_WITHIN = 1.0;
 	/** How many hops the search may try before it gives up on a way. */
@@ -122,7 +124,7 @@ public final class TeleportPath {
 				double offZ = landing[2] - g[2];
 				if ((relaxed || offX * offX + offY * offY + offZ * offZ <= LAND_WITHIN * LAND_WITHIN)
 					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
-					&& clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
+					&& groundBelow(landing, air) && clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
 					best = landing;
 					bestIndex = i;
 				}
@@ -182,6 +184,19 @@ public final class TeleportPath {
 			}
 		}
 		return null;
+	}
+
+	/** Whether there is a solid block under the landing, no more than {@link #GROUND_WITHIN} blocks down. */
+	private static boolean groundBelow(double[] landing, Air air) {
+		int x = (int) Math.floor(landing[0]);
+		int z = (int) Math.floor(landing[2]);
+		int y = (int) Math.floor(landing[1] + 1e-6);
+		for (int down = 1; down <= GROUND_WITHIN; down++) {
+			if (!air.clear(x, y - down, z)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Whether the guide's cells from one index to another all lie within a block and a half of the line from one point to the other. */

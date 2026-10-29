@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 
 class TeleportPathTest {
 	private static final TeleportPath.Air OPEN = (x, y, z) -> true;
+	/** Open air above a floor: everything below y 58 is solid, so a landing near y 62 has ground within five blocks under it. */
+	private static final TeleportPath.Air FLOOR = (x, y, z) -> y >= 58;
 
 	private static double sideways(double[] a, double[] b) {
 		return Math.hypot(a[0] - b[0], a[2] - b[2]);
@@ -84,7 +86,7 @@ class TeleportPathTest {
 		for (int x = 1; x <= 60; x++) {
 			guide.add(new double[] {x + 0.5, 60, 0.5});
 		}
-		List<double[]> hops = TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, new double[] {60.5, 60, 0.5}, 12, 10, OPEN);
+		List<double[]> hops = TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, new double[] {60.5, 60, 0.5}, 12, 10, FLOOR);
 		assertTrue(hops.size() >= 4, "hops: " + hops.size());
 		for (double[] hop : hops) {
 			assertEquals(62.0, hop[1], 1.0); // within a block of the spot two blocks above the route
@@ -103,8 +105,8 @@ class TeleportPathTest {
 			bent.add(new double[] {8.5, 60, z + 0.5}); // a right angle after eight blocks
 		}
 		double[] goal = {8.5, 60, 20.5};
-		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, bent, goal, 12, 3, OPEN, true).isEmpty());
-		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, bent, goal, 12, 3, OPEN, false).isEmpty());
+		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, bent, goal, 12, 3, FLOOR, true).isEmpty());
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, bent, goal, 12, 3, FLOOR, false).isEmpty());
 	}
 
 	@Test
@@ -115,15 +117,29 @@ class TeleportPathTest {
 		}
 		double[] goal = {40.5, 60, 0.5};
 		// the route's cells are 1 to 40 blocks away, but the hop is 12: strictly one hop away needs a cell at about 12, and there is one
-		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, OPEN, false, true).isEmpty());
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, FLOOR, false, true).isEmpty());
 		// a route that begins 8 blocks off (nearer than a hop): only the relaxed first hop gets going
 		List<double[]> near = new java.util.ArrayList<>();
 		for (int x = 1; x <= 8; x++) {
 			near.add(new double[] {x + 0.5, 60, 0.5});
 		}
 		double[] nearGoal = {8.5, 60, 0.5};
-		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, near, nearGoal, 12, 1, OPEN, false, false).isEmpty());
-		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, near, nearGoal, 12, 1, OPEN, false, true).isEmpty());
+		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, near, nearGoal, 12, 1, FLOOR, false, false).isEmpty());
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, near, nearGoal, 12, 1, FLOOR, false, true).isEmpty());
+	}
+
+	@Test
+	void hopsAlongARouteLandOnlyWithGroundWithinFiveBlocksBelow() {
+		List<double[]> guide = new java.util.ArrayList<>();
+		for (int x = 1; x <= 40; x++) {
+			guide.add(new double[] {x + 0.5, 60, 0.5});
+		}
+		double[] goal = {40.5, 60, 0.5};
+		// solid ground only at and below y 52: the landing around y 62 has nothing within five blocks under it
+		TeleportPath.Air highUp = (x, y, z) -> y > 52;
+		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, highUp).isEmpty());
+		TeleportPath.Air nearGround = (x, y, z) -> y > 58;
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, nearGround).isEmpty());
 	}
 
 	@Test
