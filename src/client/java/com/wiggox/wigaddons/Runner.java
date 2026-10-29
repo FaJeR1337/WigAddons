@@ -1530,6 +1530,7 @@ public final class Runner {
 	private static boolean tpHeld;
 	private static boolean tpHoldPending;
 	private static int tpBlockedTicks;
+	private static int tpStaleTicks;
 	private static int tpAimTicks;
 	private static int tpItemSlot;
 	private static int tpSlotBefore;
@@ -1901,6 +1902,19 @@ public final class Runner {
 					tpIndex++;
 					break;
 				}
+				double tooFar = tpHop + 1;
+				if (dx * dx + dy * dy + dz * dz > tooFar * tooFar) {
+					// further off than the teleport distance and a block (the player has gone another way): plan again from here, and
+					// where that doesn't find it a new one either, the waypoint is dropped
+					if (++tpStaleTicks == 1) {
+						teleportRefresh(player, cfg);
+					} else {
+						tpStaleTicks = 0;
+						tpIndex++;
+					}
+					break;
+				}
+				tpStaleTicks = 0;
 				// toward the planned landing from where the player is now (the run has moved it on a little): the hop carries on along
 				// that line, so it ends at the landing or a little past it, further along the way
 				double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
