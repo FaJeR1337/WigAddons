@@ -86,6 +86,15 @@ public final class TeleportPath {
 
 	/** As above; with {@code straightOnly}, a hop is only made where the way it skips is a straight line (every cell of it within a block and a half of the hop). */
 	public static List<double[]> planAlong(double[] from, List<double[]> guide, double[] goal, double hop, double radius, Air air, boolean straightOnly) {
+		return planAlong(from, guide, goal, hop, radius, air, straightOnly, false);
+	}
+
+	/**
+	 * As above; with {@code relaxFirst} the first hop needs no spot of the route a hop away: it goes toward the farthest
+	 * point of the route that a clear hop line leads to, and lands wherever that carries it, so a walk can start teleporting
+	 * at once whatever the distance.
+	 */
+	public static List<double[]> planAlong(double[] from, List<double[]> guide, double[] goal, double hop, double radius, Air air, boolean straightOnly, boolean relaxFirst) {
 		List<double[]> hops = new ArrayList<>();
 		double[] at = from.clone();
 		int fromIndex = 0;
@@ -101,8 +110,9 @@ public final class TeleportPath {
 				double dy = g[1] + LIFT - at[1]; // aim at the spot above the route
 				double dz = g[2] - at[2];
 				double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-				if (Math.abs(length - hop) > 1.5) {
-					continue; // not about one hop away
+				boolean relaxed = relaxFirst && n == 0;
+				if (relaxed ? length < hop * 0.5 : Math.abs(length - hop) > 1.5) {
+					continue; // not about one hop away (for the relaxed first hop: not at least half a hop away)
 				}
 				double[] direction = {dx / length, dy / length, dz / length};
 				double[] landing = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
@@ -110,7 +120,7 @@ public final class TeleportPath {
 				double offX = landing[0] - g[0];
 				double offY = landing[1] - (g[1] + LIFT);
 				double offZ = landing[2] - g[2];
-				if (offX * offX + offY * offY + offZ * offZ <= LAND_WITHIN * LAND_WITHIN
+				if ((relaxed || offX * offX + offY * offY + offZ * offZ <= LAND_WITHIN * LAND_WITHIN)
 					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
 					&& clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
 					best = landing;

@@ -108,6 +108,25 @@ class TeleportPathTest {
 	}
 
 	@Test
+	void theFirstHopCanBeMadeFromAnyDistanceAlongTheRoute() {
+		List<double[]> guide = new java.util.ArrayList<>();
+		for (int x = 1; x <= 40; x++) {
+			guide.add(new double[] {x + 0.5, 60, 0.5});
+		}
+		double[] goal = {40.5, 60, 0.5};
+		// the route's cells are 1 to 40 blocks away, but the hop is 12: strictly one hop away needs a cell at about 12, and there is one
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, goal, 12, 3, OPEN, false, true).isEmpty());
+		// a route that begins 8 blocks off (nearer than a hop): only the relaxed first hop gets going
+		List<double[]> near = new java.util.ArrayList<>();
+		for (int x = 1; x <= 8; x++) {
+			near.add(new double[] {x + 0.5, 60, 0.5});
+		}
+		double[] nearGoal = {8.5, 60, 0.5};
+		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, near, nearGoal, 12, 1, OPEN, false, false).isEmpty());
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, near, nearGoal, 12, 1, OPEN, false, true).isEmpty());
+	}
+
+	@Test
 	void aGentlePlanIsFoundInOpenAirButNotInASealedBox() {
 		assertNotNull(TeleportPath.planGentle(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, OPEN));
 		TeleportPath.Air box = (x, y, z) -> Math.abs(x) <= 3 && Math.abs(z) <= 3 && y >= 58 && y <= 64;

@@ -1633,9 +1633,6 @@ public final class Runner {
 			return false;
 		}
 		double[] feet = {player.getX(), player.getY(), player.getZ()};
-		if (Math.hypot(goal[0] - feet[0], goal[2] - feet[2]) < tpHop - 1.5) {
-			return false; // nearer than a hop
-		}
 		java.util.List<double[]> plan = walkTeleportPlan(feet, goal, cfg);
 		if (plan.isEmpty()) {
 			return false;
@@ -1665,7 +1662,7 @@ public final class Runner {
 			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
 			guide = straightGuide(feet, goal);
 		}
-		return TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable);
+		return TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable, false, true);
 	}
 
 	/**
