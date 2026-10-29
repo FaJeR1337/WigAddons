@@ -20,6 +20,11 @@ public final class TeleportPath {
 	/** Half the player's width, so the corners of the body are checked as well as the middle. */
 	private static final double HALF_WIDTH = 0.3;
 	private static final int MAX_HOPS = 40;
+	/** How many hops the search may try before it gives up on a way. */
+	private static final int SEARCH_BUDGET = 3000;
+	/** The most a hop may turn away from the one before it, so the route bends gently; given up on only where nothing else is clear. */
+	private static final double MAX_TURN_DEGREES = 30;
+	private static final double MIN_TURN_COS = Math.cos(Math.toRadians(MAX_TURN_DEGREES));
 	private static final double[] YAW_OFFSETS = {0, 8, -8, 16, -16, 28, -28, 42, -42, 60, -60, 80, -80};
 	private static final double[] PITCH_OFFSETS = {0, 12, -12, 25, -25, 40, -40, 55, -55};
 	private static final List<double[]> OFFSETS = new ArrayList<>();
@@ -49,41 +54,110 @@ public final class TeleportPath {
 	 * @param radius how close to the goal, sideways, is close enough
 	 */
 	public static List<double[]> plan(double[] from, double[] goal, double hop, double radius, Air air) {
+		// first a route that only ever bends gently, found by trying the options in order and backing up out of dead ends,
+		// then, where there is none, one with sharper turns
+		List<double[]> gentle = search(from, null, goal, hop, radius, air, 0, new int[] {SEARCH_BUDGET}, true);
+		if (gentle != null) {
+			return gentle;
+		}
+		return search(from, null, goal, hop, radius, air, 0, new int[] {SEARCH_BUDGET}, false);
+	}
+
+	/**
+	 * Like {@link #plan} but only a route that bends gently all the way (no turn of more than 30 degrees from one hop to
+	 * the next), or null. A route like that is as good as a straight one.
+	 */
+	public static List<double[]> planGentle(double[] from, double[] goal, double hop, double radius, Air air) {
+		return search(from, null, goal, hop, radius, air, 0, new int[] {SEARCH_BUDGET}, true);
+	}
+
+	/**
+	 * Hops that land on the way a walker would take: each lands on (or next to) a point of {@code guide}, the cells to
+	 * walk through in order, as far along it as a clear hop reaches. The list can stop short of the goal where no hop
+	 * lands on the way any further (the rest is walked), and is empty where none does at all.
+	 */
+	public static List<double[]> planAlong(double[] from, List<double[]> guide, double[] goal, double hop, double radius, Air air) {
 		List<double[]> hops = new ArrayList<>();
 		double[] at = from.clone();
-		for (int i = 0; i < MAX_HOPS; i++) {
-			double distance = Math.hypot(goal[0] - at[0], goal[2] - at[2]);
-			if (distance <= radius || distance <= hop / 2) {
-				return hops; // there, or too near for a hop to help: the rest is walked
+		int fromIndex = 0;
+		for (int n = 0; n < MAX_HOPS; n++) {
+			if (Math.hypot(goal[0] - at[0], goal[2] - at[2]) <= radius) {
+				break;
 			}
-			double dx = goal[0] - at[0];
-			double dy = goal[1] - at[1];
-			double dz = goal[2] - at[2];
-			double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-			double azimuth = Math.atan2(dz, dx);
-			double elevation = Math.asin(dy / length);
-			double[] next = null;
-			for (double[] offset : OFFSETS) {
-				double a = azimuth + Math.toRadians(offset[0]);
-				double e = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, elevation + Math.toRadians(offset[1])));
-				double[] direction = {Math.cos(e) * Math.cos(a), Math.sin(e), Math.cos(e) * Math.sin(a)};
-				// the hop ends in a block cell, and the player stands in the middle of it, on its floor
-				double[] candidate = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
+			double[] best = null;
+			int bestIndex = -1;
+			for (int i = guide.size() - 1; i >= fromIndex && best == null; i--) {
+				double[] g = guide.get(i);
+				double dx = g[0] - at[0];
+				double dy = g[1] + 0.5 - at[1];
+				double dz = g[2] - at[2];
+				double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+				if (Math.abs(length - hop) > 1.5) {
+					continue; // not about one hop away
+				}
+				double[] direction = {dx / length, dy / length, dz / length};
+				double[] landing = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
 					direction[0], direction[1], direction[2]};
-				double after = Math.hypot(goal[0] - candidate[0], goal[2] - candidate[2]);
-				if (after >= distance - 0.5 && after > radius) {
-					continue; // no nearer, and not there either
-				}
-				if (clearLine(at, candidate, air)) {
-					next = candidate;
-					break;
+				if (Math.abs(landing[0] - g[0]) <= 1.0 && Math.abs(landing[2] - g[2]) <= 1.0 && Math.abs(landing[1] - g[1]) <= 1.0
+					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
+					&& clearLine(at, landing, air)) {
+					best = landing;
+					bestIndex = i;
 				}
 			}
-			if (next == null) {
+			if (best == null) {
+				break;
+			}
+			hops.add(best);
+			at = new double[] {best[0], best[1], best[2]};
+			fromIndex = bestIndex + 1;
+		}
+		return hops;
+	}
+
+	/** The hops from here on, or null if there is no way (or the search ran out of its budget). */
+	private static List<double[]> search(double[] at, double[] previous, double[] goal, double hop, double radius, Air air,
+		int depth, int[] budget, boolean limitTurn) {
+		double distance = Math.hypot(goal[0] - at[0], goal[2] - at[2]);
+		if (distance <= radius || distance <= hop / 2) {
+			return new ArrayList<>(); // there, or too near for a hop to help: the rest is walked
+		}
+		if (depth >= MAX_HOPS) {
+			return null;
+		}
+		double dx = goal[0] - at[0];
+		double dy = goal[1] - at[1];
+		double dz = goal[2] - at[2];
+		double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+		double azimuth = Math.atan2(dz, dx);
+		double elevation = Math.asin(dy / length);
+		for (double[] offset : OFFSETS) {
+			if (budget[0] <= 0) {
 				return null;
 			}
-			hops.add(next);
-			at = new double[] {next[0], next[1], next[2]};
+			double a = azimuth + Math.toRadians(offset[0]);
+			double e = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, elevation + Math.toRadians(offset[1])));
+			double[] direction = {Math.cos(e) * Math.cos(a), Math.sin(e), Math.cos(e) * Math.sin(a)};
+			if (limitTurn && previous != null
+				&& direction[0] * previous[0] + direction[1] * previous[1] + direction[2] * previous[2] < MIN_TURN_COS) {
+				continue; // too sharp a turn from the last hop
+			}
+			// the hop ends in a block cell, and the player stands in the middle of it, on its floor
+			double[] candidate = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
+				direction[0], direction[1], direction[2]};
+			double after = Math.hypot(goal[0] - candidate[0], goal[2] - candidate[2]);
+			if (after >= distance - 0.5 && after > radius) {
+				continue; // no nearer, and not there either
+			}
+			budget[0]--;
+			if (!clearLine(at, candidate, air)) {
+				continue;
+			}
+			List<double[]> rest = search(new double[] {candidate[0], candidate[1], candidate[2]}, direction, goal, hop, radius, air, depth + 1, budget, limitTurn);
+			if (rest != null) {
+				rest.add(0, candidate);
+				return rest;
+			}
 		}
 		return null;
 	}

@@ -65,6 +65,42 @@ class TeleportPathTest {
 	}
 
 	@Test
+	void aRouteAroundAWallBendsGently() {
+		TeleportPath.Air wall = (x, y, z) -> !(x >= 30 && x <= 31 && y < 70 && y >= 50 && Math.abs(z) < 15);
+		List<double[]> plan = TeleportPath.plan(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, wall);
+		assertNotNull(plan);
+		for (int i = 1; i < plan.size(); i++) {
+			double[] a = plan.get(i - 1);
+			double[] b = plan.get(i);
+			double dot = a[3] * b[3] + a[4] * b[4] + a[5] * b[5];
+			assertTrue(Math.toDegrees(Math.acos(Math.min(1, dot))) <= 30.5, "turn at hop " + i);
+		}
+	}
+
+	@Test
+	void hopsAlongAWalkingRouteLandOnIt() {
+		// a walking route that is a straight line along x, one cell every block
+		List<double[]> guide = new java.util.ArrayList<>();
+		for (int x = 1; x <= 60; x++) {
+			guide.add(new double[] {x + 0.5, 60, 0.5});
+		}
+		List<double[]> hops = TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, guide, new double[] {60.5, 60, 0.5}, 12, 10, OPEN);
+		assertTrue(hops.size() >= 4, "hops: " + hops.size());
+		for (double[] hop : hops) {
+			assertEquals(60.0, hop[1], 1.0);
+			assertEquals(0.5, hop[2], 1.01);
+		}
+		assertTrue(Math.hypot(60.5 - hops.get(hops.size() - 1)[0], 0) <= 10);
+	}
+
+	@Test
+	void aGentlePlanIsFoundInOpenAirButNotInASealedBox() {
+		assertNotNull(TeleportPath.planGentle(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, OPEN));
+		TeleportPath.Air box = (x, y, z) -> Math.abs(x) <= 3 && Math.abs(z) <= 3 && y >= 58 && y <= 64;
+		assertNull(TeleportPath.planGentle(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, box));
+	}
+
+	@Test
 	void aSealedBoxHasNoPath() {
 		TeleportPath.Air box = (x, y, z) -> Math.abs(x) <= 3 && Math.abs(z) <= 3 && y >= 58 && y <= 64;
 		assertNull(TeleportPath.plan(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, box));

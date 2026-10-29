@@ -1522,6 +1522,8 @@ public final class Runner {
 	private static double tpHop = 8;
 	private static int tpFailures;
 	private static boolean tpGaveUp;
+	private static boolean tpToldNoPath;
+	private static int tpRecheck;
 	private static long tpLastTick;
 	private static Vec3 tpStart;
 	private static int tpClicks;
@@ -1568,6 +1570,26 @@ public final class Runner {
 		return -1;
 	}
 
+	/**
+	 * The hops to take from here: a route that is straight (or only bends gently) if there is one, else hops that land on
+	 * the way a walker would go home, else any way through the air. Null means none at all.
+	 */
+	private static java.util.List<double[]> chooseTeleportPlan(double[] feet, double[] goal, double radius, WigConfig cfg) {
+		java.util.List<double[]> straight = TeleportPath.planGentle(feet, goal, tpHop, radius, WorldTerrain::passable);
+		if (straight != null) {
+			return straight;
+		}
+		java.util.List<double[]> guide = GridPath.find(new WorldTerrain(), (int) Math.floor(feet[0]), (int) Math.floor(feet[1] + 0.01), (int) Math.floor(feet[2]),
+			(int) Math.floor(goal[0]), (int) Math.floor(goal[1] + 0.01), (int) Math.floor(goal[2]), true, cfg.killMaxDrop, cfg.pathJumpCost);
+		if (guide != null && !guide.isEmpty()) {
+			java.util.List<double[]> along = TeleportPath.planAlong(feet, guide, goal, tpHop, radius, WorldTerrain::passable);
+			if (!along.isEmpty()) {
+				return along;
+			}
+		}
+		return TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
+	}
+
 	/** Gives the sequence up for this trip, puts the slot back and says why. */
 	private static void teleportGiveUp(String why) {
 		Chat.info("Teleport home: " + why);
@@ -1589,21 +1611,29 @@ public final class Runner {
 		if (tpPhase == TP_IDLE) {
 			if (distance <= radius) {
 				tpGaveUp = false; // arrived: the next trip starts afresh
+				tpToldNoPath = false;
 				tpFailures = 0;
 			}
 			if (tpGaveUp || distance <= radius + 2) {
 				return false;
 			}
+			if (tpRecheck > 0) {
+				tpRecheck--; // walking meanwhile: a way to teleport is looked for again every second
+				return false;
+			}
+			tpRecheck = 20;
 			int slot = findTeleportItem(player);
 			if (slot < 0) {
 				Chat.info("Teleport home: no Aote/Aotv in hotbar.");
 				tpGaveUp = true;
 				return false;
 			}
-			java.util.List<double[]> plan = TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
+			java.util.List<double[]> plan = chooseTeleportPlan(feet, goal, radius, cfg);
 			if (plan == null) {
-				Chat.info("Teleport home: no clear path, walking.");
-				tpGaveUp = true;
+				if (!tpToldNoPath) {
+					Chat.info("Teleport home: no clear path, walking.");
+					tpToldNoPath = true;
+				}
 				return false;
 			}
 			if (plan.isEmpty()) {
