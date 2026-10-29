@@ -556,7 +556,7 @@ public final class Runner {
 		}
 		checkTeleport(mc, player);
 		ticks++;
-		if (tpPhase != TP_IDLE && tpLastTick < ticks - 1) {
+		if ((tpPhase != TP_IDLE || tpHeld) && tpLastTick < ticks - 1) {
 			teleportAbort(player); // something else has taken over: put the held slot back
 		}
 		holdClicks(mc);
@@ -1436,6 +1436,10 @@ public final class Runner {
 			return;
 		}
 		huntWaitingTold = false;
+		if (cfg.killTeleportHome || cfg.killTeleportWalk) {
+			double holdRadius = cfg.killWander ? cfg.killWanderRadius : 3.0;
+			teleportHold(mc, player, cfg, Math.hypot(cfg.killHomeX - player.getX(), cfg.killHomeZ - player.getZ()), holdRadius);
+		}
 		if ((cfg.killTeleportHome || cfg.killTeleportWalk) && teleportHome(mc, player, cfg)) {
 			return; // teleporting there: nothing else moves the player meanwhile
 		}
@@ -1522,6 +1526,9 @@ public final class Runner {
 	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
 	private static int tpPhase = TP_IDLE;
 	private static int tpWait;
+	/** The teleport item is held for the whole trip to the home spot, so a hop is only a right click. */
+	private static boolean tpHeld;
+	private static boolean tpHoldPending;
 	private static int tpBlockedTicks;
 	private static int tpAimTicks;
 	private static int tpItemSlot;
@@ -1650,9 +1657,12 @@ public final class Runner {
 		tpRefresh = 0;
 		tpIndex = 0;
 		tpItemSlot = slot;
-		tpSlotBefore = player.getInventory().getSelectedSlot();
+		if (!tpHeld) {
+			tpSlotBefore = player.getInventory().getSelectedSlot();
+		}
 		tpFailures = 0;
-		tpPhase = TP_PREPARE;
+		tpPhase = tpHeld ? TP_AIM : TP_PREPARE; // already holding the item: straight to the hop
+		tpAimTicks = 0;
 		tpWait = 0;
 		tpLastTick = ticks; // running from now: the check for something else taking over counts from here
 		macroSuppressTicks = Math.max(macroSuppressTicks, 3); // the checks are off from this tick, so the switch can be the next
@@ -1722,6 +1732,51 @@ public final class Runner {
 		return cells;
 	}
 
+	/**
+	 * On the trip to the home spot: takes the teleport item out and keeps it in the hand until the trip is over, so each hop is
+	 * only a right click. Checks off a tick before the switch and a tick after. Called every tick of the trip; the item goes
+	 * back to the slot it came from when home is reached, and (from teleportAbort) when something else takes over.
+	 */
+	private static void teleportHold(Minecraft mc, LocalPlayer player, WigConfig cfg, double distance, double radius) {
+		tpLastTick = ticks;
+		boolean far = distance > radius + 2;
+		if (tpHeld) {
+			if (!far && tpPhase == TP_IDLE) {
+				macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+				if (!tpHoldPending) {
+					tpHoldPending = true; // the checks are off for a tick before the switch back
+					return;
+				}
+				tpHoldPending = false;
+				player.getInventory().setSelectedSlot(tpSlotBefore); // home: the slot goes back
+				startSlot = tpSlotBefore;
+				tpHeld = false;
+			} else {
+				tpHoldPending = false;
+			}
+			return;
+		}
+		if (!far || tpPhase != TP_IDLE || tpGaveUp || ticks < tpCooldownUntil) {
+			tpHoldPending = false;
+			return;
+		}
+		int slot = findTeleportItem(player);
+		if (slot < 0) {
+			return; // the sequences say so
+		}
+		macroSuppressTicks = Math.max(macroSuppressTicks, 3);
+		if (!tpHoldPending) {
+			tpHoldPending = true; // the checks are off for a tick before the switch
+			return;
+		}
+		tpHoldPending = false;
+		tpSlotBefore = player.getInventory().getSelectedSlot();
+		tpItemSlot = slot;
+		player.getInventory().setSelectedSlot(slot);
+		startSlot = slot;
+		tpHeld = true;
+	}
+
 	/** Gives the sequence up for ten seconds, puts the slot back and says why. */
 	private static void teleportGiveUp(String why) {
 		Chat.info((tpMode == 1 ? "Teleport while walking: " : "Teleport home: ") + why + " Trying again in 10 seconds.");
@@ -1785,9 +1840,12 @@ public final class Runner {
 			tpRefresh = 0;
 			tpIndex = 0;
 			tpItemSlot = slot;
-			tpSlotBefore = player.getInventory().getSelectedSlot();
+			if (!tpHeld) {
+				tpSlotBefore = player.getInventory().getSelectedSlot();
+			}
 			tpFailures = 0;
-			tpPhase = TP_PREPARE;
+			tpPhase = tpHeld ? TP_AIM : TP_PREPARE; // already holding the item: straight to the hop
+			tpAimTicks = 0;
 			tpWait = 0;
 			macroSuppressTicks = Math.max(macroSuppressTicks, 3); // the checks are off from this tick, so the switch can be the next
 			idleGoal = null;
@@ -1900,8 +1958,10 @@ public final class Runner {
 			}
 			case TP_RESTORE -> {
 				if (--tpWait <= 0) {
-					player.getInventory().setSelectedSlot(tpSlotBefore);
-					startSlot = tpSlotBefore;
+					if (!tpHeld) { // on the trip home the item stays in the hand; the slot goes back when the trip is over
+						player.getInventory().setSelectedSlot(tpSlotBefore);
+						startSlot = tpSlotBefore;
+					}
 					tpPhase = TP_DONE;
 				}
 			}
@@ -1925,10 +1985,13 @@ public final class Runner {
 
 	/** Stops the sequence where it stands, putting the held slot back, with the macro checks off a moment longer. */
 	private static void teleportAbort(LocalPlayer player) {
-		if (tpPhase == TP_IDLE) {
+		if (tpPhase == TP_IDLE && !tpHeld) {
 			return;
 		}
-		if (player != null && tpPhase >= TP_AIM && tpPhase != TP_DONE && player.getInventory().getSelectedSlot() != tpSlotBefore) {
+		boolean held = tpHeld;
+		tpHeld = false;
+		tpHoldPending = false;
+		if (player != null && (held || (tpPhase >= TP_AIM && tpPhase != TP_DONE)) && player.getInventory().getSelectedSlot() != tpSlotBefore) {
 			player.getInventory().setSelectedSlot(tpSlotBefore);
 			startSlot = tpSlotBefore;
 		}
