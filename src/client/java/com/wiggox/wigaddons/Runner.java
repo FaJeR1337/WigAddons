@@ -1604,7 +1604,7 @@ public final class Runner {
 	private static boolean tpWalkTold;
 
 	/**
-	 * While walking to a spot: where the walking route has a spot a hop away (the length the teleport item carries, landing on the route or a block above
+	 * While walking to a spot: where the walking route has a spot a hop away (the length the teleport item carries, landing on the route or up to two blocks above
 	 * it) that a clear teleport reaches, starts a sequence of hops along the route. Looked for once a second, with the walking route from the same search the walker uses.
 	 */
 	private static boolean teleportWalkStart(LocalPlayer player, WigConfig cfg, double[] goal) {

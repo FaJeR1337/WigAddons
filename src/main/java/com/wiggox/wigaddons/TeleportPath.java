@@ -20,6 +20,8 @@ public final class TeleportPath {
 	/** Half the player's width, so the corners of the body are checked as well as the middle. */
 	private static final double HALF_WIDTH = 0.3;
 	private static final int MAX_HOPS = 40;
+	/** A hop along a walking route lands this many blocks above the route's cell (or on it): up in the air over the way, not on it. */
+	private static final double LIFT = 2.0;
 	/** How many hops the search may try before it gives up on a way. */
 	private static final int SEARCH_BUDGET = 3000;
 	/** The most a hop may turn away from the one before it, so the route bends gently; given up on only where nothing else is clear. */
@@ -94,7 +96,7 @@ public final class TeleportPath {
 			for (int i = guide.size() - 1; i >= fromIndex && best == null; i--) {
 				double[] g = guide.get(i);
 				double dx = g[0] - at[0];
-				double dy = g[1] + 0.5 - at[1];
+				double dy = g[1] + LIFT - at[1]; // aim at the spot above the route
 				double dz = g[2] - at[2];
 				double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
 				if (Math.abs(length - hop) > 1.5) {
@@ -103,7 +105,7 @@ public final class TeleportPath {
 				double[] direction = {dx / length, dy / length, dz / length};
 				double[] landing = {Math.floor(at[0] + hop * direction[0]) + 0.5, Math.floor(at[1] + hop * direction[1] + 1e-3), Math.floor(at[2] + hop * direction[2]) + 0.5,
 					direction[0], direction[1], direction[2]};
-				if (Math.abs(landing[0] - g[0]) <= 1.0 && Math.abs(landing[2] - g[2]) <= 1.0 && Math.abs(landing[1] - g[1]) <= 1.0
+				if (Math.abs(landing[0] - g[0]) <= 1.0 && Math.abs(landing[2] - g[2]) <= 1.0 && landing[1] >= g[1] && landing[1] <= g[1] + LIFT
 					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
 					&& clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
 					best = landing;
