@@ -1436,7 +1436,7 @@ public final class Runner {
 			return;
 		}
 		huntWaitingTold = false;
-		if (cfg.killTeleportHome || cfg.killTeleportWalk) {
+		if (cfg.killTeleportWalk) { // the item is held on the way home only with Teleport while walking on
 			double holdRadius = cfg.killWander ? cfg.killWanderRadius : 3.0;
 			teleportHold(mc, player, cfg, Math.hypot(cfg.killHomeX - player.getX(), cfg.killHomeZ - player.getZ()), holdRadius);
 		}
