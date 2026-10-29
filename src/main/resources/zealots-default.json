@@ -105,6 +105,7 @@
   "killPreciseAngle": 10.0,
   "killShowTags": true,
   "killTeleportHome": false,
+  "killTeleportWalk": false,
   "killShowHitboxes": true,
   "killTagScale": 0.45,
   "killType": "minecraft:enderman",

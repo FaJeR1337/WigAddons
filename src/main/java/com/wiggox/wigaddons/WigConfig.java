@@ -141,6 +141,8 @@ public final class WigConfig {
 	public boolean killShowTags = true;
 	/** Going home: teleport there with an Aspect of the End or Void in the hotbar instead of walking the whole way. */
 	public boolean killTeleportHome = false;
+	/** Walking to a spot with nothing to hunt (home, a stroll): teleport along stretches of the way that are straight for as far as the item carries. */
+	public boolean killTeleportWalk = false;
 	/** The box round every hunted mob; only drawn while killShowTags is on. */
 	public boolean killShowHitboxes = true;
 	/** How big those name tags are, the same at any distance (they shrink with distance like any name tag). About 0.45 is the size of an ordinary name tag. */

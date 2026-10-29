@@ -161,7 +161,8 @@ final class SmokeTest {
 			WigState.config.killHomeY = -60;
 			WigState.config.killHomeZ = 0.5;
 			WigState.config.killWander = false;
-			WigState.config.killTeleportHome = true;
+			WigState.config.killTeleportHome = false;
+			WigState.config.killTeleportWalk = true;
 			seenTeleportClicks = 0;
 		}
 		if (phaseTick == 20) {

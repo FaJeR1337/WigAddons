@@ -451,6 +451,7 @@ public final class Runner {
 	private static void end() {
 		teleportAbort(Minecraft.getInstance().player);
 		tpGaveUp = false;
+		tpWalkTold = false;
 		hudPause();
 		releaseClicks();
 		jerryReset();
@@ -1434,7 +1435,7 @@ public final class Runner {
 			return;
 		}
 		huntWaitingTold = false;
-		if (cfg.killTeleportHome && teleportHome(mc, player, cfg)) {
+		if ((cfg.killTeleportHome || cfg.killTeleportWalk) && teleportHome(mc, player, cfg)) {
 			return; // teleporting there: nothing else moves the player meanwhile
 		}
 		double toHome = Math.hypot(cfg.killHomeX - player.getX(), cfg.killHomeZ - player.getZ());
@@ -1463,6 +1464,10 @@ public final class Runner {
 			huntTargetId = -2;
 			planner = new FollowPlanner(FollowPlanner.Params.forHunt(cfg), new Random());
 			planner.setTerrain(new WorldTerrain());
+		}
+		if (cfg.killTeleportWalk && tpPhase == TP_IDLE && teleportWalkStart(player, cfg, goal)) {
+			standStill();
+			return; // the teleports are made from the next tick on
 		}
 		FollowPlanner.Output out = planner.tick(player.getX(), player.getY(), player.getZ(), player.getYRot(),
 			new FollowPlanner.Target(goal[0], goal[1], goal[2], goal[1] + 1.62), player.onGround(), player.horizontalCollision);
@@ -1595,6 +1600,64 @@ public final class Runner {
 		return TeleportPath.plan(feet, goal, tpHop, radius, WorldTerrain::passable);
 	}
 
+	private static int tpWalkRecheck;
+	private static boolean tpWalkTold;
+
+	/**
+	 * While walking to a spot: where the way ahead is a straight line for as far as the teleport item carries, starts a
+	 * sequence of hops along it. Looked for once a second, with the walking route from the same search the walker uses.
+	 */
+	private static boolean teleportWalkStart(LocalPlayer player, WigConfig cfg, double[] goal) {
+		if (tpGaveUp || --tpWalkRecheck > 0) {
+			return false;
+		}
+		tpWalkRecheck = TP_RETRY_TICKS;
+		int slot = findTeleportItem(player);
+		if (slot < 0) {
+			if (!tpWalkTold) {
+				tpWalkTold = true;
+				Chat.info("Teleport while walking: no Aote/Aotv in hotbar.");
+			}
+			return false;
+		}
+		double[] feet = {player.getX(), player.getY(), player.getZ()};
+		if (Math.hypot(goal[0] - feet[0], goal[2] - feet[2]) < tpHop - 1.5) {
+			return false; // nearer than a hop
+		}
+		java.util.List<double[]> guide = GridPath.find(new WorldTerrain(), (int) Math.floor(feet[0]), (int) Math.floor(feet[1] + 0.01), (int) Math.floor(feet[2]),
+			(int) Math.floor(goal[0]), (int) Math.floor(goal[1] + 0.01), (int) Math.floor(goal[2]), true, cfg.killMaxDrop, cfg.pathJumpCost);
+		if (guide == null || guide.isEmpty()) {
+			// no route searched out (too far for the search, say): with nothing in the way the walk is a straight line to the goal
+			guide = straightGuide(feet, goal);
+		}
+		java.util.List<double[]> plan = TeleportPath.planAlong(feet, guide, goal, tpHop, 2.0, WorldTerrain::passable, true);
+		if (plan.isEmpty()) {
+			return false;
+		}
+		tpPlan = plan;
+		tpIndex = 0;
+		tpItemSlot = slot;
+		tpSlotBefore = player.getInventory().getSelectedSlot();
+		tpFailures = 0;
+		tpPhase = TP_PREPARE;
+		tpWait = 0;
+		tpLastTick = ticks; // running from now: the check for something else taking over counts from here
+		idleGoal = null;
+		return true;
+	}
+
+	/** The cells of a straight walk from one spot to another, a block apart, as the walking route would list them. */
+	private static java.util.List<double[]> straightGuide(double[] from, double[] to) {
+		java.util.List<double[]> cells = new java.util.ArrayList<>();
+		double distance = Math.sqrt(Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2) + Math.pow(to[2] - from[2], 2));
+		int steps = Math.max(1, (int) Math.round(distance));
+		for (int i = 1; i <= steps; i++) {
+			double t = i / (double) steps;
+			cells.add(new double[] {Math.floor(from[0] + (to[0] - from[0]) * t) + 0.5, Math.floor(from[1] + (to[1] - from[1]) * t + 0.01), Math.floor(from[2] + (to[2] - from[2]) * t) + 0.5});
+		}
+		return cells;
+	}
+
 	/** Gives the sequence up for this trip, puts the slot back and says why. */
 	private static void teleportGiveUp(String why) {
 		Chat.info("Teleport home: " + why);
@@ -1614,6 +1677,9 @@ public final class Runner {
 		double[] goal = {cfg.killHomeX, cfg.killHomeY, cfg.killHomeZ};
 		double[] feet = {player.getX(), player.getY(), player.getZ()};
 		if (tpPhase == TP_IDLE) {
+			if (!cfg.killTeleportHome) {
+				return false; // only the walking teleports are on, and they start from the walking itself
+			}
 			if (ticks - tpIdleSeen > 2) {
 				tpRecheck = TP_TRY_DELAY_TICKS; // a new spell of nothing to hunt: wait before the first try
 			}

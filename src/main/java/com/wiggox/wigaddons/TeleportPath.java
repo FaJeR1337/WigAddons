@@ -77,6 +77,11 @@ public final class TeleportPath {
 	 * lands on the way any further (the rest is walked), and is empty where none does at all.
 	 */
 	public static List<double[]> planAlong(double[] from, List<double[]> guide, double[] goal, double hop, double radius, Air air) {
+		return planAlong(from, guide, goal, hop, radius, air, false);
+	}
+
+	/** As above; with {@code straightOnly}, a hop is only made where the way it skips is a straight line (every cell of it within a block and a half of the hop). */
+	public static List<double[]> planAlong(double[] from, List<double[]> guide, double[] goal, double hop, double radius, Air air, boolean straightOnly) {
 		List<double[]> hops = new ArrayList<>();
 		double[] at = from.clone();
 		int fromIndex = 0;
@@ -100,7 +105,7 @@ public final class TeleportPath {
 					direction[0], direction[1], direction[2]};
 				if (Math.abs(landing[0] - g[0]) <= 1.0 && Math.abs(landing[2] - g[2]) <= 1.0 && Math.abs(landing[1] - g[1]) <= 1.0
 					&& Math.hypot(goal[0] - landing[0], goal[2] - landing[2]) < Math.hypot(goal[0] - at[0], goal[2] - at[2]) - 0.5
-					&& clearLine(at, landing, air)) {
+					&& clearLine(at, landing, air) && (!straightOnly || straight(at, landing, guide, fromIndex, i))) {
 					best = landing;
 					bestIndex = i;
 				}
@@ -160,6 +165,23 @@ public final class TeleportPath {
 			}
 		}
 		return null;
+	}
+
+	/** Whether the guide's cells from one index to another all lie within a block and a half of the line from one point to the other. */
+	private static boolean straight(double[] from, double[] to, List<double[]> guide, int fromIndex, int toIndex) {
+		double[] line = {to[0] - from[0], to[1] - from[1], to[2] - from[2]};
+		double lengthSquared = line[0] * line[0] + line[1] * line[1] + line[2] * line[2];
+		for (int j = fromIndex; j <= toIndex; j++) {
+			double[] g = guide.get(j);
+			double t = lengthSquared == 0 ? 0 : Math.max(0, Math.min(1, ((g[0] - from[0]) * line[0] + (g[1] - from[1]) * line[1] + (g[2] - from[2]) * line[2]) / lengthSquared));
+			double dx = g[0] - (from[0] + line[0] * t);
+			double dy = g[1] - (from[1] + line[1] * t);
+			double dz = g[2] - (from[2] + line[2] * t);
+			if (dx * dx + dy * dy + dz * dz > 2.25) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** Whether a player can be teleported from one point to the other: room for the whole body at every step. */

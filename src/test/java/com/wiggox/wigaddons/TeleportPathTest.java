@@ -94,6 +94,20 @@ class TeleportPathTest {
 	}
 
 	@Test
+	void straightOnlyHopsSkipOnlyStraightStretches() {
+		List<double[]> bent = new java.util.ArrayList<>();
+		for (int x = 1; x <= 8; x++) {
+			bent.add(new double[] {x + 0.5, 60, 0.5});
+		}
+		for (int z = 1; z <= 20; z++) {
+			bent.add(new double[] {8.5, 60, z + 0.5}); // a right angle after eight blocks
+		}
+		double[] goal = {8.5, 60, 20.5};
+		assertTrue(TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, bent, goal, 12, 3, OPEN, true).isEmpty());
+		assertTrue(!TeleportPath.planAlong(new double[] {0.5, 60, 0.5}, bent, goal, 12, 3, OPEN, false).isEmpty());
+	}
+
+	@Test
 	void aGentlePlanIsFoundInOpenAirButNotInASealedBox() {
 		assertNotNull(TeleportPath.planGentle(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, OPEN));
 		TeleportPath.Air box = (x, y, z) -> Math.abs(x) <= 3 && Math.abs(z) <= 3 && y >= 58 && y <= 64;
