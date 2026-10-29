@@ -1525,8 +1525,10 @@ public final class Runner {
 	private static boolean tpToldNoPath;
 	private static int tpRecheck;
 	private static long tpIdleSeen;
-	/** Ticks to wait before trying to teleport home, from when there is nothing to hunt and home is far, and between tries while walking: 3 seconds. */
+	/** Ticks to wait before the first try at teleporting home, from when there is nothing to hunt and home is far: 3 seconds. */
 	private static final int TP_TRY_DELAY_TICKS = 60;
+	/** Ticks between tries once the first wait is over, while walking: one second. */
+	private static final int TP_RETRY_TICKS = 20;
 	private static long tpLastTick;
 	private static Vec3 tpStart;
 	private static int tpClicks;
@@ -1625,10 +1627,10 @@ public final class Runner {
 				return false;
 			}
 			if (tpRecheck > 0) {
-				tpRecheck--; // walking meanwhile: a way to teleport is looked for again every 3 seconds
+				tpRecheck--; // walking meanwhile: a way to teleport is looked for again every second
 				return false;
 			}
-			tpRecheck = TP_TRY_DELAY_TICKS;
+			tpRecheck = TP_RETRY_TICKS;
 			int slot = findTeleportItem(player);
 			if (slot < 0) {
 				Chat.info("Teleport home: no Aote/Aotv in hotbar.");
