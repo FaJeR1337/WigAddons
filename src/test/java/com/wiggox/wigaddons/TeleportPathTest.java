@@ -143,6 +143,13 @@ class TeleportPathTest {
 	}
 
 	@Test
+	void aHopIsOnlyClearWhereNothingGetsInTheWay() {
+		TeleportPath.Air wall = (x, y, z) -> !(x == 6 && y >= 59 && y <= 62);
+		assertTrue(TeleportPath.hopClear(new double[] {0.5, 60, 0.5}, new double[] {0, 0, 1}, 12, wall));
+		assertTrue(!TeleportPath.hopClear(new double[] {0.5, 60, 0.5}, new double[] {1, 0, 0}, 12, wall));
+	}
+
+	@Test
 	void aGentlePlanIsFoundInOpenAirButNotInASealedBox() {
 		assertNotNull(TeleportPath.planGentle(new double[] {0, 60, 0}, new double[] {100, 60, 0}, 12, 10, OPEN));
 		TeleportPath.Air box = (x, y, z) -> Math.abs(x) <= 3 && Math.abs(z) <= 3 && y >= 58 && y <= 64;

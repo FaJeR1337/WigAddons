@@ -1522,6 +1522,7 @@ public final class Runner {
 	private static final java.util.regex.Pattern TP_BLOCKS = java.util.regex.Pattern.compile("Teleport (\\d+) blocks");
 	private static int tpPhase = TP_IDLE;
 	private static int tpWait;
+	private static int tpBlockedTicks;
 	private static int tpAimTicks;
 	private static int tpItemSlot;
 	private static int tpSlotBefore;
@@ -1832,7 +1833,19 @@ public final class Runner {
 				boolean lined = Math.abs(RouteFollower.wrapDegrees(player.getYRot() - aimYaw)) < 1.5 && Math.abs(player.getXRot() - pitchTarget) < 1.5;
 				if (tpAimTicks > 100) {
 					teleportGiveUp("couldn't turn to aim, walking.");
+				} else if (lined && tpAimTicks >= 1 && !hopStillClear(player)) {
+					// the line to the landing got broken since it was picked (the run moved the player, a block turned up): pick again
+					// from here, and if nothing clear turns up within half a second, leave it for a second
+					if (++tpBlockedTicks > 10) {
+						tpBlockedTicks = 0;
+						tpCooldownUntil = ticks + 20;
+						tpPhase = TP_RESTORE;
+						tpWait = 2 + HUNT_RANDOM.nextInt(3);
+					} else {
+						teleportRefresh(player, cfg);
+					}
 				} else if (lined && tpAimTicks >= 1) {
+					tpBlockedTicks = 0;
 					mc.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
 					player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 					tpStart = player.position();
@@ -1872,6 +1885,14 @@ public final class Runner {
 			}
 		}
 		return true;
+	}
+
+	/** Whether a hop along the view the player has now is clear all the way. */
+	private static boolean hopStillClear(LocalPlayer player) {
+		double yaw = Math.toRadians(player.getYRot());
+		double pitch = Math.toRadians(player.getXRot());
+		double[] direction = {-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)};
+		return TeleportPath.hopClear(new double[] {player.getX(), player.getY(), player.getZ()}, direction, tpHop, WorldTerrain::passable);
 	}
 
 	/** Stops the sequence where it stands, putting the held slot back, with the macro checks off a moment longer. */

@@ -216,6 +216,12 @@ public final class TeleportPath {
 		return true;
 	}
 
+	/** Whether a hop from the feet along the unit direction is clear all the way to where it ends (the middle of the block it carries into). */
+	public static boolean hopClear(double[] feet, double[] direction, double hop, Air air) {
+		double[] landing = {Math.floor(feet[0] + hop * direction[0]) + 0.5, Math.floor(feet[1] + hop * direction[1] + 1e-3), Math.floor(feet[2] + hop * direction[2]) + 0.5};
+		return clearLine(feet, landing, air);
+	}
+
 	/** Whether a player can be teleported from one point to the other: room for the whole body at every step. */
 	static boolean clearLine(double[] from, double[] to, Air air) {
 		double length = Math.sqrt(Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2) + Math.pow(to[2] - from[2], 2));
