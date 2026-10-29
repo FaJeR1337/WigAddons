@@ -1894,9 +1894,9 @@ public final class Runner {
 				double dx = target[0] - feet[0];
 				double dy = target[1] - feet[1];
 				double dz = target[2] - feet[2];
-				double tooNear = Math.max(1.0, tpHop - 2);
+				double tooNear = Math.max(1.0, tpHop - 1);
 				if (dx * dx + dy * dy + dz * dz < tooNear * tooNear) {
-					// within the teleport distance less two blocks (the run has brought the player up to it): a hop can't land there
+					// within the teleport distance less one block (the run has brought the player up to it): a hop can't land there
 					// any more, so the waypoint is dropped and the next is picked
 					tpIndex++;
 					break;
