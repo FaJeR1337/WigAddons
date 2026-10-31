@@ -102,11 +102,11 @@ public final class TabNameColor {
 			}
 			Component replaced = null;
 			if (shown != null) {
-				replaced = recolor(shown, NAME_COLORS, bracket, level);
+				replaced = recolor(shown, NAME_COLORS, bracket, level, ownName);
 			} else if (info.getProfile().name().equals(ownName) && NAME_COLORS.containsKey(ownName)) {
 				// no tab name sent: made from the team's prefix, the name and the suffix
 				Component made = fromTeam(info, ownName);
-				Component levelled = recolor(made, Map.of(), bracket, level);
+				Component levelled = recolor(made, Map.of(), bracket, level, ownName);
 				replaced = levelled != null ? levelled : made;
 			}
 			if (replaced != null) {
@@ -139,7 +139,7 @@ public final class TabNameColor {
 			bracket = parse(WigState.config.tabLevelBracketColor);
 			level = parse(WigState.config.tabLevelColor);
 		}
-		return recolor(tag, NAME_COLORS, bracket, level);
+		return recolor(tag, NAME_COLORS, bracket, level, ownName());
 	}
 
 	/** A chat line with the custom colours on the sender's name and the level in front of it, or the line as it is. */
@@ -150,7 +150,7 @@ public final class TabNameColor {
 			bracket = parse(WigState.config.tabLevelBracketColor);
 			level = parse(WigState.config.tabLevelColor);
 		}
-		Component recolored = recolor(line, NAME_COLORS, bracket, level, true);
+		Component recolored = recolor(line, NAME_COLORS, bracket, level, true, ownName());
 		return recolored != null ? recolored : line;
 	}
 
@@ -184,24 +184,40 @@ public final class TabNameColor {
 		return style.getColor() != null && style.getColor().getValue() == color;
 	}
 
+	/** Whether the text has the name in it as a whole word (not inside a longer name). */
+	private static boolean containsWord(String text, String name) {
+		for (int at = text.indexOf(name); at >= 0; at = text.indexOf(name, at + name.length())) {
+			int end = at + name.length();
+			if ((at == 0 || !nameChar(text.charAt(at - 1))) && (end >= text.length() || !nameChar(text.charAt(end)))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String ownName() {
+		Minecraft mc = Minecraft.getInstance();
+		return mc.player == null ? null : mc.player.getGameProfile().name();
+	}
+
 	private static boolean nameChar(char c) {
 		return Character.isLetterOrDigit(c) || c == '_';
 	}
 
 	/**
 	 * The component with the colours put on it: each name of {@code names} wherever it stands as a whole word, and, where the
-	 * text begins with a level ("[167]"), the brackets in {@code bracket} and the number in {@code level} (each skipped
-	 * when -1). Null where there is nothing to change or it already has the colours.
+	 * text begins with a level ("[167]") and has the player's own name in it, the brackets in {@code bracket} and the
+	 * number in {@code level} (each skipped when -1; they take the place of a name's own level text). Null where there is nothing to change or it already has the colours.
 	 */
-	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level) {
-		return recolor(component, names, bracket, level, false);
+	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level, String ownName) {
+		return recolor(component, names, bracket, level, false, ownName);
 	}
 
 	/**
 	 * As above; with {@code senderOnly} (a chat line) a name only counts before the first ": ", the sender's, and not where
 	 * it is mentioned in what is said.
 	 */
-	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level, boolean senderOnly) {
+	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level, boolean senderOnly, String ownName) {
 		StringBuilder text = new StringBuilder();
 		List<Style> styles = new ArrayList<>();
 		expand(component, text, styles);
@@ -229,7 +245,10 @@ public final class TabNameColor {
 				}
 			}
 		}
-		if (bracket >= 0 && level >= 0) {
+		// the level colours are the player's own: only the row (line, name tag) with their own name in it
+		boolean ownRow = ownName != null && !ownName.isEmpty() && containsWord(plain.substring(0, nameLimit), ownName);
+		boolean levelColoured = bracket >= 0 && level >= 0 && ownRow;
+		if (levelColoured) {
 			Matcher m = LEVEL.matcher(plain);
 			if (m.find()) {
 				int open = m.start(1) - 1;
@@ -243,7 +262,7 @@ public final class TabNameColor {
 				}
 			}
 		}
-		if (levelOf != null) {
+		if (levelOf != null && !levelColoured) { // the player's own level colours, when on, show their real level instead
 			Matcher m = LEVEL.matcher(plain);
 			if (m.find()) {
 				// the number in the brackets is the name's own text, in its own colour

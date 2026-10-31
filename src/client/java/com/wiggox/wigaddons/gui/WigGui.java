@@ -308,9 +308,7 @@ public final class WigGui {
 			() -> config.tabLevelCustom, v -> {
 				config.tabLevelCustom = v;
 				WigState.saveConfig();
-				if (!v) {
-					com.wiggox.wigaddons.TabNameColor.reset();
-				}
+				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again, with or without the colours
 			});
 		b.text("bracket", "Bracket colour", "The colour of the [ and ], as #rrggbb, for example #555555.",
 			() -> config.tabLevelBracketColor, v -> {

@@ -169,10 +169,19 @@ final class SmokeTest {
 			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatOther}) {
 				log("chat: " + TabListDebug.describe(c) + "  ->  " + TabListDebug.describe(TabNameColor.chatLine(c)));
 			}
+			for (int off = 0; off < 2; off++) {
+				int b = off == 0 ? -1 : 0xAAAAAA;
+				int l = off == 0 ? -1 : 0xFFAA00;
+				log("level colours " + (off == 0 ? "off" : "on") + " (own name Wiggox):");
+				for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {pieces, legacy}) {
+					net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, b, l, "Wiggox");
+					log("recolor: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));
+				}
+			}
 			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {pieces, legacy, other, pet, notWhole}) {
-				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, 0xAAAAAA, 0xFFAA00);
+				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, 0xAAAAAA, 0xFFAA00, "Wiggox");
 				log("recolor: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));
-				net.minecraft.network.chat.Component again = r == null ? null : TabNameColor.recolor(r, names, 0xAAAAAA, 0xFFAA00);
+				net.minecraft.network.chat.Component again = r == null ? null : TabNameColor.recolor(r, names, 0xAAAAAA, 0xFFAA00, "Wiggox");
 				if (r != null) {
 					log("recolor again: " + (again == null ? "(unchanged, good)" : "CHANGED AGAIN " + TabListDebug.describe(again)));
 				}
