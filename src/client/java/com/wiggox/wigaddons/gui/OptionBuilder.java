@@ -5,6 +5,7 @@ import io.github.notenoughupdates.moulconfig.common.text.StructuredText;
 import io.github.notenoughupdates.moulconfig.gui.GuiOptionEditor;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorAccordion;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorBoolean;
+import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorColour;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorButton;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorInfoText;
 import io.github.notenoughupdates.moulconfig.gui.editors.GuiOptionEditorKeybind;
@@ -78,6 +79,52 @@ final class OptionBuilder {
 			return true;
 		});
 		put(option, new GuiOptionEditorBoolean(option, -1, config));
+	}
+
+	/**
+	 * A colour with the built-in colour picker. It is kept as #rrggbb; the picker works with MoulConfig's text form,
+	 * "chroma speed:alpha:red:green:blue", so it is turned into that and back (the speed and alpha are not used).
+	 */
+	void colour(String key, String name, String description, Supplier<String> getter, Consumer<String> setter) {
+		DynOption option = add(key, name, description, String.class, () -> hexToPicker(getter.get()), v -> {
+			String hex = pickerToHex((String) v);
+			if (hex != null) {
+				setter.accept(hex);
+			}
+			return true;
+		});
+		put(option, new GuiOptionEditorColour(option));
+	}
+
+	private static String hexToPicker(String hex) {
+		int rgb = 0xFFFFFF;
+		try {
+			String digits = hex == null ? "" : hex.trim().replace("#", "");
+			if (digits.length() == 6) {
+				rgb = Integer.parseInt(digits, 16);
+			}
+		} catch (NumberFormatException e) {
+			rgb = 0xFFFFFF;
+		}
+		return "0:255:" + ((rgb >> 16) & 0xFF) + ":" + ((rgb >> 8) & 0xFF) + ":" + (rgb & 0xFF);
+	}
+
+	private static String pickerToHex(String picked) {
+		if (picked == null) {
+			return null;
+		}
+		String[] parts = picked.split(":");
+		if (parts.length < 5) {
+			return null;
+		}
+		try {
+			int r = Math.max(0, Math.min(255, Integer.parseInt(parts[2].trim())));
+			int g = Math.max(0, Math.min(255, Integer.parseInt(parts[3].trim())));
+			int b = Math.max(0, Math.min(255, Integer.parseInt(parts[4].trim())));
+			return String.format("#%02X%02X%02X", r, g, b);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	/** A key picker: click it, then press the key. The value is the key code, 0 for none. */

@@ -33,6 +33,7 @@ final class SmokeTest {
 		{"safety", "safety.macro", ""},
 		{"safety", "safety.alarm", ""},
 		{"experimentation", "", ""},
+		{"tablist", "", ""},
 	};
 	private static final int TOUR_STEP_TICKS = 25;
 	/** Flat world: grass is at y -61, so the player stands at y -60. */
@@ -140,7 +141,8 @@ final class SmokeTest {
 			case 32 -> autoclickerCheck(mc);
 			case 33 -> teleportHomeCheck(mc);
 			case 34 -> tabListCheck(mc);
-			case 35 -> {
+			case 35 -> symbolCheck(mc);
+			case 36 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
@@ -165,8 +167,10 @@ final class SmokeTest {
 			net.minecraft.network.chat.Component pet = net.minecraft.network.chat.Component.literal("[Lvl 100] Enderman");
 			net.minecraft.network.chat.Component notWhole = net.minecraft.network.chat.Component.literal("Wiggox2 and xWiggox");
 			net.minecraft.network.chat.Component chat = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: hi Wiggox");
+			net.minecraft.network.chat.Component chatEmblem = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "6\u273f " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: s");
+			net.minecraft.network.chat.Component chatNoLevel = net.minecraft.network.chat.Component.literal(sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: s");
 			net.minecraft.network.chat.Component chatOther = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2200" + sect + "8] " + sect + "7Someone" + sect + "f: Wiggox is here");
-			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatOther}) {
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatEmblem, chatNoLevel, chatOther}) {
 				log("chat: " + TabListDebug.describe(c) + "  ->  " + TabListDebug.describe(TabNameColor.chatLine(c)));
 			}
 			net.minecraft.network.chat.Component withEmoji = net.minecraft.network.chat.Component.empty()
@@ -208,6 +212,28 @@ final class SmokeTest {
 			photograph(mc, "nametag");
 		}
 		if (phaseTick == 40) {
+			next();
+		}
+	}
+
+	/** What a symbol looks like in the game's font, normal and bold. */
+	private static void symbolCheck(Minecraft mc) {
+		if (phaseTick == 3) {
+			var white = net.minecraft.network.chat.Component.literal(" normal: \u221e   bold: ");
+			mc.player.sendSystemMessage(net.minecraft.network.chat.Component.literal("symbol").withStyle(net.minecraft.ChatFormatting.GRAY)
+				.append(white)
+				.append(net.minecraft.network.chat.Component.literal("\u221e").withStyle(net.minecraft.ChatFormatting.WHITE, net.minecraft.ChatFormatting.BOLD)));
+			mc.player.sendSystemMessage(net.minecraft.network.chat.Component.empty()
+				.append(net.minecraft.network.chat.Component.literal("[").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("Dev").withStyle(net.minecraft.ChatFormatting.RED))
+				.append(net.minecraft.network.chat.Component.literal("] ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("Wiggox").withStyle(s -> s.withColor(0xB11226).withBold(true)))
+				.append(net.minecraft.network.chat.Component.literal(" \u2728").withStyle(s -> s.withColor(0xFF55FF)))
+				.append(net.minecraft.network.chat.Component.literal(" \u221e").withStyle(s -> s.withColor(0xFF55FF).withBold(true)))
+				.append(net.minecraft.network.chat.Component.literal(" \u221e").withStyle(s -> s.withColor(0xFF55FF))));
+		}
+		if (phaseTick == 20) {
+			photograph(mc, "symbol");
 			next();
 		}
 	}

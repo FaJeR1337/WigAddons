@@ -225,6 +225,7 @@ public final class TabNameColor {
 		int nameLimit = senderOnly && plain.contains(": ") ? plain.indexOf(": ") : plain.length();
 		boolean changed = false;
 		NameStyle levelOf = null; // the name in this row that has a text of its own for the level
+		NameStyle emblemOf = null; // in chat: the name whose symbol goes between the level and the rank
 		for (Map.Entry<String, NameStyle> entry : names.entrySet()) {
 			String name = entry.getKey();
 			NameStyle look = entry.getValue();
@@ -245,7 +246,9 @@ public final class TabNameColor {
 						changed = true;
 					}
 				}
-				if (look.suffix() != null) {
+				if (look.suffix() != null && senderOnly) {
+					emblemOf = look; // a chat line has it after the level, before the rank: put there below
+				} else if (look.suffix() != null) {
 					// the symbol after the name, a space between: coloured where the row has it already, put in where it has not
 					int symbolAt = plain.startsWith(" " + look.suffix(), end) ? end + 1 : plain.startsWith(look.suffix(), end) ? end : -1;
 					Style symbolStyle = Style.EMPTY.withColor(look.suffixColor());
@@ -270,6 +273,9 @@ public final class TabNameColor {
 				at = plain.indexOf(name, end);
 			}
 		}
+		Matcher firstLevel = LEVEL.matcher(plain);
+		int levelEnd = firstLevel.find() ? firstLevel.end() : -1; // where "[167]" ends, before the number is changed
+		int levelDigits = levelEnd >= 0 ? firstLevel.end(1) - firstLevel.start(1) : 0;
 		// the level colours are the player's own: only the row (line, name tag) with their own name in it
 		boolean ownRow = ownName != null && !ownName.isEmpty() && containsWord(plain.substring(0, nameLimit), ownName);
 		boolean levelColoured = bracket >= 0 && level >= 0 && ownRow;
@@ -301,6 +307,31 @@ public final class TabNameColor {
 				restyled.addAll(styles.subList(m.end(1), styles.size()));
 				plain = shown.toString();
 				styles = restyled;
+				levelEnd += levelOf.levelText().length() - levelDigits;
+				nameLimit += levelOf.levelText().length() - levelDigits;
+				changed = true;
+			}
+		}
+		if (emblemOf != null) {
+			// chat: "[260] ✿ [MVP+] name": the symbol between the level and the rank, where the server puts an emblem
+			String symbol = emblemOf.suffix();
+			Style symbolStyle = Style.EMPTY.withColor(emblemOf.suffixColor());
+			int existing = plain.substring(0, Math.min(nameLimit, plain.length())).indexOf(symbol);
+			if (existing >= 0) {
+				for (int i = existing; i < existing + symbol.length(); i++) {
+					if (!sameColor(styles.get(i), emblemOf.suffixColor())) {
+						styles.set(i, symbolStyle);
+						changed = true;
+					}
+				}
+			} else {
+				int put = Math.max(levelEnd, 0);
+				String added = put == 0 ? symbol + " " : " " + symbol; // after the level and a space; at the start where there is no level
+				plain = plain.substring(0, put) + added + plain.substring(put);
+				for (int i = 0; i < added.length(); i++) {
+					styles.add(put + i, put == 0 || i > 0 ? symbolStyle : styles.get(Math.max(0, put - 1)));
+				}
+				nameLimit += added.length();
 				changed = true;
 			}
 		}

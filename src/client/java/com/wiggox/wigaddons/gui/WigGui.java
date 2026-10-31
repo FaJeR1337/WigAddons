@@ -172,7 +172,7 @@ public final class WigGui {
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("jerry", "Jerry", "Jerries."),
 			new DynCategory("experimentation", "Exp. Table", "The Experimentation table."),
-			new DynCategory("tablist", "Tab List", "Your name in the player list."),
+			new DynCategory("tablist", "Tab List", "Your level colours in the player list, chat and over your head."),
 			new DynCategory("autoclicker", "Autoclicker", "Clicks for you while a key is held."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
@@ -304,27 +304,23 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
-		b.toggle("custom", "Custom level colours", "Draws the level at the start of each row of the player list, the [167], in the colours below, whatever colour the server gives it and whatever the level.",
+		b.toggle("custom", "Custom level colours", "Draws your own level in the player list, in chat and over your head, the [167], in the colours below, whatever colour the server gives it and whatever the level.",
 			() -> config.tabLevelCustom, v -> {
 				config.tabLevelCustom = v;
 				WigState.saveConfig();
 				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again, with or without the colours
 			});
-		b.text("bracket", "Bracket colour", "The colour of the [ and ], as #rrggbb, for example #555555.",
+		b.colour("bracket", "Bracket colour", "The colour of the [ and ] round your level.",
 			() -> config.tabLevelBracketColor, v -> {
-				if (com.wiggox.wigaddons.TabNameColor.parse(v) >= 0) {
-					config.tabLevelBracketColor = v.trim();
-					WigState.saveConfig();
-					com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
-				}
+				config.tabLevelBracketColor = v;
+				WigState.saveConfig();
+				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
 			});
-		b.text("color", "Level colour", "The colour of the number, as #rrggbb, for example #00AA00.",
+		b.colour("color", "Level colour", "The colour of your level number.",
 			() -> config.tabLevelColor, v -> {
-				if (com.wiggox.wigaddons.TabNameColor.parse(v) >= 0) {
-					config.tabLevelColor = v.trim();
-					WigState.saveConfig();
-					com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
-				}
+				config.tabLevelColor = v;
+				WigState.saveConfig();
+				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
 			});
 	}
 
