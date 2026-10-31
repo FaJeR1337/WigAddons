@@ -31,10 +31,10 @@ import net.minecraft.world.scores.PlayerTeam;
 public final class TabNameColor {
 	/** The names with a colour of their own in the tab list, and the colour: hardcoded, nobody can set one. */
 	private static final Map<String, NameStyle> NAME_COLORS = Map.of(
-		"Wiggox", new NameStyle(0xB11226, true, "Dev", 0xFF5555));
+		"Wiggox", new NameStyle(0xB11226, true, "Dev", 0xFF5555, "\u2728", 0xFF55FF));
 
-	/** How a name is drawn: its colour, whether it is bold, and the text (in its own colour) shown in place of the level number in the brackets, or null to leave the number. */
-	record NameStyle(int color, boolean bold, String levelText, int levelTextColor) {
+	/** How a name is drawn: its colour, whether it is bold, the text (in its own colour) shown in place of the level number in the brackets, or null to leave the number, and a symbol (in its own colour) after the name, or null for none. */
+	record NameStyle(int color, boolean bold, String levelText, int levelTextColor, String suffix, int suffixColor) {
 	}
 
 	/** The sign legacy colour codes start with. */
@@ -227,13 +227,15 @@ public final class TabNameColor {
 		NameStyle levelOf = null; // the name in this row that has a text of its own for the level
 		for (Map.Entry<String, NameStyle> entry : names.entrySet()) {
 			String name = entry.getKey();
-			for (int at = plain.indexOf(name); at >= 0; at = plain.indexOf(name, at + name.length())) {
+			NameStyle look = entry.getValue();
+			int at = plain.indexOf(name);
+			while (at >= 0) {
 				int end = at + name.length();
 				boolean whole = (at == 0 || !nameChar(plain.charAt(at - 1))) && (end >= plain.length() || !nameChar(plain.charAt(end)));
 				if (!whole || end > nameLimit) {
+					at = plain.indexOf(name, at + name.length());
 					continue;
 				}
-				NameStyle look = entry.getValue();
 				if (look.levelText() != null) {
 					levelOf = look;
 				}
@@ -243,6 +245,29 @@ public final class TabNameColor {
 						changed = true;
 					}
 				}
+				if (look.suffix() != null) {
+					// the symbol after the name, a space between: coloured where the row has it already, put in where it has not
+					int symbolAt = plain.startsWith(" " + look.suffix(), end) ? end + 1 : plain.startsWith(look.suffix(), end) ? end : -1;
+					Style symbolStyle = Style.EMPTY.withColor(look.suffixColor());
+					if (symbolAt >= 0) {
+						for (int i = symbolAt; i < symbolAt + look.suffix().length(); i++) {
+							if (!sameColor(styles.get(i), look.suffixColor())) {
+								styles.set(i, symbolStyle);
+								changed = true;
+							}
+						}
+					} else {
+						String put = " " + look.suffix();
+						plain = plain.substring(0, end) + put + plain.substring(end);
+						for (int i = 0; i < put.length(); i++) {
+							styles.add(end + i, symbolStyle);
+						}
+						nameLimit += put.length();
+						end += put.length();
+						changed = true;
+					}
+				}
+				at = plain.indexOf(name, end);
 			}
 		}
 		// the level colours are the player's own: only the row (line, name tag) with their own name in it

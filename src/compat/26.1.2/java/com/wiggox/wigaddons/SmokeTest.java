@@ -154,7 +154,7 @@ final class SmokeTest {
 	private static void tabListCheck(Minecraft mc) {
 		if (phaseTick == 5) {
 			String sect = String.valueOf((char) 0xA7);
-			java.util.Map<String, TabNameColor.NameStyle> names = java.util.Map.of("Wiggox", new TabNameColor.NameStyle(0xB11226, true, "Dev", 0xFF5555));
+			java.util.Map<String, TabNameColor.NameStyle> names = java.util.Map.of("Wiggox", new TabNameColor.NameStyle(0xB11226, true, "Dev", 0xFF5555, "\u2728", 0xFF55FF));
 			net.minecraft.network.chat.Component pieces = net.minecraft.network.chat.Component.empty()
 				.append(net.minecraft.network.chat.Component.literal("[").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
 				.append(net.minecraft.network.chat.Component.literal("167").withStyle(net.minecraft.ChatFormatting.DARK_GREEN))
@@ -168,6 +168,18 @@ final class SmokeTest {
 			net.minecraft.network.chat.Component chatOther = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2200" + sect + "8] " + sect + "7Someone" + sect + "f: Wiggox is here");
 			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatOther}) {
 				log("chat: " + TabListDebug.describe(c) + "  ->  " + TabListDebug.describe(TabNameColor.chatLine(c)));
+			}
+			net.minecraft.network.chat.Component withEmoji = net.minecraft.network.chat.Component.empty()
+				.append(net.minecraft.network.chat.Component.literal("[").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("167").withStyle(net.minecraft.ChatFormatting.DARK_GREEN))
+				.append(net.minecraft.network.chat.Component.literal("] ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("Wiggox ").withStyle(net.minecraft.ChatFormatting.GOLD))
+				.append(net.minecraft.network.chat.Component.literal("\u2728").withStyle(net.minecraft.ChatFormatting.GOLD));
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {withEmoji, pieces}) {
+				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, -1, -1, "Wiggox");
+				log("emoji: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));
+				net.minecraft.network.chat.Component again = r == null ? null : TabNameColor.recolor(r, names, -1, -1, "Wiggox");
+				log("emoji again: " + (again == null ? "(unchanged, good)" : "CHANGED AGAIN " + TabListDebug.describe(again)));
 			}
 			for (int off = 0; off < 2; off++) {
 				int b = off == 0 ? -1 : 0xAAAAAA;
