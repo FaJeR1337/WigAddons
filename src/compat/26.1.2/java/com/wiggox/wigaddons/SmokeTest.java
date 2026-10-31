@@ -154,7 +154,7 @@ final class SmokeTest {
 	private static void tabListCheck(Minecraft mc) {
 		if (phaseTick == 5) {
 			String sect = String.valueOf((char) 0xA7);
-			java.util.Map<String, TabNameColor.NameStyle> names = java.util.Map.of("Wiggox", new TabNameColor.NameStyle(0xB11226, true));
+			java.util.Map<String, TabNameColor.NameStyle> names = java.util.Map.of("Wiggox", new TabNameColor.NameStyle(0xB11226, true, "Dev", 0xFF5555));
 			net.minecraft.network.chat.Component pieces = net.minecraft.network.chat.Component.empty()
 				.append(net.minecraft.network.chat.Component.literal("[").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
 				.append(net.minecraft.network.chat.Component.literal("167").withStyle(net.minecraft.ChatFormatting.DARK_GREEN))
@@ -173,7 +173,15 @@ final class SmokeTest {
 				}
 			}
 		}
-		if (phaseTick == 20) {
+		if (phaseTick == 6) {
+			command(mc, "tp @s 0.5 -60 0.5 -90 10");
+			command(mc, "kill @e[type=minecraft:armor_stand]");
+			command(mc, "summon minecraft:armor_stand 4.5 -60 0.5 {CustomName:\"Wiggox\",CustomNameVisible:1b,NoGravity:1b,Invisible:1b}");
+		}
+		if (phaseTick == 30) {
+			photograph(mc, "nametag");
+		}
+		if (phaseTick == 40) {
 			next();
 		}
 	}

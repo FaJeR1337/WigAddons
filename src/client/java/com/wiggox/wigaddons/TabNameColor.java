@@ -30,10 +30,10 @@ import net.minecraft.world.scores.PlayerTeam;
 public final class TabNameColor {
 	/** The names with a colour of their own in the tab list, and the colour: hardcoded, nobody can set one. */
 	private static final Map<String, NameStyle> NAME_COLORS = Map.of(
-		"Wiggox", new NameStyle(0xB11226, true));
+		"Wiggox", new NameStyle(0xB11226, true, "Dev", 0xFF5555));
 
-	/** How a name is drawn: its colour, and whether it is bold. */
-	record NameStyle(int color, boolean bold) {
+	/** How a name is drawn: its colour, whether it is bold, and the text (in its own colour) shown in place of the level number in the brackets, or null to leave the number. */
+	record NameStyle(int color, boolean bold, String levelText, int levelTextColor) {
 	}
 
 	/** The sign legacy colour codes start with. */
@@ -128,6 +128,17 @@ public final class TabNameColor {
 		return out;
 	}
 
+	/** The text of a name above an entity with the same custom colours as the tab list, or null where there is nothing to change. */
+	public static Component recolorNameTag(Component tag) {
+		int bracket = -1;
+		int level = -1;
+		if (WigState.config.tabLevelCustom) {
+			bracket = parse(WigState.config.tabLevelBracketColor);
+			level = parse(WigState.config.tabLevelColor);
+		}
+		return recolor(tag, NAME_COLORS, bracket, level);
+	}
+
 	/** Puts the rows back as the server sent them: for when a setting is turned off. */
 	public static void reset() {
 		restoreAll();
@@ -173,6 +184,7 @@ public final class TabNameColor {
 		expand(component, text, styles);
 		String plain = text.toString();
 		boolean changed = false;
+		NameStyle levelOf = null; // the name in this row that has a text of its own for the level
 		for (Map.Entry<String, NameStyle> entry : names.entrySet()) {
 			String name = entry.getKey();
 			for (int at = plain.indexOf(name); at >= 0; at = plain.indexOf(name, at + name.length())) {
@@ -182,6 +194,9 @@ public final class TabNameColor {
 					continue;
 				}
 				NameStyle look = entry.getValue();
+				if (look.levelText() != null) {
+					levelOf = look;
+				}
 				for (int i = at; i < end; i++) {
 					if (!sameColor(styles.get(i), look.color()) || styles.get(i).isBold() != look.bold()) {
 						styles.set(i, styles.get(i).withColor(look.color()).withBold(look.bold()));
@@ -202,6 +217,23 @@ public final class TabNameColor {
 						changed = true;
 					}
 				}
+			}
+		}
+		if (levelOf != null) {
+			Matcher m = LEVEL.matcher(plain);
+			if (m.find()) {
+				// the number in the brackets is the name's own text, in its own colour
+				Style numberStyle = styles.get(m.start(1)).withColor(levelOf.levelTextColor());
+				StringBuilder shown = new StringBuilder(plain);
+				shown.replace(m.start(1), m.end(1), levelOf.levelText());
+				List<Style> restyled = new ArrayList<>(styles.subList(0, m.start(1)));
+				for (int i = 0; i < levelOf.levelText().length(); i++) {
+					restyled.add(numberStyle);
+				}
+				restyled.addAll(styles.subList(m.end(1), styles.size()));
+				plain = shown.toString();
+				styles = restyled;
+				changed = true;
 			}
 		}
 		if (!changed) {
