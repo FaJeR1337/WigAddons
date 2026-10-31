@@ -139,13 +139,24 @@ final class SmokeTest {
 			case 31 -> chronomatronCheck(mc);
 			case 32 -> autoclickerCheck(mc);
 			case 33 -> teleportHomeCheck(mc);
-			case 34 -> {
+			case 34 -> tabListCheck(mc);
+			case 35 -> {
 				log("done");
 				mc.stop();
 				phase = 99;
 			}
 			default -> {
 			}
+		}
+	}
+
+	/** /wig debug tablist prints the tab list. */
+	private static void tabListCheck(Minecraft mc) {
+		if (phaseTick == 1) {
+			command(mc, "wig debug tablist");
+		}
+		if (phaseTick == 30) {
+			next();
 		}
 	}
 
