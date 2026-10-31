@@ -5,7 +5,10 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
@@ -14,17 +17,32 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.world.scores.PlayerTeam;
 
 /**
- * Your own name in the tab list in a colour of your choice. Some servers draw the tab list from rows of their own (placeholder
- * entries whose text is the players' names, level and so on) and not from the players' entries, so every row whose text
- * has your name in it is changed: the name text gets the colour, the rest of the row is left as the server sent it. Where
- * the server builds the tab name from a team (a prefix, the name, a suffix) and sends none, one is put together from those.
+ * Colours in the tab list. Some servers draw the tab list from rows of their own (placeholder entries whose text is the
+ * players' names, levels and so on) and not from the players' entries, so every row with the text in it is changed:
+ * <ul>
+ * <li>Names in {@link #NAME_COLORS}: fixed here, for those names only, with no setting.</li>
+ * <li>The level at the start of a row, as "[167]": the brackets and the number in the colours picked in the settings.
+ * Whatever colour the server drew them in, and whatever the number.</li>
+ * </ul>
+ * Everything else in a row stays as the server sent it. Where the server sends no tab name and builds it from a team (a
+ * prefix, the name, a suffix), one is put together from those.
  */
 public final class TabNameColor {
-	/** For each row changed: the text the server sent and the text put in its place, so a row can be put back, and a new text from the server noticed. */
-	private static final Map<PlayerInfo, Component[]> CHANGED = new IdentityHashMap<>();
+	/** The names with a colour of their own in the tab list, and the colour: hardcoded, nobody can set one. */
+	private static final Map<String, NameStyle> NAME_COLORS = Map.of(
+		"Wiggox", new NameStyle(0xB11226, true));
+
+	/** How a name is drawn: its colour, and whether it is bold. */
+	record NameStyle(int color, boolean bold) {
+	}
 
 	/** The sign legacy colour codes start with. */
 	private static final char SECTION = (char) 0xA7;
+	/** A level at the start of the text: "[167]" with any spaces before it. */
+	private static final Pattern LEVEL = Pattern.compile("^\\s*\\[(\\d+)\\]");
+
+	/** For each row changed: the text the server sent and the text put in its place, so a row can be put back, and a new text from the server noticed. */
+	private static final Map<PlayerInfo, Component[]> CHANGED = new IdentityHashMap<>();
 
 	private TabNameColor() {
 	}
@@ -66,110 +84,137 @@ public final class TabNameColor {
 			CHANGED.clear();
 			return;
 		}
-		int color = WigState.config.tabNameCustom ? parse(WigState.config.tabNameColor) : -1;
-		if (color < 0) {
-			if (!CHANGED.isEmpty()) {
-				restoreAll();
-			}
-			return;
+		int bracket = -1;
+		int level = -1;
+		if (WigState.config.tabLevelCustom) {
+			bracket = parse(WigState.config.tabLevelBracketColor);
+			level = parse(WigState.config.tabLevelColor);
 		}
-		String name = mc.player.getGameProfile().name();
+		String ownName = mc.player.getGameProfile().name();
 		for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
 			Component shown = info.getTabListDisplayName();
 			Component[] before = CHANGED.get(info);
 			if (before != null && shown == before[1]) {
 				continue; // still the text put there
 			}
-			Component original = shown;
-			Component replaced;
+			Component replaced = null;
 			if (shown != null) {
-				replaced = recolor(shown, name, color);
-			} else if (info.getProfile().name().equals(name)) {
-				replaced = fromTeam(info, name, color); // no tab name sent: made from the team's prefix, the name and the suffix
-			} else {
-				replaced = null;
+				replaced = recolor(shown, NAME_COLORS, bracket, level);
+			} else if (info.getProfile().name().equals(ownName) && NAME_COLORS.containsKey(ownName)) {
+				// no tab name sent: made from the team's prefix, the name and the suffix
+				Component made = fromTeam(info, ownName);
+				Component levelled = recolor(made, Map.of(), bracket, level);
+				replaced = levelled != null ? levelled : made;
 			}
 			if (replaced != null) {
 				info.setTabListDisplayName(replaced);
-				CHANGED.put(info, new Component[] {original, replaced});
+				CHANGED.put(info, new Component[] {shown, replaced});
+			} else if (before != null) {
+				CHANGED.remove(info); // a new text from the server with nothing to change in it
 			}
 		}
 	}
 
-	private static Component fromTeam(PlayerInfo info, String name, int color) {
+	private static Component fromTeam(PlayerInfo info, String name) {
 		PlayerTeam team = info.getTeam();
 		MutableComponent out = Component.empty();
 		if (team != null) {
 			out.append(team.getPlayerPrefix());
 		}
-		out.append(Component.literal(name).withColor(color));
+		out.append(Component.literal(name).setStyle(Style.EMPTY.withColor(NAME_COLORS.get(name).color()).withBold(NAME_COLORS.get(name).bold())));
 		if (team != null) {
 			out.append(team.getPlayerSuffix());
 		}
 		return out;
 	}
 
-	/** The legacy colour and format codes in force at the end of the text: a colour letter and the format letters after it, as the section sign, b, the section sign, l. */
-	static String activeCodes(String text) {
-		String colour = "";
-		StringBuilder formats = new StringBuilder();
-		for (int i = 0; i + 1 < text.length(); i++) {
-			if (text.charAt(i) == SECTION) {
-				char code = Character.toLowerCase(text.charAt(i + 1));
-				if ((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')) {
-					colour = String.valueOf(SECTION) + code;
-					formats.setLength(0); // a colour code ends the formats before it
-				} else if (code == 'r') {
-					colour = "";
-					formats.setLength(0);
-				} else if ("klmno".indexOf(code) >= 0) {
-					formats.append(SECTION).append(code);
+	/** Puts the rows back as the server sent them: for when a setting is turned off. */
+	public static void reset() {
+		restoreAll();
+	}
+
+	/** The text with its legacy colour codes turned into styles, a style for each character. */
+	private static void expand(Component component, StringBuilder text, List<Style> styles) {
+		component.visit((Style base, String piece) -> {
+			Style style = base;
+			for (int i = 0; i < piece.length(); i++) {
+				char c = piece.charAt(i);
+				if (c == SECTION && i + 1 < piece.length()) {
+					ChatFormatting format = ChatFormatting.getByCode(piece.charAt(i + 1));
+					if (format != null) {
+						style = format == ChatFormatting.RESET ? Style.EMPTY : style.applyLegacyFormat(format);
+					}
+					i++;
+				} else {
+					text.append(c);
+					styles.add(style);
 				}
-				i++;
 			}
-		}
-		return colour + formats;
+			return Optional.empty();
+		}, Style.EMPTY);
+	}
+
+	private static boolean sameColor(Style style, int color) {
+		return style.getColor() != null && style.getColor().getValue() == color;
+	}
+
+	private static boolean nameChar(char c) {
+		return Character.isLetterOrDigit(c) || c == '_';
 	}
 
 	/**
-	 * The component with the colour put on the text of {@code name}, wherever it stands in it (inside a longer text, split out;
-	 * or a text of its own), or null where the name isn't in it or already has the colour.
+	 * The component with the colours put on it: each name of {@code names} wherever it stands as a whole word, and, where the
+	 * text begins with a level ("[167]"), the brackets in {@code bracket} and the number in {@code level} (each skipped
+	 * when -1). Null where there is nothing to change or it already has the colours.
 	 */
-	static Component recolor(Component component, String name, int color) {
+	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level) {
+		StringBuilder text = new StringBuilder();
 		List<Style> styles = new ArrayList<>();
-		List<String> texts = new ArrayList<>();
-		component.visit((Style style, String text) -> {
-			styles.add(style);
-			texts.add(text);
-			return Optional.empty();
-		}, Style.EMPTY);
-		MutableComponent out = Component.empty();
+		expand(component, text, styles);
+		String plain = text.toString();
 		boolean changed = false;
-		StringBuilder soFar = new StringBuilder(); // the text before, for the legacy codes carried over a split
-		for (int i = 0; i < texts.size(); i++) {
-			String text = texts.get(i);
-			Style style = styles.get(i);
-			int at = text.indexOf(name);
-			if (at < 0) {
-				out.append(Component.literal(text).setStyle(style));
-			} else if (text.equals(name) && style.getColor() != null && style.getColor().getValue() == color) {
-				out.append(Component.literal(text).setStyle(style)); // already the colour
-			} else {
-				String head = text.substring(0, at);
-				String tail = text.substring(at + name.length());
-				if (!head.isEmpty()) {
-					out.append(Component.literal(head).setStyle(style));
+		for (Map.Entry<String, NameStyle> entry : names.entrySet()) {
+			String name = entry.getKey();
+			for (int at = plain.indexOf(name); at >= 0; at = plain.indexOf(name, at + name.length())) {
+				int end = at + name.length();
+				boolean whole = (at == 0 || !nameChar(plain.charAt(at - 1))) && (end >= plain.length() || !nameChar(plain.charAt(end)));
+				if (!whole) {
+					continue;
 				}
-				out.append(Component.literal(name).setStyle(style.withColor(color)));
-				if (!tail.isEmpty()) {
-					// what followed the name in the colour of the text before it keeps that colour
-					String codes = activeCodes(soFar + head);
-					out.append(Component.literal(codes + tail).setStyle(style));
+				NameStyle look = entry.getValue();
+				for (int i = at; i < end; i++) {
+					if (!sameColor(styles.get(i), look.color()) || styles.get(i).isBold() != look.bold()) {
+						styles.set(i, styles.get(i).withColor(look.color()).withBold(look.bold()));
+						changed = true;
+					}
 				}
-				changed = true;
 			}
-			soFar.append(text);
 		}
-		return changed ? out : null;
+		if (bracket >= 0 && level >= 0) {
+			Matcher m = LEVEL.matcher(plain);
+			if (m.find()) {
+				int open = m.start(1) - 1;
+				int close = m.end(1);
+				for (int i = open; i <= close; i++) {
+					int color = (i == open || i == close) ? bracket : level;
+					if (!sameColor(styles.get(i), color)) {
+						styles.set(i, styles.get(i).withColor(color));
+						changed = true;
+					}
+				}
+			}
+		}
+		if (!changed) {
+			return null;
+		}
+		MutableComponent out = Component.empty();
+		int from = 0;
+		for (int i = 1; i <= plain.length(); i++) {
+			if (i == plain.length() || !styles.get(i).equals(styles.get(from))) {
+				out.append(Component.literal(plain.substring(from, i)).setStyle(styles.get(from)));
+				from = i;
+			}
+		}
+		return out;
 	}
 }

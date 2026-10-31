@@ -304,16 +304,28 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
-		b.toggle("custom", "Custom name colour", "Shows your own name in the player list (the Tab key) in the colour below. Only the name changes, not the level or symbols round it.",
-			() -> config.tabNameCustom, v -> {
-				config.tabNameCustom = v;
+		b.toggle("custom", "Custom level colours", "Draws the level at the start of each row of the player list, the [167], in the colours below, whatever colour the server gives it and whatever the level.",
+			() -> config.tabLevelCustom, v -> {
+				config.tabLevelCustom = v;
 				WigState.saveConfig();
+				if (!v) {
+					com.wiggox.wigaddons.TabNameColor.reset();
+				}
 			});
-		b.text("color", "Colour", "As #rrggbb, for example #FF55FF.",
-			() -> config.tabNameColor, v -> {
+		b.text("bracket", "Bracket colour", "The colour of the [ and ], as #rrggbb, for example #555555.",
+			() -> config.tabLevelBracketColor, v -> {
 				if (com.wiggox.wigaddons.TabNameColor.parse(v) >= 0) {
-					config.tabNameColor = v.trim();
+					config.tabLevelBracketColor = v.trim();
 					WigState.saveConfig();
+					com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
+				}
+			});
+		b.text("color", "Level colour", "The colour of the number, as #rrggbb, for example #00AA00.",
+			() -> config.tabLevelColor, v -> {
+				if (com.wiggox.wigaddons.TabNameColor.parse(v) >= 0) {
+					config.tabLevelColor = v.trim();
+					WigState.saveConfig();
+					com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
 				}
 			});
 	}
