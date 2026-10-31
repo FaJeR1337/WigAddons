@@ -183,8 +183,9 @@ final class SmokeTest {
 				.append(net.minecraft.network.chat.Component.literal("Wiggox ").withStyle(net.minecraft.ChatFormatting.GOLD))
 				.append(net.minecraft.network.chat.Component.literal("\u2728").withStyle(net.minecraft.ChatFormatting.GOLD));
 			net.minecraft.network.chat.Component trailing = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "bWiggox ");
+			net.minecraft.network.chat.Component symbols = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "bWiggox " + sect + "c\u2692");
 			net.minecraft.network.chat.Component tag = net.minecraft.network.chat.Component.literal(sect + "bWiggox");
-			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {withEmoji, pieces, trailing, tag}) {
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {withEmoji, pieces, trailing, symbols, tag}) {
 				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, -1, -1, "Wiggox");
 				log("emoji: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));
 				net.minecraft.network.chat.Component again = r == null ? null : TabNameColor.recolor(r, names, -1, -1, "Wiggox");
@@ -221,21 +222,30 @@ final class SmokeTest {
 		}
 	}
 
-	/** What a symbol looks like in the game's font, normal and bold. */
+	/** What the emblem looks like in the game's font, normal and bold. */
 	private static void symbolCheck(Minecraft mc) {
 		if (phaseTick == 3) {
-			var white = net.minecraft.network.chat.Component.literal(" normal: \u221e   bold: ");
-			mc.player.sendSystemMessage(net.minecraft.network.chat.Component.literal("symbol").withStyle(net.minecraft.ChatFormatting.GRAY)
-				.append(white)
-				.append(net.minecraft.network.chat.Component.literal("\u221e").withStyle(net.minecraft.ChatFormatting.WHITE, net.minecraft.ChatFormatting.BOLD)));
+			var pink = net.minecraft.network.chat.Component.literal("emblem normal: ")
+				.append(net.minecraft.network.chat.Component.literal("\u2728").withStyle(s -> s.withColor(0xFF55FF)))
+				.append(net.minecraft.network.chat.Component.literal("   bold: "))
+				.append(net.minecraft.network.chat.Component.literal("\u2728").withStyle(s -> s.withColor(0xFF55FF).withBold(true)));
+			mc.player.sendSystemMessage(pink);
 			mc.player.sendSystemMessage(net.minecraft.network.chat.Component.empty()
 				.append(net.minecraft.network.chat.Component.literal("[").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
 				.append(net.minecraft.network.chat.Component.literal("Dev").withStyle(net.minecraft.ChatFormatting.RED))
 				.append(net.minecraft.network.chat.Component.literal("] ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("\u2728 ").withStyle(s -> s.withColor(0xFF55FF)))
+				.append(net.minecraft.network.chat.Component.literal("[MVP+] ").withStyle(net.minecraft.ChatFormatting.AQUA))
 				.append(net.minecraft.network.chat.Component.literal("Wiggox").withStyle(s -> s.withColor(0xB11226).withBold(true)))
-				.append(net.minecraft.network.chat.Component.literal(" \u2728").withStyle(s -> s.withColor(0xFF55FF)))
-				.append(net.minecraft.network.chat.Component.literal(" \u221e").withStyle(s -> s.withColor(0xFF55FF).withBold(true)))
-				.append(net.minecraft.network.chat.Component.literal(" \u221e").withStyle(s -> s.withColor(0xFF55FF))));
+				.append(net.minecraft.network.chat.Component.literal(": normal emblem in chat").withStyle(net.minecraft.ChatFormatting.WHITE)));
+			mc.player.sendSystemMessage(net.minecraft.network.chat.Component.empty()
+				.append(net.minecraft.network.chat.Component.literal("[").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("Dev").withStyle(net.minecraft.ChatFormatting.RED))
+				.append(net.minecraft.network.chat.Component.literal("] ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+				.append(net.minecraft.network.chat.Component.literal("\u2728 ").withStyle(s -> s.withColor(0xFF55FF).withBold(true)))
+				.append(net.minecraft.network.chat.Component.literal("[MVP+] ").withStyle(net.minecraft.ChatFormatting.AQUA))
+				.append(net.minecraft.network.chat.Component.literal("Wiggox").withStyle(s -> s.withColor(0xB11226).withBold(true)))
+				.append(net.minecraft.network.chat.Component.literal(": bold emblem in chat").withStyle(net.minecraft.ChatFormatting.WHITE)));
 		}
 		if (phaseTick == 20) {
 			photograph(mc, "symbol");

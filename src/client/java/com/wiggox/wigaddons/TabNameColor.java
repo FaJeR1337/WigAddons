@@ -292,12 +292,11 @@ public final class TabNameColor {
 							}
 						}
 					} else {
-						// a space the row has after the name does for the one before the symbol (no extra one left after it); where text
-						// follows the symbol, one is kept between them
+						// a space the row has after the name does for the one before the symbol; nothing is added after the symbol, so
+						// the symbols the server puts after the name (a row like "name ✨⚒") stay right against it
 						boolean spaceAfterName = end < plain.length() && plain.charAt(end) == ' ';
 						int putAt = spaceAfterName ? end + 1 : end;
-						boolean textFollows = putAt < plain.length() && plain.charAt(putAt) != ' ' && plain.charAt(putAt) != ':';
-						String put = (spaceAfterName ? "" : " ") + look.suffix() + (textFollows ? " " : "");
+						String put = (spaceAfterName ? "" : " ") + look.suffix();
 						plain = plain.substring(0, putAt) + put + plain.substring(putAt);
 						for (int i = 0; i < put.length(); i++) {
 							styles.add(putAt + i, symbolStyle);
