@@ -184,6 +184,36 @@ public final class TabNameColor {
 		return style.getColor() != null && style.getColor().getValue() == color;
 	}
 
+	/** Where the name first stands as a whole word before the limit, or -1. */
+	private static int firstWord(String text, String name, int limit) {
+		for (int at = text.indexOf(name); at >= 0 && at + name.length() <= limit; at = text.indexOf(name, at + name.length())) {
+			int end = at + name.length();
+			if ((at == 0 || !nameChar(text.charAt(at - 1))) && (end >= text.length() || !nameChar(text.charAt(end)))) {
+				return at;
+			}
+		}
+		return -1;
+	}
+
+	/** Where the rank in front of the name starts ("[MVP+] Wiggox": at the bracket), or the name's own start where it has no rank. */
+	private static int rankStart(String text, int nameAt, String levelWord) {
+		int j = nameAt - 1;
+		while (j >= 0 && text.charAt(j) == ' ') {
+			j--;
+		}
+		if (j >= 0 && text.charAt(j) == ']') {
+			int open = text.lastIndexOf('[', j);
+			if (open >= 0) {
+				String inside = text.substring(open + 1, j);
+				boolean level = !inside.isEmpty() && inside.chars().allMatch(Character::isDigit); // a level, not a rank
+				if (!level && !inside.equals(levelWord)) {
+					return open;
+				}
+			}
+		}
+		return nameAt;
+	}
+
 	/** Whether the text has the name in it as a whole word (not inside a longer name). */
 	private static boolean containsWord(String text, String name) {
 		for (int at = text.indexOf(name); at >= 0; at = text.indexOf(name, at + name.length())) {
@@ -225,7 +255,8 @@ public final class TabNameColor {
 		int nameLimit = senderOnly && plain.contains(": ") ? plain.indexOf(": ") : plain.length();
 		boolean changed = false;
 		NameStyle levelOf = null; // the name in this row that has a text of its own for the level
-		NameStyle emblemOf = null; // in chat: the name whose symbol goes between the level and the rank
+		NameStyle emblemOf = null; // in chat: the name whose symbol goes just before the rank
+		String emblemName = null;
 		for (Map.Entry<String, NameStyle> entry : names.entrySet()) {
 			String name = entry.getKey();
 			NameStyle look = entry.getValue();
@@ -247,7 +278,8 @@ public final class TabNameColor {
 					}
 				}
 				if (look.suffix() != null && senderOnly) {
-					emblemOf = look; // a chat line has it after the level, before the rank: put there below
+					emblemOf = look; // a chat line has it just before the rank, after the level or the channel ("Party >"): put there below
+					emblemName = name;
 				} else if (look.suffix() != null) {
 					// the symbol after the name, a space between: coloured where the row has it already, put in where it has not
 					int symbolAt = plain.startsWith(" " + look.suffix(), end) ? end + 1 : plain.startsWith(look.suffix(), end) ? end : -1;
@@ -260,13 +292,18 @@ public final class TabNameColor {
 							}
 						}
 					} else {
-						String put = " " + look.suffix();
-						plain = plain.substring(0, end) + put + plain.substring(end);
+						// a space the row has after the name does for the one before the symbol (no extra one left after it); where text
+						// follows the symbol, one is kept between them
+						boolean spaceAfterName = end < plain.length() && plain.charAt(end) == ' ';
+						int putAt = spaceAfterName ? end + 1 : end;
+						boolean textFollows = putAt < plain.length() && plain.charAt(putAt) != ' ' && plain.charAt(putAt) != ':';
+						String put = (spaceAfterName ? "" : " ") + look.suffix() + (textFollows ? " " : "");
+						plain = plain.substring(0, putAt) + put + plain.substring(putAt);
 						for (int i = 0; i < put.length(); i++) {
-							styles.add(end + i, symbolStyle);
+							styles.add(putAt + i, symbolStyle);
 						}
 						nameLimit += put.length();
-						end += put.length();
+						end = putAt + put.length();
 						changed = true;
 					}
 				}
@@ -312,7 +349,10 @@ public final class TabNameColor {
 				changed = true;
 			}
 		}
-		if (emblemOf != null) {
+		// the emblem is a regular chat thing: not in the channels (Party >, Guild >, Officer >...)
+		int emblemNameAt = emblemOf == null ? -1 : firstWord(plain, emblemName, nameLimit);
+		boolean channelLine = emblemNameAt >= 0 && plain.substring(0, emblemNameAt).contains(">");
+		if (emblemOf != null && !channelLine) {
 			// chat: "[260] ✿ [MVP+] name": the symbol between the level and the rank, where the server puts an emblem
 			String symbol = emblemOf.suffix();
 			Style symbolStyle = Style.EMPTY.withColor(emblemOf.suffixColor());
@@ -325,11 +365,13 @@ public final class TabNameColor {
 					}
 				}
 			} else {
-				int put = Math.max(levelEnd, 0);
-				String added = put == 0 ? symbol + " " : " " + symbol; // after the level and a space; at the start where there is no level
+				// just before the rank bracket in front of the name ("[MVP+] name"), or before the name where it has no rank
+				int nameAt = firstWord(plain, emblemName, nameLimit);
+				int put = nameAt >= 0 ? rankStart(plain, nameAt, levelOf != null ? levelOf.levelText() : null) : 0;
+				String added = (put > 0 && plain.charAt(put - 1) != ' ' ? " " : "") + symbol + " ";
 				plain = plain.substring(0, put) + added + plain.substring(put);
 				for (int i = 0; i < added.length(); i++) {
-					styles.add(put + i, put == 0 || i > 0 ? symbolStyle : styles.get(Math.max(0, put - 1)));
+					styles.add(put + i, symbolStyle);
 				}
 				nameLimit += added.length();
 				changed = true;

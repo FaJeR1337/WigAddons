@@ -169,8 +169,11 @@ final class SmokeTest {
 			net.minecraft.network.chat.Component chat = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: hi Wiggox");
 			net.minecraft.network.chat.Component chatEmblem = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "6\u273f " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: s");
 			net.minecraft.network.chat.Component chatNoLevel = net.minecraft.network.chat.Component.literal(sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: s");
+			net.minecraft.network.chat.Component party = net.minecraft.network.chat.Component.literal(sect + "9Party " + sect + "8> " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: g");
+			net.minecraft.network.chat.Component guild = net.minecraft.network.chat.Component.literal(sect + "2Guild > " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox " + sect + "3[Mod]" + sect + "f: hello");
+			net.minecraft.network.chat.Component noRank = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "7Wiggox" + sect + "7: hi");
 			net.minecraft.network.chat.Component chatOther = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2200" + sect + "8] " + sect + "7Someone" + sect + "f: Wiggox is here");
-			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatEmblem, chatNoLevel, chatOther}) {
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatEmblem, chatNoLevel, party, guild, noRank, chatOther}) {
 				log("chat: " + TabListDebug.describe(c) + "  ->  " + TabListDebug.describe(TabNameColor.chatLine(c)));
 			}
 			net.minecraft.network.chat.Component withEmoji = net.minecraft.network.chat.Component.empty()
@@ -179,7 +182,9 @@ final class SmokeTest {
 				.append(net.minecraft.network.chat.Component.literal("] ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
 				.append(net.minecraft.network.chat.Component.literal("Wiggox ").withStyle(net.minecraft.ChatFormatting.GOLD))
 				.append(net.minecraft.network.chat.Component.literal("\u2728").withStyle(net.minecraft.ChatFormatting.GOLD));
-			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {withEmoji, pieces}) {
+			net.minecraft.network.chat.Component trailing = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "bWiggox ");
+			net.minecraft.network.chat.Component tag = net.minecraft.network.chat.Component.literal(sect + "bWiggox");
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {withEmoji, pieces, trailing, tag}) {
 				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, -1, -1, "Wiggox");
 				log("emoji: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));
 				net.minecraft.network.chat.Component again = r == null ? null : TabNameColor.recolor(r, names, -1, -1, "Wiggox");
