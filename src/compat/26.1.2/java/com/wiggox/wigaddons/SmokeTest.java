@@ -164,6 +164,11 @@ final class SmokeTest {
 			net.minecraft.network.chat.Component other = net.minecraft.network.chat.Component.literal("SB Level: [167] 38/100 XP");
 			net.minecraft.network.chat.Component pet = net.minecraft.network.chat.Component.literal("[Lvl 100] Enderman");
 			net.minecraft.network.chat.Component notWhole = net.minecraft.network.chat.Component.literal("Wiggox2 and xWiggox");
+			net.minecraft.network.chat.Component chat = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "b[MVP" + sect + "c+" + sect + "b] Wiggox" + sect + "f: hi Wiggox");
+			net.minecraft.network.chat.Component chatOther = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2200" + sect + "8] " + sect + "7Someone" + sect + "f: Wiggox is here");
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {chat, chatOther}) {
+				log("chat: " + TabListDebug.describe(c) + "  ->  " + TabListDebug.describe(TabNameColor.chatLine(c)));
+			}
 			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {pieces, legacy, other, pet, notWhole}) {
 				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, names, 0xAAAAAA, 0xFFAA00);
 				log("recolor: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));

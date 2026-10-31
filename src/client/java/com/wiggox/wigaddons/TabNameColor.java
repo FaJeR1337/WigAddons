@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -49,6 +50,8 @@ public final class TabNameColor {
 
 	public static void register() {
 		ClientTickEvents.END_CLIENT_TICK.register(TabNameColor::tick);
+		// the chat as the server sends it (Hypixel's arrives as game messages): the lines are changed before they are shown
+		ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> overlay ? message : chatLine(message));
 	}
 
 	/** #rrggbb or rrggbb as a colour, or -1 for anything else. */
@@ -139,6 +142,18 @@ public final class TabNameColor {
 		return recolor(tag, NAME_COLORS, bracket, level);
 	}
 
+	/** A chat line with the custom colours on the sender's name and the level in front of it, or the line as it is. */
+	static Component chatLine(Component line) {
+		int bracket = -1;
+		int level = -1;
+		if (WigState.config.tabLevelCustom) {
+			bracket = parse(WigState.config.tabLevelBracketColor);
+			level = parse(WigState.config.tabLevelColor);
+		}
+		Component recolored = recolor(line, NAME_COLORS, bracket, level, true);
+		return recolored != null ? recolored : line;
+	}
+
 	/** Puts the rows back as the server sent them: for when a setting is turned off. */
 	public static void reset() {
 		restoreAll();
@@ -179,10 +194,19 @@ public final class TabNameColor {
 	 * when -1). Null where there is nothing to change or it already has the colours.
 	 */
 	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level) {
+		return recolor(component, names, bracket, level, false);
+	}
+
+	/**
+	 * As above; with {@code senderOnly} (a chat line) a name only counts before the first ": ", the sender's, and not where
+	 * it is mentioned in what is said.
+	 */
+	static Component recolor(Component component, Map<String, NameStyle> names, int bracket, int level, boolean senderOnly) {
 		StringBuilder text = new StringBuilder();
 		List<Style> styles = new ArrayList<>();
 		expand(component, text, styles);
 		String plain = text.toString();
+		int nameLimit = senderOnly && plain.contains(": ") ? plain.indexOf(": ") : plain.length();
 		boolean changed = false;
 		NameStyle levelOf = null; // the name in this row that has a text of its own for the level
 		for (Map.Entry<String, NameStyle> entry : names.entrySet()) {
@@ -190,7 +214,7 @@ public final class TabNameColor {
 			for (int at = plain.indexOf(name); at >= 0; at = plain.indexOf(name, at + name.length())) {
 				int end = at + name.length();
 				boolean whole = (at == 0 || !nameChar(plain.charAt(at - 1))) && (end >= plain.length() || !nameChar(plain.charAt(end)));
-				if (!whole) {
+				if (!whole || end > nameLimit) {
 					continue;
 				}
 				NameStyle look = entry.getValue();
