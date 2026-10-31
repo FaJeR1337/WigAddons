@@ -42,7 +42,7 @@ public final class TabListDebug {
 				if (style.isObfuscated()) {
 					out.append(" obf");
 				}
-				out.append('}').append(text);
+				out.append('}').append(text.replace('\u00a7', '&')); // legacy colour codes shown as &, not drawn
 			}
 			return java.util.Optional.empty();
 		}, Style.EMPTY);
@@ -64,7 +64,7 @@ public final class TabListDebug {
 		int number = 0;
 		for (PlayerInfo info : entries) {
 			PlayerTeam team = info.getTeam();
-			String teamText = team == null ? "no team" : "team " + team.getName() + " prefix " + describe(team.getPlayerPrefix()) + " suffix " + describe(team.getPlayerSuffix());
+			String teamText = team == null ? "no team" : "team " + team.getName() + " colour " + String.valueOf(team.getColor()).replace((char) 0xA7, (char) 0x26) + " prefix " + describe(team.getPlayerPrefix()) + " suffix " + describe(team.getPlayerSuffix());
 			Chat.info("#" + number++ + " order " + info.getTabListOrder() + " | " + info.getProfile().name() + " | tab name " + describe(info.getTabListDisplayName()) + " | " + teamText);
 		}
 		Objective list = mc.level.getScoreboard().getDisplayObjective(DisplaySlot.LIST);

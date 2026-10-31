@@ -172,6 +172,7 @@ public final class WigGui {
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("jerry", "Jerry", "Jerries."),
 			new DynCategory("experimentation", "Exp. Table", "The Experimentation table."),
+			new DynCategory("tablist", "Tab List", "Your name in the player list."),
 			new DynCategory("autoclicker", "Autoclicker", "Clicks for you while a key is held."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
@@ -202,6 +203,7 @@ public final class WigGui {
 				case "fishing" -> fillFishing(category);
 				case "jerry" -> fillJerry(category);
 				case "experimentation" -> fillExperimentation(category);
+				case "tablist" -> fillTabList(category);
 				case "autoclicker" -> fillAutoclicker(category);
 				case "hud" -> fillHud(category);
 				case "safety" -> fillSafety(category);
@@ -297,6 +299,24 @@ public final class WigGui {
 	}
 
 	// ---- HUD ----
+
+	private static void fillTabList(DynCategory category) {
+		reset(category);
+		OptionBuilder b = new OptionBuilder(category, CONFIG);
+		WigConfig config = WigState.config;
+		b.toggle("custom", "Custom name colour", "Shows your own name in the player list (the Tab key) in the colour below. Only the name changes, not the level or symbols round it.",
+			() -> config.tabNameCustom, v -> {
+				config.tabNameCustom = v;
+				WigState.saveConfig();
+			});
+		b.text("color", "Colour", "As #rrggbb, for example #FF55FF.",
+			() -> config.tabNameColor, v -> {
+				if (com.wiggox.wigaddons.TabNameColor.parse(v) >= 0) {
+					config.tabNameColor = v.trim();
+					WigState.saveConfig();
+				}
+			});
+	}
 
 	private static void fillAutoclicker(DynCategory category) {
 		reset(category);

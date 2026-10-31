@@ -153,9 +153,14 @@ final class SmokeTest {
 	/** /wig debug tablist prints the tab list. */
 	private static void tabListCheck(Minecraft mc) {
 		if (phaseTick == 1) {
+			WigState.config.tabNameCustom = true;
+			WigState.config.tabNameColor = "#FF8800";
+		}
+		if (phaseTick == 10) {
 			command(mc, "wig debug tablist");
 		}
-		if (phaseTick == 30) {
+		if (phaseTick == 40) {
+			WigState.config.tabNameCustom = false;
 			next();
 		}
 	}

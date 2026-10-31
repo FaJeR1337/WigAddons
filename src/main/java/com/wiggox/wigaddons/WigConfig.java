@@ -91,6 +91,9 @@ public final class WigConfig {
 	public boolean experimentsAuto = false;
 	public int experimentsSerums = 0;
 	/** The autoclicker: the main switch, and for each button its clicks per second (0 to 20) and the key that runs it while held (0 is none). */
+	/** Your own name in the tab list, in a colour of your choice (#rrggbb): the text of the name only, not the level or the symbols round it. */
+	public boolean tabNameCustom = false;
+	public String tabNameColor = "#FF55FF";
 	public boolean autoclickerOn = false;
 	public int autoLeftCps = 10;
 	public int autoLeftKey = 0;
