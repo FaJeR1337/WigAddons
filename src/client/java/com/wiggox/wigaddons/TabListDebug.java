@@ -50,6 +50,11 @@ public final class TabListDebug {
 	}
 
 	public static int print() {
+		return print("");
+	}
+
+	/** With a filter, only the lines with that text in them (the names a server draws players with are on rows of their own, so this finds yours). */
+	public static int print(String filter) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.getConnection() == null || mc.level == null) {
 			Chat.error("Not in a world.");
@@ -60,12 +65,16 @@ public final class TabListDebug {
 		entries.sort(Comparator.comparingInt(PlayerInfo::getTabListOrder).reversed()
 			.thenComparing(info -> info.getTeam() != null ? info.getTeam().getName() : "")
 			.thenComparing(info -> info.getProfile().name(), String::compareToIgnoreCase));
-		Chat.info("Tab list: " + entries.size() + " entries, in the order they are drawn. {colour style}text pieces; - is the default colour.");
+		Chat.info("Tab list: " + entries.size() + " entries, in the order they are drawn (the tab list draws the first 80). {colour style}text pieces; - is the default colour.");
 		int number = 0;
+		String needle = filter == null ? "" : filter.toLowerCase();
 		for (PlayerInfo info : entries) {
 			PlayerTeam team = info.getTeam();
 			String teamText = team == null ? "no team" : "team " + team.getName() + " colour " + String.valueOf(team.getColor()).replace((char) 0xA7, (char) 0x26) + " prefix " + describe(team.getPlayerPrefix()) + " suffix " + describe(team.getPlayerSuffix());
-			Chat.info("#" + number++ + " order " + info.getTabListOrder() + " | " + info.getProfile().name() + " | tab name " + describe(info.getTabListDisplayName()) + " | " + teamText);
+			String line = "#" + number++ + " order " + info.getTabListOrder() + " | " + info.getProfile().name() + " | tab name " + describe(info.getTabListDisplayName()) + " | " + teamText;
+			if (needle.isEmpty() || line.toLowerCase().contains(needle)) {
+				Chat.info(line);
+			}
 		}
 		Objective list = mc.level.getScoreboard().getDisplayObjective(DisplaySlot.LIST);
 		if (list == null) {

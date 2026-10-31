@@ -150,7 +150,8 @@ public final class WigCommands {
 			.then(ClientCommands.literal("stop").executes(c -> stop()))
 			.then(ClientCommands.literal("waypoints").executes(c -> toggleWaypoints()))
 			.then(ClientCommands.literal("debug").executes(c -> toggleDebug())
-				.then(ClientCommands.literal("tablist").executes(c -> TabListDebug.print())))
+				.then(ClientCommands.literal("tablist").executes(c -> TabListDebug.print())
+					.then(ClientCommands.argument("text", StringArgumentType.greedyString()).executes(c -> TabListDebug.print(StringArgumentType.getString(c, "text"))))))
 			.then(ClientCommands.literal("trail").executes(c -> {
 				WigState.config.followShowTrail = !WigState.config.followShowTrail;
 				WigState.saveConfig();

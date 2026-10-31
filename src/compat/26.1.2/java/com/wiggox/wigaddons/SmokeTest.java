@@ -150,16 +150,42 @@ final class SmokeTest {
 		}
 	}
 
-	/** /wig debug tablist prints the tab list. */
+	/** The tab list with a Hypixel-like team prefix and a custom name colour: what colour is the name drawn in? */
 	private static void tabListCheck(Minecraft mc) {
 		if (phaseTick == 1) {
+			command(mc, "team add hyp");
+			command(mc, "team modify hyp prefix {\"text\":\"\u00a78[\u00a72167\u00a78] \u00a7b\"}");
+			command(mc, "team modify hyp color aqua");
+			command(mc, "team join hyp @s");
+			command(mc, "scoreboard objectives add lvl dummy");
+			command(mc, "scoreboard objectives setdisplay list lvl");
 			WigState.config.tabNameCustom = true;
-			WigState.config.tabNameColor = "#FF8800";
+			WigState.config.tabNameColor = "#FF2200";
 		}
-		if (phaseTick == 10) {
+		if (phaseTick == 5) {
+			String sect = String.valueOf((char) 0xA7);
+			net.minecraft.network.chat.Component legacy = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "bWiggox");
+			net.minecraft.network.chat.Component withSuffix = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "bWiggox " + sect + "d\u2733");
+			net.minecraft.network.chat.Component plainSuffix = net.minecraft.network.chat.Component.literal(sect + "bWiggox cool");
+			net.minecraft.network.chat.MutableComponent siblings = net.minecraft.network.chat.Component.empty()
+				.append(net.minecraft.network.chat.Component.literal("[167] ").withColor(0xAA00AA))
+				.append(net.minecraft.network.chat.Component.literal("Wiggox").withColor(0x55FFFF));
+			net.minecraft.network.chat.Component already = net.minecraft.network.chat.Component.literal("Wiggox").withColor(0xFF2200);
+			net.minecraft.network.chat.Component none = net.minecraft.network.chat.Component.literal(sect + "bSomeoneElse");
+			for (net.minecraft.network.chat.Component c : new net.minecraft.network.chat.Component[] {legacy, withSuffix, plainSuffix, siblings, already, none}) {
+				net.minecraft.network.chat.Component r = TabNameColor.recolor(c, "Wiggox", 0xFF2200);
+				log("recolor: " + TabListDebug.describe(c) + "  ->  " + (r == null ? "(unchanged)" : TabListDebug.describe(r)));
+			}
+		}
+		if (phaseTick == 20) {
 			command(mc, "wig debug tablist");
+			mc.options.keyPlayerList.setDown(true);
+		}
+		if (phaseTick == 30) {
+			photograph(mc, "tablist");
 		}
 		if (phaseTick == 40) {
+			mc.options.keyPlayerList.setDown(false);
 			WigState.config.tabNameCustom = false;
 			next();
 		}
