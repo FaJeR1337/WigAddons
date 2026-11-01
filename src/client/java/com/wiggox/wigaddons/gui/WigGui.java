@@ -172,7 +172,7 @@ public final class WigGui {
 			new DynCategory("fishing", "Fishing", "Trophy fishing with /wig trophy."),
 			new DynCategory("jerry", "Jerry", "Jerries."),
 			new DynCategory("experimentation", "Exp. Table", "The Experimentation table."),
-			new DynCategory("tablist", "Tab List", "Your own name and level in the player list, chat and over your head."),
+			new DynCategory("tablist", "Custom colours", "Your own name and level in the player list, chat and over your head."),
 			new DynCategory("autoclicker", "Autoclicker", "Clicks for you while a key is held."),
 			new DynCategory("hud", "HUD", "The running route and its timer."),
 			new DynCategory("safety", "Safety", "Macro checks."));
@@ -304,25 +304,8 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
-		b.toggle("ownname", "Custom name colour", "Draws your own name in the player list, in chat and over your head in the colour below. Only you see it.",
-			() -> config.ownNameCustom, v -> {
-				config.ownNameCustom = v;
-				WigState.saveConfig();
-				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again, with or without the colour
-			});
-		b.colour("namecolor", "Name colour", "The colour of your name.",
-			() -> config.ownNameColor, v -> {
-				config.ownNameColor = v;
-				WigState.saveConfig();
-				com.wiggox.wigaddons.TabNameColor.reset();
-			});
-		b.toggle("namebold", "Bold name", "Draws your name in bold.",
-			() -> config.ownNameBold, v -> {
-				config.ownNameBold = v;
-				WigState.saveConfig();
-				com.wiggox.wigaddons.TabNameColor.reset();
-			});
-		b.toggle("custom", "Custom level colours", "Draws your own level in the player list, in chat and over your head, the [167], in the colours below, whatever colour the server gives it and whatever the level.",
+		b.section("level", "Custom Level");
+		b.toggle("custom", "Custom Level", "Draws your own level, the [167], in the player list, in chat and over your head, in the colours below, whatever colour the server gives it and whatever the level. Only you see it.",
 			() -> config.tabLevelCustom, v -> {
 				config.tabLevelCustom = v;
 				WigState.saveConfig();
@@ -340,6 +323,21 @@ public final class WigGui {
 				WigState.saveConfig();
 				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again in the new colour
 			});
+		b.endSection();
+		b.section("name", "Custom Name");
+		b.toggle("ownname", "Custom Name", "Draws your own name in the player list, in chat and over your head in the colour below. Only you see it.",
+			() -> config.ownNameCustom, v -> {
+				config.ownNameCustom = v;
+				WigState.saveConfig();
+				com.wiggox.wigaddons.TabNameColor.reset(); // the rows are made again, with or without the colour
+			});
+		b.colour("namecolor", "Name colour", "The colour of your name.",
+			() -> config.ownNameColor, v -> {
+				config.ownNameColor = v;
+				WigState.saveConfig();
+				com.wiggox.wigaddons.TabNameColor.reset();
+			});
+		b.endSection();
 	}
 
 	private static void fillAutoclicker(DynCategory category) {

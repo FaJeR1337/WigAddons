@@ -162,7 +162,6 @@ final class SmokeTest {
 			log("ownname off: " + TabListDebug.describe(TabNameColor.chatLine(mine)));
 			WigState.config.ownNameCustom = true;
 			WigState.config.ownNameColor = "#00FF88";
-			WigState.config.ownNameBold = true;
 			log("ownname on: " + TabListDebug.describe(TabNameColor.chatLine(mine)));
 			WigState.config.ownNameCustom = false;
 		}

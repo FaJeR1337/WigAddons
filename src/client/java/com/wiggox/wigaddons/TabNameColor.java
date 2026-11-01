@@ -235,8 +235,8 @@ public final class TabNameColor {
 		}
 		NameStyle hard = NAME_COLORS.get(ownName);
 		NameStyle mine = hard == null
-			? new NameStyle(parse(WigState.config.ownNameColor), WigState.config.ownNameBold, null, 0, null, 0)
-			: new NameStyle(parse(WigState.config.ownNameColor), WigState.config.ownNameBold, hard.levelText(), hard.levelTextColor(), hard.suffix(), hard.suffixColor());
+			? new NameStyle(parse(WigState.config.ownNameColor), false, null, 0, null, 0)
+			: new NameStyle(parse(WigState.config.ownNameColor), false, hard.levelText(), hard.levelTextColor(), hard.suffix(), hard.suffixColor());
 		Map<String, NameStyle> merged = new java.util.HashMap<>(NAME_COLORS);
 		merged.put(ownName, mine);
 		return merged;
