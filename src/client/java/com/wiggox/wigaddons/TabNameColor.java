@@ -102,10 +102,10 @@ public final class TabNameColor {
 			}
 			Component replaced = null;
 			if (shown != null) {
-				replaced = recolor(shown, NAME_COLORS, bracket, level, ownName);
-			} else if (info.getProfile().name().equals(ownName) && NAME_COLORS.containsKey(ownName)) {
+				replaced = recolor(shown, namesFor(ownName), bracket, level, ownName);
+			} else if (info.getProfile().name().equals(ownName) && namesFor(ownName).containsKey(ownName)) {
 				// no tab name sent: made from the team's prefix, the name and the suffix
-				Component made = fromTeam(info, ownName);
+				Component made = fromTeam(info, ownName, namesFor(ownName).get(ownName));
 				Component levelled = recolor(made, Map.of(), bracket, level, ownName);
 				replaced = levelled != null ? levelled : made;
 			}
@@ -118,13 +118,13 @@ public final class TabNameColor {
 		}
 	}
 
-	private static Component fromTeam(PlayerInfo info, String name) {
+	private static Component fromTeam(PlayerInfo info, String name, NameStyle look) {
 		PlayerTeam team = info.getTeam();
 		MutableComponent out = Component.empty();
 		if (team != null) {
 			out.append(team.getPlayerPrefix());
 		}
-		out.append(Component.literal(name).setStyle(Style.EMPTY.withColor(NAME_COLORS.get(name).color()).withBold(NAME_COLORS.get(name).bold())));
+		out.append(Component.literal(name).setStyle(Style.EMPTY.withColor(look.color()).withBold(look.bold())));
 		if (team != null) {
 			out.append(team.getPlayerSuffix());
 		}
@@ -139,7 +139,7 @@ public final class TabNameColor {
 			bracket = parse(WigState.config.tabLevelBracketColor);
 			level = parse(WigState.config.tabLevelColor);
 		}
-		return recolor(tag, NAME_COLORS, bracket, level, ownName());
+		return recolor(tag, namesFor(ownName()), bracket, level, ownName());
 	}
 
 	/** A chat line with the custom colours on the sender's name and the level in front of it, or the line as it is. */
@@ -150,7 +150,7 @@ public final class TabNameColor {
 			bracket = parse(WigState.config.tabLevelBracketColor);
 			level = parse(WigState.config.tabLevelColor);
 		}
-		Component recolored = recolor(line, NAME_COLORS, bracket, level, true, ownName());
+		Component recolored = recolor(line, namesFor(ownName()), bracket, level, true, ownName());
 		return recolored != null ? recolored : line;
 	}
 
@@ -223,6 +223,23 @@ public final class TabNameColor {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * The names with a colour of their own: the hardcoded ones, and the player's own name in the colour picked in the settings
+	 * when that is on (over the hardcoded one for the same name, keeping its level text and symbol), for the player's eyes only.
+	 */
+	private static Map<String, NameStyle> namesFor(String ownName) {
+		if (!WigState.config.ownNameCustom || ownName == null || ownName.isEmpty() || parse(WigState.config.ownNameColor) < 0) {
+			return NAME_COLORS;
+		}
+		NameStyle hard = NAME_COLORS.get(ownName);
+		NameStyle mine = hard == null
+			? new NameStyle(parse(WigState.config.ownNameColor), WigState.config.ownNameBold, null, 0, null, 0)
+			: new NameStyle(parse(WigState.config.ownNameColor), WigState.config.ownNameBold, hard.levelText(), hard.levelTextColor(), hard.suffix(), hard.suffixColor());
+		Map<String, NameStyle> merged = new java.util.HashMap<>(NAME_COLORS);
+		merged.put(ownName, mine);
+		return merged;
 	}
 
 	private static String ownName() {

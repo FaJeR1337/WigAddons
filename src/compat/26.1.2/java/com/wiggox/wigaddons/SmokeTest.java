@@ -154,6 +154,18 @@ final class SmokeTest {
 
 	/** The tab list text rewriting: names and levels in rows as a server draws them. */
 	private static void tabListCheck(Minecraft mc) {
+		if (phaseTick == 3) {
+			String me = mc.player.getGameProfile().name();
+			String sect = String.valueOf((char) 0xA7);
+			net.minecraft.network.chat.Component mine = net.minecraft.network.chat.Component.literal(sect + "8[" + sect + "2167" + sect + "8] " + sect + "b[MVP" + sect + "c+" + sect + "b] " + me + sect + "f: hi");
+			WigState.config.ownNameCustom = false;
+			log("ownname off: " + TabListDebug.describe(TabNameColor.chatLine(mine)));
+			WigState.config.ownNameCustom = true;
+			WigState.config.ownNameColor = "#00FF88";
+			WigState.config.ownNameBold = true;
+			log("ownname on: " + TabListDebug.describe(TabNameColor.chatLine(mine)));
+			WigState.config.ownNameCustom = false;
+		}
 		if (phaseTick == 5) {
 			String sect = String.valueOf((char) 0xA7);
 			java.util.Map<String, TabNameColor.NameStyle> names = java.util.Map.of("Wiggox", new TabNameColor.NameStyle(0xB11226, true, "Dev", 0xFF5555, "\u2728", 0xFF55FF));

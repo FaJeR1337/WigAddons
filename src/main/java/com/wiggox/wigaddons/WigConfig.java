@@ -91,6 +91,10 @@ public final class WigConfig {
 	public boolean experimentsAuto = false;
 	public int experimentsSerums = 0;
 	/** The autoclicker: the main switch, and for each button its clicks per second (0 to 20) and the key that runs it while held (0 is none). */
+	/** Your own name in the tab list, chat and over your head, in a colour (#rrggbb) and bold or not of your own choice: seen by you only. */
+	public boolean ownNameCustom = false;
+	public String ownNameColor = "#FF55FF";
+	public boolean ownNameBold = false;
 	/** The level at the start of a tab list row ("[167]"): the colour of its brackets and of its number, as #rrggbb. */
 	public boolean tabLevelCustom = false;
 	public String tabLevelBracketColor = "#555555";
