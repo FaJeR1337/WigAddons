@@ -1111,6 +1111,18 @@ public final class Runner {
 		return text.toString();
 	}
 
+	/** One click of the hunt: the right button held (use), or with Left Click on a left click (attack) that registers as a press of the button. */
+	private static void huntClick(Minecraft mc, WigConfig cfg) {
+		if (cfg.killLeftClick) {
+			mc.options.keyAttack.setDown(true);
+			KeyMapping.click(com.mojang.blaze3d.platform.InputConstants.getKey(mc.options.keyAttack.saveString()));
+			holdingLeft = true;
+		} else {
+			mc.options.keyUse.setDown(true);
+			holdingRight = true;
+		}
+	}
+
 	private static void useRod(Minecraft mc, LocalPlayer player) {
 		var result = mc.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
 		if (result.consumesAction()) {
@@ -1217,7 +1229,9 @@ public final class Runner {
 		}
 		if (useTicksLeft > 0 && --useTicksLeft == 0) {
 			mc.options.keyUse.setDown(false);
+			mc.options.keyAttack.setDown(false);
 			holdingRight = false;
+			holdingLeft = false;
 		}
 		if (huntReactTicks > 0) {
 			huntStuckId = -1; // standing and looking round on purpose is not being stuck
@@ -1383,8 +1397,7 @@ public final class Runner {
 		turnPerTick = RouteFollower.wrapDegrees(player.getYRot() - yawAtLastTick);
 		yawAtLastTick = player.getYRot();
 		if (useTicksLeft == 0 && ticks >= nextClickTick && lookingAtInReach(mc, player, id, cfg)) {
-			mc.options.keyUse.setDown(true);
-			holdingRight = true;
+			huntClick(mc, cfg);
 			useTicksLeft = cfg.killClickTicks;
 			// the weapon's cooldown, plus up to a fifth more at random
 			nextClickTick = ticks + Math.max(cfg.killClickTicks, Math.round(cfg.killClickCooldownSeconds * 20 * (1 + HUNT_RANDOM.nextDouble() * 0.2)));
@@ -2409,7 +2422,9 @@ public final class Runner {
 		Minecraft mc = Minecraft.getInstance();
 		sneaking = false;
 		mc.options.keyUse.setDown(false);
+		mc.options.keyAttack.setDown(false);
 		holdingRight = false;
+		holdingLeft = false;
 		protState = Prot.CELEBRATE;
 		protTicks = 0;
 		protWait = null;
@@ -2703,8 +2718,17 @@ public final class Runner {
 					}
 				}
 				// right clicking the whole fight, and sneaking once it is within ten blocks
-				mc.options.keyUse.setDown(true);
-				holdingRight = true;
+				if (cfg().killLeftClick) {
+					if (ticks >= nextClickTick) { // left clicks are paced like the hunt's, one press at a time
+						huntClick(mc, cfg());
+						nextClickTick = ticks + Math.max(1, Math.round(cfg().killClickCooldownSeconds * 20));
+					} else {
+						mc.options.keyAttack.setDown(false);
+					}
+				} else {
+					mc.options.keyUse.setDown(true);
+					holdingRight = true;
+				}
 				if (mob == null) {
 					sneaking = false;
 					standStill();

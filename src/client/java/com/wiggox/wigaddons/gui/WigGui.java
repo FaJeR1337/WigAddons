@@ -455,6 +455,11 @@ public final class WigGui {
 		reset(category);
 		OptionBuilder b = new OptionBuilder(category, CONFIG);
 		WigConfig config = WigState.config;
+		b.toggle("leftclick", "Left click", "Attacks with the left mouse button instead of right clicking: for a sword, a mining tool or anything you hit with.",
+			() -> config.killLeftClick, v -> {
+				config.killLeftClick = v;
+				WigState.saveConfig();
+			});
 		b.info("how", "How it works", "Type /wig kill. You walk up to the nearest mob with the name below (special ones first), look at it and right click once it is in reach. The mob is then treated as dead for a few seconds and you move on to the next. /wig stop ends it.");
 		b.slider("turnspeed", "Turn speed", "The fastest the view turns while hunting, in degrees per tick. This is separate from the default turn speed that routes and following use (10).",
 			1, 60, 1, () -> config.killTurnSpeed, v -> {

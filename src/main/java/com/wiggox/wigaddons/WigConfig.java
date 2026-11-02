@@ -145,6 +145,8 @@ public final class WigConfig {
 	public boolean killPreciseAim = true;
 	public double killCloseSmoothing = 0;
 	public double killPreciseAngle = 25;
+	/** Hunting clicks with the left button (attack) instead of the right (use). */
+	public boolean killLeftClick = false;
 	public boolean killShowTags = true;
 	/** Going home: teleport there with an Aspect of the End or Void in the hotbar instead of walking the whole way. */
 	public boolean killTeleportHome = false;
