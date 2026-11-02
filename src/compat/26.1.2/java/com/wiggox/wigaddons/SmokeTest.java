@@ -437,6 +437,13 @@ final class SmokeTest {
 	/** Three named iron golems standing in for endermen stand about: the special one should be attacked first, then the others, nearest first. */
 	private static void huntCheck(Minecraft mc) {
 		if (phaseTick == 1) {
+			WigState.config.killLeftClick = true; // the left click setting: attacks, so the player swings
+			swingTicks = 0;
+		}
+		if (mc.player != null && mc.player.swinging) {
+			swingTicks++;
+		}
+		if (phaseTick == 1) {
 			command(mc, "tp @s 0.5 -60 0.5 -90 0");
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 		}
@@ -463,7 +470,8 @@ final class SmokeTest {
 			photograph(mc, "hunt");
 		}
 		if (phaseTick == 700 || (phaseTick > 40 && Runner.huntOrder().size() >= 5)) { // the special one takes three clicks
-			log("hunt ended: attacked in order " + Runner.huntOrder());
+			log("hunt ended: attacked in order " + Runner.huntOrder() + ", swinging on " + swingTicks + " ticks with left click");
+			WigState.config.killLeftClick = false;
 			Runner.stop("smoke test over");
 			command(mc, "kill @e[type=minecraft:iron_golem]");
 			next();
